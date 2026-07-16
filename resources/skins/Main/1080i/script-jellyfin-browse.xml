@@ -34,6 +34,13 @@
       </itemlayout>
       <focusedlayout width="220" height="330">
         <control type="image">
+          <posx>-4</posx>
+          <posy>-4</posy>
+          <width>228</width>
+          <height>338</height>
+          <texture border="6">focus-highlight.png</texture>
+        </control>
+        <control type="image">
           <width>220</width>
           <height>330</height>
           <texture>$INFO[ListItem.Art(thumb)]</texture>

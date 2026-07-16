@@ -60,6 +60,13 @@
       </itemlayout>
       <focusedlayout width="200" height="140">
         <control type="image">
+          <posx>-4</posx>
+          <posy>-4</posy>
+          <width>208</width>
+          <height>148</height>
+          <texture border="6">focus-highlight.png</texture>
+        </control>
+        <control type="image">
           <width>200</width>
           <height>140</height>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
@@ -99,6 +106,13 @@
         </control>
       </itemlayout>
       <focusedlayout width="280" height="158">
+        <control type="image">
+          <posx>-4</posx>
+          <posy>-4</posy>
+          <width>288</width>
+          <height>166</height>
+          <texture border="6">focus-highlight.png</texture>
+        </control>
         <control type="image">
           <width>280</width>
           <height>158</height>
@@ -140,6 +154,13 @@
       </itemlayout>
       <focusedlayout width="280" height="158">
         <control type="image">
+          <posx>-4</posx>
+          <posy>-4</posy>
+          <width>288</width>
+          <height>166</height>
+          <texture border="6">focus-highlight.png</texture>
+        </control>
+        <control type="image">
           <width>280</width>
           <height>158</height>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
@@ -179,6 +200,13 @@
         </control>
       </itemlayout>
       <focusedlayout width="140" height="80">
+        <control type="image">
+          <posx>-4</posx>
+          <posy>-4</posy>
+          <width>148</width>
+          <height>88</height>
+          <texture border="6">focus-highlight.png</texture>
+        </control>
         <control type="image">
           <width>140</width>
           <height>80</height>
