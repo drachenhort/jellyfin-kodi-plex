@@ -39,10 +39,10 @@
           <texture border="10">focus-highlight.png</texture>
         </control>
         <control type="image">
-          <posx>8</posx>
-          <posy>8</posy>
-          <width>204</width>
-          <height>314</height>
+          <posx>3</posx>
+          <posy>3</posy>
+          <width>214</width>
+          <height>324</height>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
         <control type="label">

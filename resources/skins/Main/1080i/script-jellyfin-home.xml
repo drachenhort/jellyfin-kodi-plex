@@ -65,10 +65,10 @@
           <texture border="10">focus-highlight.png</texture>
         </control>
         <control type="image">
-          <posx>8</posx>
-          <posy>8</posy>
-          <width>184</width>
-          <height>124</height>
+          <posx>3</posx>
+          <posy>3</posy>
+          <width>194</width>
+          <height>134</height>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
         <control type="label">
@@ -119,10 +119,10 @@
           <texture border="10">focus-highlight.png</texture>
         </control>
         <control type="image">
-          <posx>8</posx>
-          <posy>8</posy>
-          <width>264</width>
-          <height>142</height>
+          <posx>3</posx>
+          <posy>3</posy>
+          <width>274</width>
+          <height>152</height>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
         <control type="label">
@@ -173,10 +173,10 @@
           <texture border="10">focus-highlight.png</texture>
         </control>
         <control type="image">
-          <posx>8</posx>
-          <posy>8</posy>
-          <width>124</width>
-          <height>64</height>
+          <posx>3</posx>
+          <posy>3</posy>
+          <width>134</width>
+          <height>74</height>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
         <control type="image">
@@ -220,10 +220,10 @@
           <texture border="10">focus-highlight.png</texture>
         </control>
         <control type="image">
-          <posx>8</posx>
-          <posy>8</posy>
-          <width>264</width>
-          <height>142</height>
+          <posx>3</posx>
+          <posy>3</posy>
+          <width>274</width>
+          <height>152</height>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
         <control type="label">
