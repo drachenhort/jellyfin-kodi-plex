@@ -1,5 +1,7 @@
 # jellyfin-kodi-plex
 
+*[Deutsche Version](README.de.md)*
+
 A Kodi program addon (`script.jellyfin.plex`) that connects to a Jellyfin media server and
 presents a custom, hub-based interface modelled on the Plex Web/App experience — rather than
 Kodi's default skin listings.
