@@ -113,6 +113,29 @@ def test_get_items_non_recursive(client, monkeypatch):
     assert fake.calls[0]["params"]["Recursive"] == "false"
 
 
+def test_get_items_search_term(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"Items": [], "TotalRecordCount": 0})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    library.get_items(client, search_term="alien")
+
+    assert fake.calls[0]["params"]["SearchTerm"] == "alien"
+
+
+def test_search_items_builds_params(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"Items": [{"Id": "s1"}]})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    result = library.search_items(client, "alien", limit=10)
+
+    assert result == {"Items": [{"Id": "s1"}]}
+    params = fake.calls[0]["params"]
+    assert params["SearchTerm"] == "alien"
+    assert params["Limit"] == 10
+    assert params["Recursive"] == "true"
+    assert params["IncludeItemTypes"] == library.SEARCH_ITEM_TYPES
+
+
 def test_get_resume_and_next_up_and_latest(client, monkeypatch):
     fake = FakeRequests([
         FakeResponse({"Items": [{"Id": "r1"}]}),

@@ -12,10 +12,10 @@ windows to fully control the UI, independent of the active Kodi skin.
 
 Milestone 1 (in progress): login (Quick Connect + password fallback) → home screen with
 Continue Watching / Next Up / Recently Added hub rows → library poster-wall browsing, including
-drill-down through TV (Series → Season → Episode) and Music (Artist → Album → Track) hierarchies
-→ item detail page → playback with progress reported back to the server, and a custom Plex-style
-seek/OSD dialog in place of Kodi's stock video controls. Search and multi-server support are
-follow-up work.
+drill-down through TV (Series → Season → Episode) and Music (Artist → Album → Track) hierarchies,
+and a Search screen → item detail page → playback with progress reported back to the server, and
+a custom Plex-style seek/OSD dialog in place of Kodi's stock video controls. Multi-server support
+is follow-up work.
 
 The TV/Music drill-down works by fetching each item's direct children non-recursively
 (`lib/windows/browse.py` is reused at every level: a library's top-level items, a series'

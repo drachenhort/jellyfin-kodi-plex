@@ -11,7 +11,7 @@ def get_views(client):
 
 def get_items(client, parent_id=None, start_index=0, limit=50, sort_by="SortName",
               sort_order="Ascending", include_item_types=None, recursive=True,
-              fields=DEFAULT_ITEM_FIELDS):
+              search_term=None, fields=DEFAULT_ITEM_FIELDS):
     """GET /Users/{userId}/Items — browse within a library/folder, paged."""
     params = {
         "StartIndex": start_index,
@@ -25,6 +25,8 @@ def get_items(client, parent_id=None, start_index=0, limit=50, sort_by="SortName
         params["ParentId"] = parent_id
     if include_item_types:
         params["IncludeItemTypes"] = include_item_types
+    if search_term:
+        params["SearchTerm"] = search_term
     return client.get(f"/Users/{client.user_id}/Items", params=params)
 
 
@@ -61,3 +63,14 @@ def get_latest(client, parent_id=None, limit=20):
         params["ParentId"] = parent_id
     result = client.get(f"/Users/{client.user_id}/Items/Latest", params=params)
     return result or []
+
+
+SEARCH_ITEM_TYPES = "Movie,Series,MusicArtist,MusicAlbum,Audio,Episode"
+
+
+def search_items(client, term, limit=50, fields=DEFAULT_ITEM_FIELDS):
+    """GET /Users/{userId}/Items with SearchTerm — used by the Search screen."""
+    return get_items(
+        client, limit=limit, recursive=True, search_term=term,
+        include_item_types=SEARCH_ITEM_TYPES, fields=fields,
+    )

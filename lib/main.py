@@ -20,6 +20,7 @@ from lib.windows.browse import BrowseWindow
 from lib.windows.detail import DetailWindow
 from lib.windows.home import HomeWindow
 from lib.windows.login import LoginWindow
+from lib.windows.search import SearchWindow
 
 ADDON = xbmcaddon.Addon()
 ADDON_PATH = ADDON.getAddonInfo("path")
@@ -102,6 +103,15 @@ def _browse_loop(client, parent_id, title):
             _open_item(client, result["item_id"], result["item_type"], result["item_name"])
 
 
+def _search_loop(client):
+    while True:
+        result = SearchWindow.open(ADDON_PATH, client=client)
+        if not result:
+            return
+        if result["action"] == "open":
+            _open_item(client, result["item_id"], result["item_type"], result["item_name"])
+
+
 def _home_loop(client):
     while True:
         result = HomeWindow.open(ADDON_PATH, client=client)
@@ -111,6 +121,8 @@ def _home_loop(client):
             _browse_loop(client, result["library_id"], result["library_name"])
         elif result["action"] == "open":
             _open_item(client, result["item_id"], result["item_type"], result["item_name"])
+        elif result["action"] == "search":
+            _search_loop(client)
 
 
 def run():
