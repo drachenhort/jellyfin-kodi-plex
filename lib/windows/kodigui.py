@@ -91,9 +91,23 @@ class BaseDialog(WindowMixin, xbmcgui.WindowXMLDialog):
         xbmcgui.WindowXMLDialog.__init__(self, *args, **kwargs)
 
 
+def _display_label(item):
+    """Grid caption for `item`: plain Name, except ordered children of a
+    container (episodes within a season, tracks within an album) get their
+    index number prefixed since Name alone doesn't convey ordering."""
+    name = item.get("Name", "")
+    item_type = item.get("Type")
+    index = item.get("IndexNumber")
+    if item_type == "Episode" and item.get("ParentIndexNumber") is not None and index is not None:
+        return f"{item['ParentIndexNumber']}x{index:02d}. {name}"
+    if item_type == "Audio" and index is not None:
+        return f"{index}. {name}"
+    return name
+
+
 def list_item(item, primary_art=None, backdrop_art=None):
     """Build an xbmcgui.ListItem for a Jellyfin BaseItemDto."""
-    li = xbmcgui.ListItem(label=item.get("Name", ""))
+    li = xbmcgui.ListItem(label=_display_label(item))
     art = {}
     if primary_art:
         art["thumb"] = primary_art
@@ -116,4 +130,5 @@ def list_item(item, primary_art=None, backdrop_art=None):
     if user_data.get("PlaybackPositionTicks"):
         info_tag.setResumePoint(user_data["PlaybackPositionTicks"] / 10_000_000)
     li.setProperty("jellyfin_id", item.get("Id", ""))
+    li.setProperty("jellyfin_type", item.get("Type", ""))
     return li

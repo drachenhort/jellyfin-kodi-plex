@@ -11,10 +11,18 @@ windows to fully control the UI, independent of the active Kodi skin.
 ## Status
 
 Milestone 1 (in progress): login (Quick Connect + password fallback) → home screen with
-Continue Watching / Next Up / Recently Added hub rows → library poster-wall browsing → item
-detail page → playback with progress reported back to the server, and a custom Plex-style seek/OSD
-dialog in place of Kodi's stock video controls. TV/music navigation, search, and multi-server
-support are follow-up work.
+Continue Watching / Next Up / Recently Added hub rows → library poster-wall browsing, including
+drill-down through TV (Series → Season → Episode) and Music (Artist → Album → Track) hierarchies
+→ item detail page → playback with progress reported back to the server, and a custom Plex-style
+seek/OSD dialog in place of Kodi's stock video controls. Search and multi-server support are
+follow-up work.
+
+The TV/Music drill-down works by fetching each item's direct children non-recursively
+(`lib/windows/browse.py` is reused at every level: a library's top-level items, a series'
+seasons, a season's episodes, an artist's albums, an album's tracks) and branching on the
+clicked item's type (`lib/main.py`'s `CONTAINER_TYPES`) to decide whether to browse deeper or
+open the detail/play screen. Music artist grouping relies on the library being organized as one
+folder per artist — Jellyfin's virtual cross-folder artist aggregation (`/Artists`) isn't used.
 
 The custom OSD works by exploiting the fact that Kodi has no API to suppress its own default video
 OSD from opening on a remote/keyboard press: `lib/player.py` polls `Window.IsActive(videoosd)` in a

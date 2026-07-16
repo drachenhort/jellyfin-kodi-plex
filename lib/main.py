@@ -24,6 +24,9 @@ from lib.windows.login import LoginWindow
 ADDON = xbmcaddon.Addon()
 ADDON_PATH = ADDON.getAddonInfo("path")
 
+# Item types that are containers to drill down into rather than play.
+CONTAINER_TYPES = {"Series", "Season", "MusicArtist", "MusicAlbum", "BoxSet", "Folder"}
+
 
 def _get_device_id():
     device_id = ADDON.getSetting("device_id")
@@ -83,15 +86,20 @@ def _detail_loop(client, item_id):
             # Loop back to the detail page (e.g. to show updated resume state).
 
 
-def _browse_loop(client, library_id, library_name):
+def _open_item(client, item_id, item_type, item_name):
+    if item_type in CONTAINER_TYPES:
+        _browse_loop(client, item_id, item_name)
+    else:
+        _detail_loop(client, item_id)
+
+
+def _browse_loop(client, parent_id, title):
     while True:
-        result = BrowseWindow.open(
-            ADDON_PATH, client=client, library_id=library_id, library_name=library_name
-        )
+        result = BrowseWindow.open(ADDON_PATH, client=client, parent_id=parent_id, title=title)
         if not result:
             return
-        if result["action"] == "detail":
-            _detail_loop(client, result["item_id"])
+        if result["action"] == "open":
+            _open_item(client, result["item_id"], result["item_type"], result["item_name"])
 
 
 def _home_loop(client):
@@ -101,8 +109,8 @@ def _home_loop(client):
             return
         if result["action"] == "browse":
             _browse_loop(client, result["library_id"], result["library_name"])
-        elif result["action"] == "detail":
-            _detail_loop(client, result["item_id"])
+        elif result["action"] == "open":
+            _open_item(client, result["item_id"], result["item_type"], result["item_name"])
 
 
 def run():

@@ -108,7 +108,7 @@ class JellyfinPlayer(xbmc.Player):
     def _report_progress_loop(self):
         while not self._stop_event.wait(PROGRESS_REPORT_INTERVAL_SECONDS):
             try:
-                if not self.isPlayingVideo():
+                if not self.isPlaying():
                     continue
                 position_ticks = int(self.getTime() * 10_000_000)
                 playback.report_playback_progress(

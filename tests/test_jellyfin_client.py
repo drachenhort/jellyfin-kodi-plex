@@ -104,6 +104,15 @@ def test_get_items_builds_params(client, monkeypatch):
     assert params["Recursive"] == "true"
 
 
+def test_get_items_non_recursive(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"Items": [], "TotalRecordCount": 0})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    library.get_items(client, parent_id="series-1", recursive=False)
+
+    assert fake.calls[0]["params"]["Recursive"] == "false"
+
+
 def test_get_resume_and_next_up_and_latest(client, monkeypatch):
     fake = FakeRequests([
         FakeResponse({"Items": [{"Id": "r1"}]}),

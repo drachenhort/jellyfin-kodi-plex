@@ -3,7 +3,7 @@ Watching / Next Up / Recently Added).
 
 self.result on close is one of:
   {"action": "browse", "library_id": ..., "library_name": ...}
-  {"action": "detail", "item_id": ...}
+  {"action": "open", "item_id": ..., "item_type": ..., "item_name": ...}
   None (user backed out — lib/main.py treats this as "quit the addon")
 """
 
@@ -82,5 +82,10 @@ class HomeWindow(ControlledWindow):
         selected = self.getControl(control_id).getSelectedItem()
         if not selected:
             return
-        self.result = {"action": "detail", "item_id": selected.getProperty("jellyfin_id")}
+        self.result = {
+            "action": "open",
+            "item_id": selected.getProperty("jellyfin_id"),
+            "item_type": selected.getProperty("jellyfin_type"),
+            "item_name": selected.getLabel(),
+        }
         self.close()
