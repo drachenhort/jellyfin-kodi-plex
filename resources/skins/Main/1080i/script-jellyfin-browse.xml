@@ -52,6 +52,13 @@
           <font>font12</font>
           <label>$INFO[ListItem.Label]</label>
         </control>
+        <control type="image">
+          <posx>92</posx>
+          <posy>0</posy>
+          <width>36</width>
+          <height>22</height>
+          <texture>focus-arrow.png</texture>
+        </control>
       </focusedlayout>
     </control>
   </controls>
