@@ -104,7 +104,7 @@
       <orientation>horizontal</orientation>
       <itemgap>20</itemgap>
       <onup>200</onup>
-      <ondown>202</ondown>
+      <ondown>203</ondown>
       <itemlayout width="280" height="158">
         <control type="image">
           <width>280</width>
@@ -148,17 +148,64 @@
       <width>800</width>
       <height>30</height>
       <font>font16</font>
+      <label>Recently Added</label>
+    </control>
+    <control type="list" id="203">
+      <posx>80</posx>
+      <posy>670</posy>
+      <width>1760</width>
+      <height>100</height>
+      <orientation>horizontal</orientation>
+      <itemgap>20</itemgap>
+      <onup>201</onup>
+      <ondown>202</ondown>
+      <itemlayout width="140" height="80">
+        <control type="image">
+          <width>140</width>
+          <height>80</height>
+          <texture>$INFO[ListItem.Art(thumb)]</texture>
+        </control>
+      </itemlayout>
+      <focusedlayout width="140" height="80">
+        <control type="image">
+          <width>140</width>
+          <height>80</height>
+          <texture border="10">focus-highlight.png</texture>
+        </control>
+        <control type="image">
+          <posx>8</posx>
+          <posy>8</posy>
+          <width>124</width>
+          <height>64</height>
+          <texture>$INFO[ListItem.Art(thumb)]</texture>
+        </control>
+        <control type="image">
+          <posx>52</posx>
+          <posy>0</posy>
+          <width>36</width>
+          <height>22</height>
+          <texture>focus-arrow.png</texture>
+        </control>
+      </focusedlayout>
+    </control>
+
+    <control type="label">
+      <posx>80</posx>
+      <posy>800</posy>
+      <width>800</width>
+      <height>30</height>
+      <font>font16</font>
       <label>Next Up</label>
     </control>
     <control type="list" id="202">
       <posx>80</posx>
-      <posy>670</posy>
+      <posy>840</posy>
       <width>1760</width>
       <height>220</height>
       <orientation>horizontal</orientation>
       <itemgap>20</itemgap>
-      <onup>201</onup>
-      <ondown>203</ondown>
+      <onup>203</onup>
+      <ondown>202</ondown>
       <itemlayout width="280" height="158">
         <control type="image">
           <width>280</width>
@@ -188,53 +235,6 @@
         </control>
         <control type="image">
           <posx>122</posx>
-          <posy>0</posy>
-          <width>36</width>
-          <height>22</height>
-          <texture>focus-arrow.png</texture>
-        </control>
-      </focusedlayout>
-    </control>
-
-    <control type="label">
-      <posx>80</posx>
-      <posy>920</posy>
-      <width>800</width>
-      <height>30</height>
-      <font>font16</font>
-      <label>Recently Added</label>
-    </control>
-    <control type="list" id="203">
-      <posx>80</posx>
-      <posy>960</posy>
-      <width>1760</width>
-      <height>100</height>
-      <orientation>horizontal</orientation>
-      <itemgap>20</itemgap>
-      <onup>202</onup>
-      <ondown>203</ondown>
-      <itemlayout width="140" height="80">
-        <control type="image">
-          <width>140</width>
-          <height>80</height>
-          <texture>$INFO[ListItem.Art(thumb)]</texture>
-        </control>
-      </itemlayout>
-      <focusedlayout width="140" height="80">
-        <control type="image">
-          <width>140</width>
-          <height>80</height>
-          <texture border="10">focus-highlight.png</texture>
-        </control>
-        <control type="image">
-          <posx>8</posx>
-          <posy>8</posy>
-          <width>124</width>
-          <height>64</height>
-          <texture>$INFO[ListItem.Art(thumb)]</texture>
-        </control>
-        <control type="image">
-          <posx>52</posx>
           <posy>0</posy>
           <width>36</width>
           <height>22</height>
