@@ -1,5 +1,6 @@
-"""Login window: manual server URL entry, then Quick Connect (preferred) or
-a username/password fallback.
+"""Login window: manual server URL entry (autofilled from LAN autodiscovery
+when a server is found, see lib/jellyfin/discovery.py), then Quick Connect
+(preferred) or a username/password fallback.
 
 On success, self.result is a dict with server_url/access_token/user_id/
 device_id so lib/main.py can persist it via xbmcaddon settings and build a
@@ -12,7 +13,7 @@ import uuid
 import xbmc
 import xbmcgui
 
-from lib.jellyfin import JellyfinClient, auth
+from lib.jellyfin import JellyfinClient, auth, discovery
 from lib.windows.kodigui import ControlledWindow
 
 CTRL_SERVER_URL = 101
@@ -22,6 +23,7 @@ CTRL_SIGN_IN = 104
 CTRL_QUICK_CONNECT = 105
 CTRL_STATUS_LABEL = 106
 CTRL_QUICK_CONNECT_CODE = 107
+CTRL_DISCOVERED_SERVERS = 108
 
 QUICK_CONNECT_POLL_SECONDS = 2
 QUICK_CONNECT_TIMEOUT_SECONDS = 300
@@ -36,17 +38,43 @@ class LoginWindow(ControlledWindow):
         self.device_id = device_id or str(uuid.uuid4())
         self._quick_connect_thread = None
         self._quick_connect_stop = threading.Event()
+        self._discovery_stop = threading.Event()
 
     def onInit(self):
         if self.default_server_url:
             self.getControl(CTRL_SERVER_URL).setText(self.default_server_url)
         self.setFocusId(CTRL_SERVER_URL)
+        self._start_discovery()
 
     def handle_click(self, control_id):
         if control_id == CTRL_SIGN_IN:
             self._sign_in_with_password()
         elif control_id == CTRL_QUICK_CONNECT:
             self._start_quick_connect()
+        elif control_id == CTRL_DISCOVERED_SERVERS:
+            self._select_discovered_server()
+
+    def _start_discovery(self):
+        thread = threading.Thread(target=self._discover_servers, daemon=True)
+        thread.start()
+
+    def _discover_servers(self):
+        servers = discovery.discover_servers()
+        if self._discovery_stop.is_set():
+            return
+        control = self.getControl(CTRL_DISCOVERED_SERVERS)
+        control.reset()
+        for server in servers:
+            li = xbmcgui.ListItem(label=server.get("Name", server.get("Address", "")))
+            li.setProperty("server_url", server.get("Address", ""))
+            control.addItem(li)
+
+    def _select_discovered_server(self):
+        selected = self.getControl(CTRL_DISCOVERED_SERVERS).getSelectedItem()
+        if not selected:
+            return
+        self.getControl(CTRL_SERVER_URL).setText(selected.getProperty("server_url"))
+        self.setFocusId(CTRL_USERNAME)
 
     def _set_status(self, text):
         self.getControl(CTRL_STATUS_LABEL).setLabel(text)
@@ -125,4 +153,5 @@ class LoginWindow(ControlledWindow):
 
     def close(self):
         self._quick_connect_stop.set()
+        self._discovery_stop.set()
         super().close()
