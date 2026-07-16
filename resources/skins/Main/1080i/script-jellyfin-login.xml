@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<window>
+  <defaultcontrol always="true">101</defaultcontrol>
+  <controls>
+    <control type="image">
+      <posx>0</posx>
+      <posy>0</posy>
+      <width>1920</width>
+      <height>1080</height>
+      <texture>background.png</texture>
+    </control>
+
+    <control type="label">
+      <posx>160</posx>
+      <posy>120</posy>
+      <width>800</width>
+      <height>60</height>
+      <font>font32</font>
+      <label>Connect to Jellyfin</label>
+    </control>
+
+    <control type="label">
+      <posx>160</posx>
+      <posy>220</posy>
+      <width>800</width>
+      <height>30</height>
+      <font>font13</font>
+      <label>Server URL</label>
+    </control>
+    <control type="edit" id="101">
+      <posx>160</posx>
+      <posy>250</posy>
+      <width>800</width>
+      <height>50</height>
+      <font>font13</font>
+      <label>Server URL (e.g. http://192.168.1.10:8096)</label>
+    </control>
+
+    <control type="label">
+      <posx>160</posx>
+      <posy>320</posy>
+      <width>380</width>
+      <height>30</height>
+      <font>font13</font>
+      <label>Username</label>
+    </control>
+    <control type="edit" id="102">
+      <posx>160</posx>
+      <posy>350</posy>
+      <width>380</width>
+      <height>50</height>
+      <font>font13</font>
+      <label>Username</label>
+    </control>
+
+    <control type="label">
+      <posx>580</posx>
+      <posy>320</posy>
+      <width>380</width>
+      <height>30</height>
+      <font>font13</font>
+      <label>Password</label>
+    </control>
+    <control type="edit" id="103">
+      <posx>580</posx>
+      <posy>350</posy>
+      <width>380</width>
+      <height>50</height>
+      <font>font13</font>
+      <label>Password</label>
+      <inputtype>password</inputtype>
+    </control>
+
+    <control type="button" id="104">
+      <posx>160</posx>
+      <posy>430</posy>
+      <width>380</width>
+      <height>60</height>
+      <font>font13</font>
+      <label>Sign in</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+    </control>
+    <control type="button" id="105">
+      <posx>580</posx>
+      <posy>430</posy>
+      <width>380</width>
+      <height>60</height>
+      <font>font13</font>
+      <label>Quick Connect</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+    </control>
+
+    <control type="label" id="106">
+      <posx>160</posx>
+      <posy>520</posy>
+      <width>800</width>
+      <height>30</height>
+      <font>font13</font>
+      <label></label>
+    </control>
+    <control type="label" id="107">
+      <posx>160</posx>
+      <posy>560</posy>
+      <width>800</width>
+      <height>60</height>
+      <font>font37</font>
+      <label></label>
+    </control>
+  </controls>
+</window>

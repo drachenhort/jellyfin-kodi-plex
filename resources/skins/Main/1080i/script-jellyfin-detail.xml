@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<window>
+  <defaultcontrol always="true">406</defaultcontrol>
+  <controls>
+    <control type="image" id="400">
+      <posx>0</posx>
+      <posy>0</posy>
+      <width>1920</width>
+      <height>1080</height>
+      <aspectratio>scale</aspectratio>
+    </control>
+    <control type="image">
+      <posx>0</posx>
+      <posy>0</posy>
+      <width>1920</width>
+      <height>1080</height>
+      <texture>gradient-overlay.png</texture>
+    </control>
+
+    <control type="image" id="401">
+      <posx>80</posx>
+      <posy>120</posy>
+      <width>300</width>
+      <height>450</height>
+    </control>
+
+    <control type="label" id="402">
+      <posx>420</posx>
+      <posy>140</posy>
+      <width>1400</width>
+      <height>60</height>
+      <font>font37</font>
+      <label></label>
+    </control>
+    <control type="label" id="403">
+      <posx>420</posx>
+      <posy>210</posy>
+      <width>1400</width>
+      <height>30</height>
+      <font>font13</font>
+      <label></label>
+    </control>
+    <control type="textbox" id="404">
+      <posx>420</posx>
+      <posy>260</posy>
+      <width>1000</width>
+      <height>150</height>
+      <font>font13</font>
+    </control>
+    <control type="label" id="405">
+      <posx>420</posx>
+      <posy>430</posy>
+      <width>1000</width>
+      <height>30</height>
+      <font>font12</font>
+      <label></label>
+    </control>
+
+    <control type="button" id="406">
+      <posx>420</posx>
+      <posy>500</posy>
+      <width>260</width>
+      <height>60</height>
+      <font>font16</font>
+      <label>Play</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+    </control>
+  </controls>
+</window>

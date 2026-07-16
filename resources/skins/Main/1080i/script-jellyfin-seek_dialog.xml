@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<window>
+  <defaultcontrol always="true">100</defaultcontrol>
+  <controls>
+    <control type="image">
+      <posx>0</posx>
+      <posy>860</posy>
+      <width>1920</width>
+      <height>220</height>
+      <texture>osd-gradient.png</texture>
+    </control>
+
+    <control type="label" id="203">
+      <posx>60</posx>
+      <posy>870</posy>
+      <width>1800</width>
+      <height>40</height>
+      <font>font16</font>
+      <label></label>
+    </control>
+
+    <control type="progress" id="300">
+      <posx>60</posx>
+      <posy>930</posy>
+      <width>1800</width>
+      <height>12</height>
+      <info>Player.Progress</info>
+    </control>
+
+    <control type="label">
+      <posx>60</posx>
+      <posy>950</posy>
+      <width>200</width>
+      <height>30</height>
+      <font>font12</font>
+      <label>$INFO[Player.Time]</label>
+    </control>
+    <control type="label">
+      <posx>1660</posx>
+      <posy>950</posy>
+      <width>200</width>
+      <height>30</height>
+      <font>font12</font>
+      <align>right</align>
+      <label>$INFO[Player.Duration]</label>
+    </control>
+
+    <control type="button" id="101">
+      <posx>700</posx>
+      <posy>990</posy>
+      <width>140</width>
+      <height>60</height>
+      <font>font16</font>
+      <label>&lt;&lt; 10s</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+    </control>
+    <control type="button" id="100">
+      <posx>860</posx>
+      <posy>990</posy>
+      <width>200</width>
+      <height>60</height>
+      <font>font16</font>
+      <label>Play / Pause</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+    </control>
+    <control type="button" id="102">
+      <posx>1080</posx>
+      <posy>990</posy>
+      <width>140</width>
+      <height>60</height>
+      <font>font16</font>
+      <label>30s &gt;&gt;</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+    </control>
+    <control type="button" id="103">
+      <posx>1240</posx>
+      <posy>990</posy>
+      <width>140</width>
+      <height>60</height>
+      <font>font16</font>
+      <label>Stop</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+    </control>
+  </controls>
+</window>

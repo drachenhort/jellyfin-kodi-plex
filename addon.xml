@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="script.jellyfin.plex"
+       name="Jellyfin (Plex-style)"
+       version="0.1.0"
+       provider-name="jellyfin-kodi-plex">
+  <requires>
+    <import addon="xbmc.python" version="3.0.0"/>
+    <import addon="script.module.requests" version="2.22.0"/>
+  </requires>
+  <extension point="xbmc.python.script" library="default.py">
+    <provides>video</provides>
+  </extension>
+  <extension point="xbmc.service" library="service.py"/>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Jellyfin client with a Plex-style interface</summary>
+    <description lang="en_GB">
+      Connects to a Jellyfin media server and presents a custom, hub-based
+      home screen, poster-wall browsing, and item detail pages modelled on
+      the Plex Web/App interface, instead of Kodi's default skin listings.
+    </description>
+    <platform>all</platform>
+    <license>MIT</license>
+  </extension>
+</addon>
