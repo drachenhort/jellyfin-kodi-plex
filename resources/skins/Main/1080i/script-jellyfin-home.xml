@@ -90,7 +90,7 @@
 
     <control type="label">
       <posx>80</posx>
-      <posy>340</posy>
+      <posy>320</posy>
       <width>800</width>
       <height>30</height>
       <font>font16</font>
@@ -98,13 +98,15 @@
     </control>
     <control type="list" id="201">
       <posx>80</posx>
-      <posy>380</posy>
+      <posy>360</posy>
       <width>1760</width>
       <height>220</height>
       <orientation>horizontal</orientation>
       <itemgap>20</itemgap>
       <onup>200</onup>
       <ondown>203</ondown>
+      <animation effect="zoom" start="100" end="108" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
+      <animation effect="zoom" start="108" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
       <itemlayout width="280" height="158">
         <control type="image">
           <width>280</width>
@@ -144,7 +146,7 @@
 
     <control type="label">
       <posx>80</posx>
-      <posy>630</posy>
+      <posy>590</posy>
       <width>800</width>
       <height>30</height>
       <font>font16</font>
@@ -152,35 +154,37 @@
     </control>
     <control type="list" id="203">
       <posx>80</posx>
-      <posy>670</posy>
+      <posy>630</posy>
       <width>1760</width>
-      <height>100</height>
+      <height>170</height>
       <orientation>horizontal</orientation>
       <itemgap>20</itemgap>
       <onup>201</onup>
       <ondown>202</ondown>
-      <itemlayout width="140" height="80">
+      <animation effect="zoom" start="100" end="108" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
+      <animation effect="zoom" start="108" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
+      <itemlayout width="280" height="160">
         <control type="image">
-          <width>140</width>
-          <height>80</height>
+          <width>280</width>
+          <height>160</height>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
       </itemlayout>
-      <focusedlayout width="140" height="80">
+      <focusedlayout width="280" height="160">
         <control type="image">
-          <width>140</width>
-          <height>80</height>
+          <width>280</width>
+          <height>160</height>
           <texture border="10">focus-highlight.png</texture>
         </control>
         <control type="image">
           <posx>3</posx>
           <posy>3</posy>
-          <width>134</width>
-          <height>74</height>
+          <width>274</width>
+          <height>154</height>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
         <control type="image">
-          <posx>52</posx>
+          <posx>122</posx>
           <posy>0</posy>
           <width>36</width>
           <height>22</height>
@@ -191,7 +195,7 @@
 
     <control type="label">
       <posx>80</posx>
-      <posy>800</posy>
+      <posy>810</posy>
       <width>800</width>
       <height>30</height>
       <font>font16</font>
@@ -199,7 +203,7 @@
     </control>
     <control type="list" id="202">
       <posx>80</posx>
-      <posy>840</posy>
+      <posy>850</posy>
       <width>1760</width>
       <height>220</height>
       <orientation>horizontal</orientation>
