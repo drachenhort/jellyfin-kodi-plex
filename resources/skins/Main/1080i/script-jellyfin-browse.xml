@@ -29,6 +29,7 @@
         <control type="image">
           <width>220</width>
           <height>330</height>
+          <aspectratio>scale</aspectratio>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
       </itemlayout>
@@ -43,6 +44,7 @@
           <posy>3</posy>
           <width>214</width>
           <height>324</height>
+          <aspectratio>scale</aspectratio>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
         <control type="label">

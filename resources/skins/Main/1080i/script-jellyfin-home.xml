@@ -34,7 +34,15 @@
 
     <!-- Rows are stacked in a grouplist so it scrolls to keep the focused
          row visible instead of every row having to be squeezed to fit a
-         fixed 1080px-tall screen. -->
+         fixed 1080px-tall screen.
+
+         Every poster/thumb image uses <aspectratio>scale</aspectratio> so
+         Jellyfin's real image shapes (portrait 2:3 posters for Movies/
+         Series, landscape ~16:9 thumbs for Episodes) crop-to-fill their box
+         instead of being stretched/distorted. Recently Added Movies is a
+         portrait box (all Movie posters); Recently Added TV mixes newly-added
+         Series (portrait) and Episodes (landscape) so it stays a landscape
+         box and lets scale-crop handle the occasional portrait poster. -->
     <control type="grouplist" id="210">
       <posx>80</posx>
       <posy>110</posy>
@@ -47,7 +55,7 @@
 
       <control type="group">
         <width>1760</width>
-        <height>200</height>
+        <height>175</height>
         <control type="label">
           <posx>0</posx>
           <posy>0</posy>
@@ -60,42 +68,44 @@
           <posx>0</posx>
           <posy>40</posy>
           <width>1760</width>
-          <height>160</height>
+          <height>135</height>
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
           <onright>200</onright>
           <onleft>200</onleft>
           <onup>204</onup>
           <ondown>203</ondown>
-          <itemlayout width="200" height="140">
+          <itemlayout width="240" height="135">
             <control type="image">
-              <width>200</width>
-              <height>140</height>
+              <width>240</width>
+              <height>135</height>
+              <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
           </itemlayout>
-          <focusedlayout width="200" height="140">
+          <focusedlayout width="240" height="135">
             <control type="image">
-              <width>200</width>
-              <height>140</height>
+              <width>240</width>
+              <height>135</height>
               <texture border="10">focus-highlight.png</texture>
             </control>
             <control type="image">
               <posx>3</posx>
               <posy>3</posy>
-              <width>194</width>
-              <height>134</height>
+              <width>234</width>
+              <height>129</height>
+              <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="label">
-              <posy>110</posy>
-              <width>200</width>
+              <posy>105</posy>
+              <width>240</width>
               <height>30</height>
               <font>font12</font>
               <label>$INFO[ListItem.Label]</label>
             </control>
             <control type="image">
-              <posx>82</posx>
+              <posx>102</posx>
               <posy>0</posy>
               <width>36</width>
               <height>22</height>
@@ -107,7 +117,7 @@
 
       <control type="group">
         <width>1760</width>
-        <height>290</height>
+        <height>430</height>
         <control type="label">
           <posx>0</posx>
           <posy>0</posy>
@@ -120,35 +130,37 @@
           <posx>0</posx>
           <posy>40</posy>
           <width>1760</width>
-          <height>250</height>
+          <height>390</height>
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
           <onup>200</onup>
           <ondown>205</ondown>
           <animation effect="zoom" start="100" end="108" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
           <animation effect="zoom" start="108" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
-          <itemlayout width="420" height="240">
+          <itemlayout width="260" height="390">
             <control type="image">
-              <width>420</width>
-              <height>240</height>
+              <width>260</width>
+              <height>390</height>
+              <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
           </itemlayout>
-          <focusedlayout width="420" height="240">
+          <focusedlayout width="260" height="390">
             <control type="image">
-              <width>420</width>
-              <height>240</height>
+              <width>260</width>
+              <height>390</height>
               <texture border="10">focus-highlight.png</texture>
             </control>
             <control type="image">
               <posx>3</posx>
               <posy>3</posy>
-              <width>414</width>
-              <height>234</height>
+              <width>254</width>
+              <height>384</height>
+              <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="image">
-              <posx>192</posx>
+              <posx>112</posx>
               <posy>0</posy>
               <width>36</width>
               <height>22</height>
@@ -184,6 +196,7 @@
             <control type="image">
               <width>420</width>
               <height>240</height>
+              <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
           </itemlayout>
@@ -198,6 +211,7 @@
               <posy>3</posy>
               <width>414</width>
               <height>234</height>
+              <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="image">
@@ -235,6 +249,7 @@
             <control type="image">
               <width>280</width>
               <height>158</height>
+              <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
           </itemlayout>
@@ -249,6 +264,7 @@
               <posy>3</posy>
               <width>274</width>
               <height>152</height>
+              <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="label">
@@ -295,6 +311,7 @@
             <control type="image">
               <width>280</width>
               <height>158</height>
+              <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
           </itemlayout>
@@ -309,6 +326,7 @@
               <posy>3</posy>
               <width>274</width>
               <height>152</height>
+              <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="label">
