@@ -1,5 +1,5 @@
 """Home window: library shortcuts plus Plex-style hub rows (Continue
-Watching / Next Up / Recently Added).
+Watching / Next Up / Recently Added Movies / Recently Added TV).
 
 self.result on close is one of:
   {"action": "browse", "library_id": ..., "library_name": ...}
@@ -16,10 +16,13 @@ from lib.windows.kodigui import ControlledWindow, list_item
 CTRL_LIBRARIES = 200
 CTRL_CONTINUE_WATCHING = 201
 CTRL_NEXT_UP = 202
-CTRL_RECENTLY_ADDED = 203
+CTRL_RECENTLY_ADDED_MOVIES = 203
 CTRL_SEARCH = 204
+CTRL_RECENTLY_ADDED_TV = 205
 
-HUB_CONTROLS = (CTRL_CONTINUE_WATCHING, CTRL_NEXT_UP, CTRL_RECENTLY_ADDED)
+HUB_CONTROLS = (
+    CTRL_CONTINUE_WATCHING, CTRL_NEXT_UP, CTRL_RECENTLY_ADDED_MOVIES, CTRL_RECENTLY_ADDED_TV,
+)
 
 
 def _library_list_item(client, view):
@@ -39,16 +42,22 @@ class HomeWindow(ControlledWindow):
         self.client = client
 
     def onInit(self):
-        self._populate(CTRL_LIBRARIES, library.get_views(self.client), is_library=True)
+        views = library.get_views(self.client)
+        self._populate(CTRL_LIBRARIES, views, is_library=True)
         self._populate(CTRL_CONTINUE_WATCHING, library.get_resume(self.client))
         self._populate(CTRL_NEXT_UP, library.get_next_up(self.client))
-
-        latest = []
-        for view in library.get_views(self.client):
-            latest.extend(library.get_latest(self.client, parent_id=view.get("Id"), limit=10))
-        self._populate(CTRL_RECENTLY_ADDED, latest)
+        self._populate(CTRL_RECENTLY_ADDED_MOVIES, self._latest(views, "movies"))
+        self._populate(CTRL_RECENTLY_ADDED_TV, self._latest(views, "tvshows"))
 
         self.setFocusId(CTRL_LIBRARIES)
+
+    def _latest(self, views, collection_type):
+        latest = []
+        for view in views:
+            if view.get("CollectionType") != collection_type:
+                continue
+            latest.extend(library.get_latest(self.client, parent_id=view.get("Id"), limit=10))
+        return latest
 
     def _populate(self, control_id, items, is_library=False):
         control = self.getControl(control_id)

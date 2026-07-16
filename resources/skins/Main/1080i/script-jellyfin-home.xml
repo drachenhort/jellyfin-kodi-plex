@@ -114,7 +114,7 @@
           <width>1760</width>
           <height>30</height>
           <font>font16</font>
-          <label>Recently Added</label>
+          <label>Recently Added Movies</label>
         </control>
         <control type="list" id="203">
           <posx>0</posx>
@@ -124,6 +124,59 @@
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
           <onup>200</onup>
+          <ondown>205</ondown>
+          <animation effect="zoom" start="100" end="108" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
+          <animation effect="zoom" start="108" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
+          <itemlayout width="420" height="240">
+            <control type="image">
+              <width>420</width>
+              <height>240</height>
+              <texture>$INFO[ListItem.Art(thumb)]</texture>
+            </control>
+          </itemlayout>
+          <focusedlayout width="420" height="240">
+            <control type="image">
+              <width>420</width>
+              <height>240</height>
+              <texture border="10">focus-highlight.png</texture>
+            </control>
+            <control type="image">
+              <posx>3</posx>
+              <posy>3</posy>
+              <width>414</width>
+              <height>234</height>
+              <texture>$INFO[ListItem.Art(thumb)]</texture>
+            </control>
+            <control type="image">
+              <posx>192</posx>
+              <posy>0</posy>
+              <width>36</width>
+              <height>22</height>
+              <texture>focus-arrow.png</texture>
+            </control>
+          </focusedlayout>
+        </control>
+      </control>
+
+      <control type="group">
+        <width>1760</width>
+        <height>290</height>
+        <control type="label">
+          <posx>0</posx>
+          <posy>0</posy>
+          <width>1760</width>
+          <height>30</height>
+          <font>font16</font>
+          <label>Recently Added TV</label>
+        </control>
+        <control type="list" id="205">
+          <posx>0</posx>
+          <posy>40</posy>
+          <width>1760</width>
+          <height>250</height>
+          <orientation>horizontal</orientation>
+          <itemgap>20</itemgap>
+          <onup>203</onup>
           <ondown>202</ondown>
           <animation effect="zoom" start="100" end="108" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
           <animation effect="zoom" start="108" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
@@ -176,7 +229,7 @@
           <height>220</height>
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
-          <onup>203</onup>
+          <onup>205</onup>
           <ondown>201</ondown>
           <itemlayout width="280" height="158">
             <control type="image">
