@@ -249,16 +249,32 @@
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="image">
-              <posy>310</posy>
+              <posy>314</posy>
               <width>260</width>
-              <height>80</height>
+              <height>76</height>
               <texture>gradient-overlay.png</texture>
             </control>
             <control type="label">
               <posx>10</posx>
-              <posy>356</posy>
+              <posy>318</posy>
               <width>240</width>
-              <height>24</height>
+              <height>22</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Property(series_name)]</label>
+            </control>
+            <control type="label">
+              <posx>10</posx>
+              <posy>340</posy>
+              <width>240</width>
+              <height>22</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Label]</label>
+            </control>
+            <control type="label">
+              <posx>10</posx>
+              <posy>362</posy>
+              <width>240</width>
+              <height>22</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(ratings_text)]</label>
             </control>
@@ -279,16 +295,32 @@
             </control>
             <control type="image">
               <posx>3</posx>
-              <posy>307</posy>
+              <posy>311</posy>
               <width>254</width>
-              <height>80</height>
+              <height>76</height>
               <texture>focus-turquoise.png</texture>
             </control>
             <control type="label">
               <posx>13</posx>
-              <posy>353</posy>
+              <posy>315</posy>
               <width>234</width>
-              <height>24</height>
+              <height>22</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Property(series_name)]</label>
+            </control>
+            <control type="label">
+              <posx>13</posx>
+              <posy>337</posy>
+              <width>234</width>
+              <height>22</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Label]</label>
+            </control>
+            <control type="label">
+              <posx>13</posx>
+              <posy>359</posy>
+              <width>234</width>
+              <height>22</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(ratings_text)]</label>
             </control>
