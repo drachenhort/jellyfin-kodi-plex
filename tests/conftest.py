@@ -1,11 +1,23 @@
 """Shared pytest fixtures.
 
 lib.jellyfin.* has no xbmc/xbmcgui imports, so it runs under plain pytest
-with no stubbing needed. This file will grow xbmc/xbmcgui stub modules once
-tests are added for lib/windows/* and lib/player.py.
+with no stubbing needed. lib/windows/* and lib/player.py do import them -
+tests/kodi_stubs/ provides minimal stand-ins registered into sys.modules
+below, before any test file gets a chance to `import lib.windows.home` (or
+similar) and have that statement's own `import xbmcgui` fail.
 """
 
+import sys
+
 import pytest
+
+from tests.kodi_stubs import xbmc as fake_xbmc
+from tests.kodi_stubs import xbmcaddon as fake_xbmcaddon
+from tests.kodi_stubs import xbmcgui as fake_xbmcgui
+
+sys.modules.setdefault("xbmc", fake_xbmc)
+sys.modules.setdefault("xbmcgui", fake_xbmcgui)
+sys.modules.setdefault("xbmcaddon", fake_xbmcaddon)
 
 from lib.jellyfin.client import JellyfinClient
 

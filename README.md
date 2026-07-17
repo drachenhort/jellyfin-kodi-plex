@@ -48,7 +48,9 @@ pytest
 
 `lib/jellyfin/*` is a pure-Python Jellyfin API client with no `xbmc*` imports, so it's testable
 directly with pytest. `lib/windows/*` and `lib/player.py` are the only modules that touch
-`xbmcgui`/`xbmc`, and require a real Kodi environment (or the stubs in `tests/conftest.py`) to run.
+`xbmcgui`/`xbmc`; `tests/kodi_stubs/` provides minimal stand-ins for those modules (registered into
+`sys.modules` by `tests/conftest.py`), so this layer runs under plain pytest too — no real Kodi
+environment needed to exercise it.
 
 To try it in Kodi: copy or symlink this directory into
 `~/.kodi/addons/script.jellyfin.plex/` and launch it from the Programs menu.
