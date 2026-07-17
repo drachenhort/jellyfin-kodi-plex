@@ -21,13 +21,15 @@ import time
 
 import xbmc
 
-from lib.windows.kodigui import BaseDialog
+from lib.windows.kodigui import BACK_ACTIONS, BaseDialog
 
 CTRL_TITLE_LABEL = 203
 CTRL_PLAY_PAUSE = 100
 CTRL_REWIND = 101
 CTRL_FORWARD = 102
 CTRL_STOP = 103
+CTRL_SUBTITLES = 104
+CTRL_AUDIO = 105
 
 ACTION_MOVE_LEFT = 1
 ACTION_MOVE_RIGHT = 2
@@ -72,6 +74,16 @@ class SeekDialog(BaseDialog):
                 self.close()
                 return
 
+    def onAction(self, action):
+        # Back exits playback (matching Plex) rather than just dismissing
+        # the OSD and leaving the video running behind it - the base
+        # WindowMixin's BACK_ACTIONS handling only does the latter, so it's
+        # overridden here rather than going through handle_action().
+        if action.getId() in BACK_ACTIONS:
+            self._stop_and_close()
+            return
+        self.handle_action(action)
+
     def handle_action(self, action):
         action_id = action.getId()
         if action_id == ACTION_MOVE_LEFT:
@@ -89,8 +101,15 @@ class SeekDialog(BaseDialog):
         elif control_id == CTRL_FORWARD:
             self._seek_relative(SEEK_STEP_FORWARD_SECONDS)
         elif control_id == CTRL_STOP:
-            self.player.stop()
-            self.close()
+            self._stop_and_close()
+        elif control_id == CTRL_SUBTITLES:
+            xbmc.executebuiltin("Action(nextsubtitle)")
+        elif control_id == CTRL_AUDIO:
+            xbmc.executebuiltin("Action(audionextlanguage)")
+
+    def _stop_and_close(self):
+        self.player.stop()
+        self.close()
 
     def _seek_relative(self, delta_seconds):
         if not self.player.isPlayingVideo():

@@ -106,11 +106,37 @@
       <texturenofocus>osd-forward-nofocus.png</texturenofocus>
       <texturefocus>osd-forward-focus.png</texturefocus>
       <onleft>100</onleft>
+      <onright>105</onright>
+    </control>
+
+    <!-- Audio track, subtitles, and close/stop - corner-positioned like
+         Plex's OSD buttons rather than inline with the transport controls.
+         Both audio and subtitles cycle through their available tracks
+         (audio wrapping through languages, subtitles including "off") on
+         each press, the same actions a remote's dedicated buttons send. -->
+    <control type="button" id="105">
+      <posx>1640</posx>
+      <posy>880</posy>
+      <width>70</width>
+      <height>70</height>
+      <label></label>
+      <texturenofocus>osd-audio-nofocus.png</texturenofocus>
+      <texturefocus>osd-audio-focus.png</texturefocus>
+      <onleft>102</onleft>
+      <onright>104</onright>
+    </control>
+    <control type="button" id="104">
+      <posx>1730</posx>
+      <posy>880</posy>
+      <width>70</width>
+      <height>70</height>
+      <label></label>
+      <texturenofocus>osd-subtitles-nofocus.png</texturenofocus>
+      <texturefocus>osd-subtitles-focus.png</texturefocus>
+      <onleft>105</onleft>
       <onright>103</onright>
     </control>
 
-    <!-- Close/stop, corner-positioned like Plex's OSD close button rather
-         than inline with the transport controls. -->
     <control type="button" id="103">
       <posx>1820</posx>
       <posy>880</posy>
@@ -119,7 +145,7 @@
       <label></label>
       <texturenofocus>osd-close-nofocus.png</texturenofocus>
       <texturefocus>osd-close-focus.png</texturefocus>
-      <onleft>102</onleft>
+      <onleft>104</onleft>
       <onright>103</onright>
     </control>
   </controls>
