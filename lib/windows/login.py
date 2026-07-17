@@ -14,6 +14,7 @@ import xbmc
 import xbmcgui
 
 from lib.jellyfin import JellyfinClient, auth, discovery
+from lib.jellyfin.client import CLIENT_VERSION
 from lib.windows.kodigui import ControlledWindow
 
 CTRL_SERVER_URL = 101
@@ -32,10 +33,11 @@ QUICK_CONNECT_TIMEOUT_SECONDS = 300
 class LoginWindow(ControlledWindow):
     xmlFile = "script-jellyfin-login.xml"
 
-    def setup(self, default_server_url="", device_id=None, **kwargs):
+    def setup(self, default_server_url="", device_id=None, client_version=None, **kwargs):
         super().setup(**kwargs)
         self.default_server_url = default_server_url
         self.device_id = device_id or str(uuid.uuid4())
+        self.client_version = client_version or CLIENT_VERSION
         self._quick_connect_thread = None
         self._quick_connect_stop = threading.Event()
         self._discovery_stop = threading.Event()
@@ -90,7 +92,7 @@ class LoginWindow(ControlledWindow):
             self._set_status("Server URL and username are required")
             return
 
-        client = JellyfinClient(server_url, self.device_id)
+        client = JellyfinClient(server_url, self.device_id, client_version=self.client_version)
         try:
             auth.authenticate_by_name(client, username, password)
         except Exception as exc:  # noqa: BLE001 - surface any failure to the user
@@ -107,7 +109,7 @@ class LoginWindow(ControlledWindow):
         if self._quick_connect_thread and self._quick_connect_thread.is_alive():
             return
 
-        client = JellyfinClient(server_url, self.device_id)
+        client = JellyfinClient(server_url, self.device_id, client_version=self.client_version)
         try:
             initiated = auth.initiate_quick_connect(client)
         except Exception as exc:  # noqa: BLE001

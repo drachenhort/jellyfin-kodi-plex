@@ -25,6 +25,7 @@ from lib.windows.servers import ServerListWindow
 
 ADDON = xbmcaddon.Addon()
 ADDON_PATH = ADDON.getAddonInfo("path")
+ADDON_VERSION = ADDON.getAddonInfo("version")
 
 # Item types that are containers to drill down into rather than play.
 CONTAINER_TYPES = {"Series", "Season", "MusicArtist", "MusicAlbum", "BoxSet", "Folder"}
@@ -55,7 +56,7 @@ def _set_active_server_id(server_id):
 
 
 def _client_from_server(server):
-    client = JellyfinClient(server["server_url"], _get_device_id())
+    client = JellyfinClient(server["server_url"], _get_device_id(), client_version=ADDON_VERSION)
     client.access_token = server["access_token"]
     client.user_id = server["user_id"]
     return client
@@ -107,11 +108,14 @@ def _server_name(client):
 
 def _login():
     result = LoginWindow.open(
-        ADDON_PATH, default_server_url="", device_id=_get_device_id()
+        ADDON_PATH,
+        default_server_url="",
+        device_id=_get_device_id(),
+        client_version=ADDON_VERSION,
     )
     if not result:
         return None
-    client = JellyfinClient(result["server_url"], result["device_id"])
+    client = JellyfinClient(result["server_url"], result["device_id"], client_version=ADDON_VERSION)
     client.access_token = result["access_token"]
     client.user_id = result["user_id"]
 

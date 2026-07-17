@@ -8,7 +8,10 @@ outside of a running Kodi process.
 import requests
 
 CLIENT_NAME = "Jellyfin Plex-style Kodi Client"
-CLIENT_VERSION = "0.1.0"
+# Fallback only - real callers (lib/main.py) pass the addon's actual version
+# from addon.xml via getAddonInfo("version"), so this constant doesn't need
+# to be bumped by hand and can't drift from the version Jellyfin displays.
+CLIENT_VERSION = "0.0.0"
 
 
 class JellyfinApiError(Exception):
@@ -25,10 +28,11 @@ class JellyfinClient:
     unset and get filled in by lib.jellyfin.auth once login succeeds.
     """
 
-    def __init__(self, server_url, device_id, device_name="Kodi"):
+    def __init__(self, server_url, device_id, device_name="Kodi", client_version=CLIENT_VERSION):
         self.server_url = server_url.rstrip("/")
         self.device_id = device_id
         self.device_name = device_name
+        self.client_version = client_version
         self.access_token = None
         self.user_id = None
 
@@ -40,7 +44,7 @@ class JellyfinClient:
             f'Client="{CLIENT_NAME}"',
             f'Device="{self.device_name}"',
             f'DeviceId="{self.device_id}"',
-            f'Version="{CLIENT_VERSION}"',
+            f'Version="{self.client_version}"',
         ]
         if self.access_token:
             parts.append(f'Token="{self.access_token}"')
