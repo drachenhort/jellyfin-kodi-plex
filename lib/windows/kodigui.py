@@ -21,6 +21,13 @@ ACTION_PREVIOUS_MENU = 10
 ACTION_NAV_BACK = 92
 BACK_ACTIONS = (ACTION_PREVIOUS_MENU, ACTION_NAV_BACK)
 
+# Bundled skin texture shown wherever a Jellyfin item/library has no art of
+# its own (some servers leave this blank rather than generating/scraping a
+# placeholder). Composed with generous margin around the icon so it survives
+# both the 16:9 (Libraries row) and 2:3 (posters) crop-to-fill boxes used
+# across the skin without clipping.
+PLACEHOLDER_ART = "art-placeholder.png"
+
 
 class WindowMixin(object):
     xmlFile = None
@@ -137,14 +144,10 @@ def _ratings_text(item):
 def list_item(item, primary_art=None, backdrop_art=None):
     """Build an xbmcgui.ListItem for a Jellyfin BaseItemDto."""
     li = xbmcgui.ListItem(label=_display_label(item))
-    art = {}
-    if primary_art:
-        art["thumb"] = primary_art
-        art["poster"] = primary_art
+    art = {"thumb": primary_art or PLACEHOLDER_ART, "poster": primary_art or PLACEHOLDER_ART}
     if backdrop_art:
         art["fanart"] = backdrop_art
-    if art:
-        li.setArt(art)
+    li.setArt(art)
     info_tag = li.getVideoInfoTag()
     info_tag.setTitle(item.get("Name", ""))
     if item.get("Overview"):

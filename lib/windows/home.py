@@ -12,7 +12,7 @@ self.result on close is one of:
 import xbmcgui
 
 from lib.jellyfin import images, library
-from lib.windows.kodigui import ControlledWindow, list_item
+from lib.windows.kodigui import PLACEHOLDER_ART, ControlledWindow, list_item
 
 CTRL_LIBRARIES = 200
 CTRL_CONTINUE_WATCHING = 201
@@ -26,14 +26,10 @@ HUB_CONTROLS = (
     CTRL_CONTINUE_WATCHING, CTRL_NEXT_UP, CTRL_RECENTLY_ADDED_MOVIES, CTRL_RECENTLY_ADDED_TV,
 )
 
-# Bundled skin texture shown for libraries with no folder image set (some
-# servers leave this blank rather than generating/scraping a placeholder).
-LIBRARY_PLACEHOLDER_ART = "library-placeholder.png"
-
 
 def _library_list_item(client, view):
     li = xbmcgui.ListItem(label=view.get("Name", ""))
-    art_url = images.primary_image_url(client, view) or LIBRARY_PLACEHOLDER_ART
+    art_url = images.primary_image_url(client, view) or PLACEHOLDER_ART
     li.setArt({"thumb": art_url, "poster": art_url})
     li.setProperty("jellyfin_id", view.get("Id", ""))
     return li
