@@ -38,6 +38,10 @@ Typs des angeklickten Elements verzweigt (`lib/main.py`s `CONTAINER_TYPES`), um 
 navigiert oder der Detail-/Wiedergabebildschirm geöffnet wird. Die Gruppierung nach Musik-Interpret setzt voraus,
 dass die Bibliothek mit einem Ordner pro Interpret organisiert ist — Jellyfins virtuelle,
 ordnerübergreifende Interpreten-Aggregation (`/Artists`) wird nicht verwendet.
+Der Browse-Bildschirm zeigt außerdem eine Kurzbeschreibung des jeweils fokussierten Elements an
+(am nützlichsten beim Durchsehen der Staffeln einer Serie) und markiert bereits gesehene Filme/
+Episoden mit einem Häkchen-Badge sowie teilweise gesehene Serien mit einem Badge für die Anzahl
+ungesehener Episoden.
 
 Der Login-Bildschirm erkennt Jellyfin-Server im lokalen Netzwerk automatisch (`lib/jellyfin/discovery.py`)
 über das von Emby/MediaBrowser übernommene UDP-Broadcast-Protokoll — gefundene Server werden als Auswahlliste

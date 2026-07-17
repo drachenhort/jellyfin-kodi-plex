@@ -34,6 +34,9 @@ seasons, a season's episodes, an artist's albums, an album's tracks) and branchi
 clicked item's type (`lib/main.py`'s `CONTAINER_TYPES`) to decide whether to browse deeper or
 open the detail/play screen. Music artist grouping relies on the library being organized as one
 folder per artist — Jellyfin's virtual cross-folder artist aggregation (`/Artists`) isn't used.
+The browse screen also shows a synopsis pane for whichever item currently has focus (most useful
+browsing a series' seasons), and marks already-watched movies/episodes with a checkmark badge and
+partially-watched shows with an unwatched-episode-count badge.
 
 The login screen autodetects Jellyfin servers on the LAN (`lib/jellyfin/discovery.py`) using the
 UDP broadcast protocol inherited from Emby/MediaBrowser — found servers are offered as a pick-list
