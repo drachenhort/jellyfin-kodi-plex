@@ -2,15 +2,6 @@
 <window>
   <defaultcontrol always="true">100</defaultcontrol>
   <controls>
-    <!-- Everything visible lives in one group so lib/windows/seekdialog.py
-         can show/hide it as a unit on auto-hide/re-trigger without ever
-         closing the dialog window itself - the window needs to stay open
-         for the whole playback session so Back always reaches onAction()
-         and stops playback, even when the OSD's controls aren't showing
-         (closing and reopening the window on every hide/show meant Back
-         pressed while hidden fell through to Kodi's own handling instead,
-         leaving playback running with nothing left to stop it). -->
-    <control type="group" id="900">
     <control type="image">
       <posx>0</posx>
       <posy>860</posy>
@@ -156,7 +147,6 @@
       <texturefocus>osd-close-focus.png</texturefocus>
       <onleft>104</onleft>
       <onright>103</onright>
-    </control>
     </control>
   </controls>
 </window>
