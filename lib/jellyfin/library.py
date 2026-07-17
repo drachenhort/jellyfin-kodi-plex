@@ -56,6 +56,18 @@ def get_next_up(client, limit=20):
     return result.get("Items", [])
 
 
+def get_items_by_ids(client, item_ids, fields="ImageTags"):
+    """GET /Users/{userId}/Items?Ids=... — batch lookup by id, e.g. to check
+    which seasons in a Next Up list have their own poster art."""
+    if not item_ids:
+        return []
+    result = client.get(f"/Users/{client.user_id}/Items", params={
+        "Ids": ",".join(item_ids),
+        "Fields": fields,
+    })
+    return result.get("Items", [])
+
+
 def get_latest(client, parent_id=None, limit=20):
     """GET /Users/{userId}/Items/Latest — Recently Added hub, per library."""
     params = {"Limit": limit, "Fields": DEFAULT_ITEM_FIELDS}

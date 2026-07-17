@@ -154,6 +154,48 @@ def test_get_resume_and_next_up_and_latest(client, monkeypatch):
     assert fake.calls[2]["url"].endswith("/Items/Latest")
 
 
+def test_get_items_by_ids_builds_comma_separated_param(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"Items": [{"Id": "s1"}, {"Id": "s2"}]})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    result = library.get_items_by_ids(client, ["s1", "s2"])
+
+    assert result == [{"Id": "s1"}, {"Id": "s2"}]
+    call = fake.calls[0]
+    assert call["url"].endswith(f"/Users/{client.user_id}/Items")
+    assert call["params"]["Ids"] == "s1,s2"
+
+
+def test_get_items_by_ids_empty_list_short_circuits(client):
+    assert library.get_items_by_ids(client, []) == []
+
+
+def test_series_poster_url_prefers_season_art(client):
+    episode = {"SeriesId": "series-1", "SeriesPrimaryImageTag": "series-tag"}
+    season = {"Id": "season-1", "ImageTags": {"Primary": "season-tag"}}
+    url = images.series_poster_url(client, episode, season=season)
+    assert url.startswith(client.build_url("/Items/season-1/Images/Primary"))
+    assert "tag=season-tag" in url
+
+
+def test_series_poster_url_falls_back_to_series_when_season_has_no_art(client):
+    episode = {"SeriesId": "series-1", "SeriesPrimaryImageTag": "series-tag"}
+    season = {"Id": "season-1", "ImageTags": {}}
+    url = images.series_poster_url(client, episode, season=season)
+    assert url.startswith(client.build_url("/Items/series-1/Images/Primary"))
+    assert "tag=series-tag" in url
+
+
+def test_series_poster_url_falls_back_when_no_season_given(client):
+    episode = {"SeriesId": "series-1", "SeriesPrimaryImageTag": "series-tag"}
+    url = images.series_poster_url(client, episode)
+    assert url.startswith(client.build_url("/Items/series-1/Images/Primary"))
+
+
+def test_series_poster_url_none_when_nothing_available(client):
+    assert images.series_poster_url(client, {"Id": "ep-1"}) is None
+
+
 def test_primary_image_url_uses_item_tag(client):
     item = {"Id": "item-1", "ImageTags": {"Primary": "tag123"}}
     url = images.primary_image_url(client, item, max_width=400)

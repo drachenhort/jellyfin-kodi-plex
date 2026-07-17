@@ -39,6 +39,23 @@ def primary_image_url(client, item, max_width=None):
     return None
 
 
+def series_poster_url(client, episode, season=None, max_width=None):
+    """Portrait show poster for an Episode item (e.g. for Next Up, where the
+    episode's own landscape screengrab isn't wanted): the current season's
+    own poster if it has one, else the series poster. `season` is that
+    episode's Season item dict (fetched separately — Jellyfin doesn't inline
+    the season's own ImageTags onto the episode)."""
+    if season:
+        season_tag = season.get("ImageTags", {}).get(PRIMARY)
+        if season_tag:
+            return image_url(client, season["Id"], PRIMARY, tag=season_tag, max_width=max_width)
+    series_id = episode.get("SeriesId")
+    series_tag = episode.get("SeriesPrimaryImageTag")
+    if series_id and series_tag:
+        return image_url(client, series_id, PRIMARY, tag=series_tag, max_width=max_width)
+    return None
+
+
 def backdrop_image_url(client, item, max_width=None, index=0):
     """Fanart/backdrop for `item`, falling back to its parent's backdrop."""
     tags = item.get("BackdropImageTags") or []
