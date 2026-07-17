@@ -91,6 +91,74 @@ def test_play_all_no_op_when_no_tracks(client, monkeypatch):
     assert not window.closed
 
 
+# -- episode list (parent_item_type="Season") --------------------------
+
+EPISODES = [
+    {"Id": "ep-1", "Name": "Pilot", "Type": "Episode"},
+    {"Id": "ep-2", "Name": "Redemption", "Type": "Episode"},
+]
+
+
+def test_season_children_populate_episode_list_not_grid(client, monkeypatch):
+    monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": EPISODES})
+    monkeypatch.setattr(browse_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client, parent_item_type="Season")
+    window._load()
+
+    assert [i.getProperty("jellyfin_id") for i in window.getControl(browse_mod.CTRL_EPISODE_LIST).items] == [
+        "ep-1", "ep-2",
+    ]
+    assert window.getControl(browse_mod.CTRL_GRID).items == []
+
+
+def test_non_season_children_still_populate_grid(client, monkeypatch):
+    monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": ALBUM_TRACKS})
+    monkeypatch.setattr(browse_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client, parent_item_type="Series")
+    window._load()
+
+    assert len(window.getControl(browse_mod.CTRL_GRID).items) == 3
+    assert window.getControl(browse_mod.CTRL_EPISODE_LIST).items == []
+
+
+def test_episode_list_click_opens_selected_episode(client, monkeypatch):
+    monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": EPISODES})
+    monkeypatch.setattr(browse_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client, parent_item_type="Season")
+    window._load()
+    window.handle_click(browse_mod.CTRL_EPISODE_LIST)
+
+    assert window.result == {
+        "action": "open",
+        "item_id": "ep-1",
+        "item_type": "Episode",
+        "item_name": "Pilot",
+    }
+    assert window.closed
+
+
+def test_onInit_shows_episode_list_and_hides_grid_for_season(client):
+    window = _make_window(client, parent_item_type="Season")
+    window.onInit()
+
+    assert window.getControl(browse_mod.CTRL_EPISODE_LIST).visible is True
+    assert window.getControl(browse_mod.CTRL_GRID).visible is False
+
+
+def test_onInit_shows_grid_and_hides_episode_list_for_non_season(client):
+    window = _make_window(client, parent_item_type="Series")
+    window.onInit()
+
+    assert window.getControl(browse_mod.CTRL_GRID).visible is True
+    assert window.getControl(browse_mod.CTRL_EPISODE_LIST).visible is False
+
+
 def test_grid_click_still_opens_selected_item(client, monkeypatch):
     monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": ALBUM_TRACKS})
     monkeypatch.setattr(

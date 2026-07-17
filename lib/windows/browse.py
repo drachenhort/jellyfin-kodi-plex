@@ -27,12 +27,18 @@ CTRL_TITLE = 300
 CTRL_GRID = 301
 CTRL_PLAY_ALL = 302
 CTRL_SHUFFLE = 303
+CTRL_EPISODE_LIST = 304
 
 MAX_ITEMS = 200
 
 # Only an album's own screen offers Play All/Shuffle - browsing an Artist
 # still just drills down into that artist's Albums.
 QUEUEABLE_PARENT_TYPES = {"MusicAlbum"}
+
+# A season's episodes get the "ls -l"-style detail list (CTRL_EPISODE_LIST)
+# instead of the poster grid - one row per episode is a lot more scannable
+# than a wall of near-identical landscape thumbnails.
+LISTED_PARENT_TYPES = {"Season"}
 
 
 class BrowseWindow(ControlledWindow):
@@ -44,6 +50,7 @@ class BrowseWindow(ControlledWindow):
         self.parent_id = parent_id
         self.title = title
         self.parent_item_type = parent_item_type
+        self.is_episode_list = parent_item_type in LISTED_PARENT_TYPES
         self.items = []
 
     def onInit(self):
@@ -54,7 +61,10 @@ class BrowseWindow(ControlledWindow):
         self.getControl(CTRL_TITLE).setLabel(self.title)
         self.getControl(CTRL_PLAY_ALL).setVisible(False)
         self.getControl(CTRL_SHUFFLE).setVisible(False)
-        self.setFocusId(CTRL_GRID)
+        active_control = CTRL_EPISODE_LIST if self.is_episode_list else CTRL_GRID
+        self.getControl(CTRL_GRID).setVisible(not self.is_episode_list)
+        self.getControl(CTRL_EPISODE_LIST).setVisible(self.is_episode_list)
+        self.setFocusId(active_control)
         threading.Thread(target=self._load, daemon=True).start()
 
     def _load(self):
@@ -85,7 +95,7 @@ class BrowseWindow(ControlledWindow):
         if self.closed_event.is_set():
             return
 
-        control = self.getControl(CTRL_GRID)
+        control = self.getControl(CTRL_EPISODE_LIST if self.is_episode_list else CTRL_GRID)
         control.reset()
         list_items = []
         for item in self.items:
@@ -102,15 +112,15 @@ class BrowseWindow(ControlledWindow):
         return [item["Id"] for item in self.items if item.get("Type") == "Audio"]
 
     def handle_click(self, control_id):
-        if control_id == CTRL_GRID:
-            self._open_selected()
+        if control_id in (CTRL_GRID, CTRL_EPISODE_LIST):
+            self._open_selected(control_id)
         elif control_id == CTRL_PLAY_ALL:
             self._play_queue(shuffle=False)
         elif control_id == CTRL_SHUFFLE:
             self._play_queue(shuffle=True)
 
-    def _open_selected(self):
-        selected = self.getControl(CTRL_GRID).getSelectedItem()
+    def _open_selected(self, control_id):
+        selected = self.getControl(control_id).getSelectedItem()
         if not selected:
             return
         self.result = {

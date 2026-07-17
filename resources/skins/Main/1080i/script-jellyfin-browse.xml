@@ -182,20 +182,144 @@
       </focusedlayout>
     </control>
 
-    <!-- Synopsis pane for the focused grid item (a season's overview when
-         browsing a series, but works for any item type with an Overview -
-         Container(301).ListItem.* always reflects whichever tile has focus,
-         no Python wiring needed beyond list_item() already calling
-         setPlot()). Collapses to blank space rather than being hidden
-         outright when the focused item has no Overview. -->
+    <!-- A season's episodes get an "ls -l"-style detail list instead of the
+         poster grid above - one row per episode (thumb, code, title,
+         duration, watched state) is a lot more scannable than a wall of
+         near-identical landscape thumbnails. BrowseWindow toggles which of
+         301/304 is visible and populated based on parent_item_type. -->
+    <control type="list" id="304">
+      <posx>80</posx>
+      <posy>130</posy>
+      <width>1760</width>
+      <height>660</height>
+      <onup>302</onup>
+      <itemgap>6</itemgap>
+      <itemlayout width="1760" height="84">
+        <control type="image">
+          <posy>2</posy>
+          <width>150</width>
+          <height>80</height>
+          <aspectratio>scale</aspectratio>
+          <texture>$INFO[ListItem.Art(thumb)]</texture>
+        </control>
+        <control type="label">
+          <posx>165</posx>
+          <width>85</width>
+          <height>84</height>
+          <font>font13</font>
+          <aligny>center</aligny>
+          <label>$INFO[ListItem.Property(episode_code)]</label>
+        </control>
+        <control type="label">
+          <posx>260</posx>
+          <width>1040</width>
+          <height>84</height>
+          <font>font13</font>
+          <aligny>center</aligny>
+          <label>$INFO[ListItem.Title]</label>
+        </control>
+        <control type="label">
+          <posx>1310</posx>
+          <width>110</width>
+          <height>84</height>
+          <font>font13</font>
+          <align>right</align>
+          <aligny>center</aligny>
+          <label>$INFO[ListItem.Duration(mins)] min</label>
+          <visible>Integer.IsGreater(ListItem.Duration,0)</visible>
+        </control>
+        <control type="label">
+          <posx>1430</posx>
+          <width>140</width>
+          <height>84</height>
+          <font>font13</font>
+          <aligny>center</aligny>
+          <label>$INFO[ListItem.Property(progress_text)]</label>
+          <visible>!String.IsEmpty(ListItem.Property(progress_text))</visible>
+        </control>
+        <control type="image">
+          <posx>1596</posx>
+          <posy>22</posy>
+          <width>40</width>
+          <height>40</height>
+          <texture>watched-badge.png</texture>
+          <visible>ListItem.Property(watched)</visible>
+        </control>
+      </itemlayout>
+      <focusedlayout width="1760" height="84">
+        <control type="image">
+          <width>1760</width>
+          <height>84</height>
+          <texture border="6">focus-highlight.png</texture>
+        </control>
+        <control type="image">
+          <posx>4</posx>
+          <posy>6</posy>
+          <width>150</width>
+          <height>80</height>
+          <aspectratio>scale</aspectratio>
+          <texture>$INFO[ListItem.Art(thumb)]</texture>
+        </control>
+        <control type="label">
+          <posx>169</posx>
+          <width>85</width>
+          <height>84</height>
+          <font>font13</font>
+          <aligny>center</aligny>
+          <label>$INFO[ListItem.Property(episode_code)]</label>
+        </control>
+        <control type="label">
+          <posx>264</posx>
+          <width>1030</width>
+          <height>84</height>
+          <font>font13</font>
+          <aligny>center</aligny>
+          <label>$INFO[ListItem.Title]</label>
+        </control>
+        <control type="label">
+          <posx>1310</posx>
+          <width>110</width>
+          <height>84</height>
+          <font>font13</font>
+          <align>right</align>
+          <aligny>center</aligny>
+          <label>$INFO[ListItem.Duration(mins)] min</label>
+          <visible>Integer.IsGreater(ListItem.Duration,0)</visible>
+        </control>
+        <control type="label">
+          <posx>1430</posx>
+          <width>140</width>
+          <height>84</height>
+          <font>font13</font>
+          <aligny>center</aligny>
+          <label>$INFO[ListItem.Property(progress_text)]</label>
+          <visible>!String.IsEmpty(ListItem.Property(progress_text))</visible>
+        </control>
+        <control type="image">
+          <posx>1596</posx>
+          <posy>22</posy>
+          <width>40</width>
+          <height>40</height>
+          <texture>watched-badge.png</texture>
+          <visible>ListItem.Property(watched)</visible>
+        </control>
+      </focusedlayout>
+    </control>
+
+    <!-- Synopsis pane for the focused item, whichever of the poster grid
+         (301) or episode list (304) is currently active - only one is ever
+         populated per screen instance, so concatenating both container refs
+         is safe: the inactive one is always empty. No Python wiring needed
+         beyond list_item() already calling setPlot(). Collapses to blank
+         space rather than being hidden outright when there's no Overview. -->
     <control type="label">
       <posx>80</posx>
       <posy>810</posy>
       <width>1760</width>
       <height>30</height>
       <font>font16</font>
-      <label>$INFO[Container(301).ListItem.Label]</label>
-      <visible>!String.IsEmpty(Container(301).ListItem.Plot)</visible>
+      <label>$INFO[Container(301).ListItem.Label]$INFO[Container(304).ListItem.Label]</label>
+      <visible>!String.IsEmpty(Container(301).ListItem.Plot) | !String.IsEmpty(Container(304).ListItem.Plot)</visible>
     </control>
     <control type="textbox">
       <posx>80</posx>
@@ -203,8 +327,8 @@
       <width>1760</width>
       <height>185</height>
       <font>font13</font>
-      <label>$INFO[Container(301).ListItem.Plot]</label>
-      <visible>!String.IsEmpty(Container(301).ListItem.Plot)</visible>
+      <label>$INFO[Container(301).ListItem.Plot]$INFO[Container(304).ListItem.Plot]</label>
+      <visible>!String.IsEmpty(Container(301).ListItem.Plot) | !String.IsEmpty(Container(304).ListItem.Plot)</visible>
     </control>
   </controls>
 </window>
