@@ -5,6 +5,8 @@ self.result on close: {"action": "play", "item_id": ..., "resume_ticks": N}
 or None (back).
 """
 
+import xbmcgui
+
 from lib.jellyfin import images, library
 from lib.windows.kodigui import ControlledWindow
 
@@ -48,7 +50,13 @@ class DetailWindow(ControlledWindow):
         self.item = None
 
     def onInit(self):
-        self.item = library.get_item(self.client, self.item_id)
+        try:
+            self.item = library.get_item(self.client, self.item_id)
+        except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
+            xbmcgui.Dialog().notification("Jellyfin", f"Couldn't load item: {exc}")
+            self.result = None
+            self.close()
+            return
 
         backdrop = images.backdrop_image_url(self.client, self.item)
         if backdrop:

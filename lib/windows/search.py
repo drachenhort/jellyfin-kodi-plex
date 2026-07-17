@@ -46,7 +46,11 @@ class SearchWindow(ControlledWindow):
             self.getControl(CTRL_STATUS_LABEL).setLabel("")
             return
 
-        response = library.search_items(self.client, term, limit=MAX_RESULTS)
+        try:
+            response = library.search_items(self.client, term, limit=MAX_RESULTS)
+        except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
+            self.getControl(CTRL_STATUS_LABEL).setLabel(f"Search failed: {exc}")
+            return
         items = response.get("Items", [])
 
         list_items = []

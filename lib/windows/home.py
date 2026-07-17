@@ -43,12 +43,18 @@ class HomeWindow(ControlledWindow):
         self.client = client
 
     def onInit(self):
-        views = library.get_views(self.client)
-        self._populate(CTRL_LIBRARIES, views, is_library=True)
-        self._populate_episode_aware(CTRL_CONTINUE_WATCHING, library.get_resume(self.client))
-        self._populate_episode_aware(CTRL_NEXT_UP, library.get_next_up(self.client))
-        self._populate(CTRL_RECENTLY_ADDED_MOVIES, self._latest(views, "movies"))
-        self._populate(CTRL_RECENTLY_ADDED_TV, self._latest(views, "tvshows"))
+        try:
+            views = library.get_views(self.client)
+            self._populate(CTRL_LIBRARIES, views, is_library=True)
+            self._populate_episode_aware(CTRL_CONTINUE_WATCHING, library.get_resume(self.client))
+            self._populate_episode_aware(CTRL_NEXT_UP, library.get_next_up(self.client))
+            self._populate(CTRL_RECENTLY_ADDED_MOVIES, self._latest(views, "movies"))
+            self._populate(CTRL_RECENTLY_ADDED_TV, self._latest(views, "tvshows"))
+        except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
+            xbmcgui.Dialog().notification("Jellyfin", f"Couldn't load Home: {exc}")
+            self.result = None
+            self.close()
+            return
 
         self.setFocusId(CTRL_LIBRARIES)
 

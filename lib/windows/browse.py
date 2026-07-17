@@ -12,6 +12,8 @@ self.result on close: {"action": "open", "item_id": ..., "item_type": ...,
 "item_name": ...} or None (back).
 """
 
+import xbmcgui
+
 from lib.jellyfin import images, library
 from lib.windows.kodigui import ControlledWindow, list_item
 
@@ -32,10 +34,16 @@ class BrowseWindow(ControlledWindow):
 
     def onInit(self):
         self.getControl(CTRL_TITLE).setLabel(self.title)
-        response = library.get_items(
-            self.client, parent_id=self.parent_id, start_index=0, limit=MAX_ITEMS,
-            recursive=False,
-        )
+        try:
+            response = library.get_items(
+                self.client, parent_id=self.parent_id, start_index=0, limit=MAX_ITEMS,
+                recursive=False,
+            )
+        except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
+            xbmcgui.Dialog().notification("Jellyfin", f"Couldn't load {self.title}: {exc}")
+            self.result = None
+            self.close()
+            return
         items = response.get("Items", [])
 
         control = self.getControl(CTRL_GRID)
