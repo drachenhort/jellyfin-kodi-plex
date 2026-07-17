@@ -54,8 +54,16 @@ class JellyfinPlayer(xbmc.Player):
 
         # Block the calling window loop until playback actually ends, since
         # lib/main.py's window stack expects play_item() to be synchronous.
+        # self.play() is async - Kodi may still be opening/buffering the
+        # stream for a while before isPlayingVideo()/isPlaying() go True, so
+        # "started" has to be observed before "not playing" can mean
+        # "finished" rather than "hasn't started yet". Without this, a slow
+        # stream open raced this loop into exiting on its very first check
+        # (both still False) and returning immediately while the video kept
+        # playing in the background, orphaned from the rest of the addon.
         monitor = xbmc.Monitor()
-        while self.isPlayingVideo() or (not self._stop_event.is_set() and self.isPlaying()):
+        started = False
+        while True:
             if monitor.waitForAbort(1):
                 # Kodi is telling the script to exit (shutdown, being
                 # force-killed to launch something else, etc.) - without
@@ -63,6 +71,10 @@ class JellyfinPlayer(xbmc.Player):
                 # its progress-reporting thread) is already gone.
                 if self.isPlaying():
                     self.stop()
+                break
+            if self.isPlayingVideo():
+                started = True
+            elif started or self._stop_event.is_set():
                 break
         self._finish()
 
