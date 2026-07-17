@@ -118,6 +118,22 @@ def _progress_text(item):
     return f"{percent}% watched · {minutes_left} min left"
 
 
+def _ratings_text(item):
+    """"TMDb 6.7 · RT 80%"-style caption from Jellyfin's two rating fields:
+    CommunityRating (whichever metadata plugin populated it, commonly TMDb)
+    and CriticRating (Rotten Tomatoes' critic/tomatometer score, 0-100).
+    Jellyfin doesn't expose a separate IMDb score. Omits either half that's
+    missing, and returns "" if neither is set."""
+    parts = []
+    community = item.get("CommunityRating")
+    if community:
+        parts.append(f"TMDb {community:.1f}")
+    critic = item.get("CriticRating")
+    if critic is not None:
+        parts.append(f"RT {int(critic)}%")
+    return " · ".join(parts)
+
+
 def list_item(item, primary_art=None, backdrop_art=None):
     """Build an xbmcgui.ListItem for a Jellyfin BaseItemDto."""
     li = xbmcgui.ListItem(label=_display_label(item))
@@ -146,4 +162,5 @@ def list_item(item, primary_art=None, backdrop_art=None):
     li.setProperty("jellyfin_type", item.get("Type", ""))
     li.setProperty("series_name", item.get("SeriesName") or "")
     li.setProperty("progress_text", _progress_text(item))
+    li.setProperty("ratings_text", _ratings_text(item))
     return li

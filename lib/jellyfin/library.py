@@ -1,6 +1,6 @@
 """Library/item browsing: views, item listings, and home-screen hubs."""
 
-DEFAULT_ITEM_FIELDS = "Overview,Genres,People,RunTimeTicks,ProductionYear,CommunityRating"
+DEFAULT_ITEM_FIELDS = "Overview,Genres,People,RunTimeTicks,ProductionYear,CommunityRating,CriticRating"
 
 
 def get_views(client):
