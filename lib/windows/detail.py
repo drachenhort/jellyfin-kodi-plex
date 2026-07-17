@@ -80,6 +80,5 @@ class DetailWindow(ControlledWindow):
             "action": "play",
             "item_id": self.item_id,
             "resume_ticks": resume_ticks,
-            "title": self.item.get("Name", ""),
         }
         self.close()

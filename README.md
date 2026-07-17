@@ -15,9 +15,9 @@ windows to fully control the UI, independent of the active Kodi skin.
 Milestone 1 (in progress): login (LAN autodiscovery, Quick Connect + password fallback) → home screen with
 Continue Watching / Next Up / Recently Added hub rows → library poster-wall browsing, including
 drill-down through TV (Series → Season → Episode) and Music (Artist → Album → Track) hierarchies,
-and a Search screen → item detail page → playback with progress reported back to the server, and
-a custom Plex-style seek/OSD dialog in place of Kodi's stock video controls, and a Servers screen
-for saving logins to multiple Jellyfin servers and switching between them.
+and a Search screen → item detail page → playback (using Kodi's own native video OSD/controls)
+with progress reported back to the server, and a Servers screen for saving logins to multiple
+Jellyfin servers and switching between them.
 
 The TV/Music drill-down works by fetching each item's direct children non-recursively
 (`lib/windows/browse.py` is reused at every level: a library's top-level items, a series'
@@ -38,11 +38,6 @@ button on Home (`lib/windows/servers.py`) opens a picker to switch the active se
 via the same login flow, or remove a saved one (the currently active server can't be removed —
 switch away from it first). An existing single-server install is migrated into this list
 automatically the first time it runs after updating, so it doesn't get logged out.
-
-The custom OSD works by exploiting the fact that Kodi has no API to suppress its own default video
-OSD from opening on a remote/keyboard press: `lib/player.py` polls `Window.IsActive(videoosd)` in a
-background thread and shows `lib/windows/seekdialog.py`'s dialog on top of it the moment that
-happens — the same trick the real Plex-for-Kodi addon uses.
 
 ## Development
 

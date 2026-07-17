@@ -1,20 +1,20 @@
 """Playback: resolves a stream via PlaybackInfo, plays it with xbmc.Player,
-shows a custom seek/OSD dialog in place of Kodi's stock one, and reports
-position back to Jellyfin so watched-state/resume stays in sync with other
-Jellyfin clients.
+and reports position back to Jellyfin so watched-state/resume stays in sync
+with other Jellyfin clients. Uses Kodi's own native video OSD/controls
+during playback (pause, seek, stop, audio/subtitle selection) rather than a
+custom overlay - an earlier custom seek dialog was removed after repeated
+real-device testing showed it could leave the whole OSD unresponsive to
+input (see git history for lib/windows/seekdialog.py if reviving the idea).
 """
 
 import threading
 
 import xbmc
-import xbmcaddon
 import xbmcgui
 
 from lib.jellyfin import playback
-from lib.windows.seekdialog import SeekDialog
 
 PROGRESS_REPORT_INTERVAL_SECONDS = 10
-OSD_POLL_INTERVAL_SECONDS = 0.1
 
 
 class JellyfinPlayer(xbmc.Player):
@@ -25,21 +25,17 @@ class JellyfinPlayer(xbmc.Player):
         self.client = client
         self._item_id = None
         self._play_session_id = None
-        self._title = ""
         self._stop_event = threading.Event()
         self._progress_thread = None
-        self._osd_thread = None
-        self._seek_dialog = None
         self._reported_stop = False
 
-    def play_item(self, item_id, resume_ticks=0, title=""):
+    def play_item(self, item_id, resume_ticks=0):
         media_info = playback.get_playback_info(self.client, item_id)
         media_source = media_info["MediaSources"][0]
         url, play_session_id = playback.stream_url(self.client, item_id, media_source)
 
         self._item_id = item_id
         self._play_session_id = play_session_id
-        self._title = title
         self._reported_stop = False
 
         list_item = xbmcgui.ListItem(path=url)
@@ -55,8 +51,6 @@ class JellyfinPlayer(xbmc.Player):
         self._stop_event.clear()
         self._progress_thread = threading.Thread(target=self._report_progress_loop, daemon=True)
         self._progress_thread.start()
-        self._osd_thread = threading.Thread(target=self._osd_monitor_loop, daemon=True)
-        self._osd_thread.start()
 
         # Block the calling window loop until playback actually ends, since
         # lib/main.py's window stack expects play_item() to be synchronous.
@@ -65,9 +59,6 @@ class JellyfinPlayer(xbmc.Player):
             if monitor.waitForAbort(1):
                 break
         self._finish()
-        if self._seek_dialog is not None:
-            self._seek_dialog.close()
-            self._seek_dialog = None
 
     def onPlayBackStopped(self):
         self._stop_event.set()
@@ -77,36 +68,6 @@ class JellyfinPlayer(xbmc.Player):
 
     def onPlayBackError(self):
         self._stop_event.set()
-
-    def _osd_monitor_loop(self):
-        """Detect Kodi's own video OSD opening and show ours instead.
-
-        Kodi has no API to suppress its stock OSD from appearing on a
-        remote/keyboard press during playback; the workaround (same one the
-        real Plex-for-Kodi addon uses) is to let it open, notice via
-        `Window.IsActive(videoosd)`, and immediately show our own dialog.
-        Showing ours isn't enough on its own - the native OSD stays open
-        underneath and can still win focus/rendering back, so it's
-        explicitly closed too rather than just assumed moot.
-        """
-        had_osd = False
-        while not self._stop_event.wait(OSD_POLL_INTERVAL_SECONDS):
-            if not self.isPlayingVideo():
-                had_osd = False
-                continue
-            active = xbmc.getCondVisibility("Window.IsActive(videoosd)")
-            if active and not had_osd:
-                had_osd = True
-                self._show_seek_dialog()
-            elif not active:
-                had_osd = False
-
-    def _show_seek_dialog(self):
-        xbmc.executebuiltin("Dialog.Close(videoosd,true)")
-        if self._seek_dialog is None:
-            addon_path = xbmcaddon.Addon().getAddonInfo("path")
-            self._seek_dialog = SeekDialog.create(addon_path, show=False, title=self._title)
-        self._seek_dialog.show_osd()
 
     def _report_progress_loop(self):
         while not self._stop_event.wait(PROGRESS_REPORT_INTERVAL_SECONDS):
@@ -133,6 +94,6 @@ class JellyfinPlayer(xbmc.Player):
         )
 
 
-def play_item(client, item_id, resume_ticks=0, title=""):
+def play_item(client, item_id, resume_ticks=0):
     player = JellyfinPlayer(client)
-    player.play_item(item_id, resume_ticks=resume_ticks, title=title)
+    player.play_item(item_id, resume_ticks=resume_ticks)

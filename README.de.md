@@ -15,9 +15,9 @@ um die Oberfläche vollständig selbst zu steuern, unabhängig vom aktiven Kodi-
 Meilenstein 1 (in Arbeit): Login (LAN-Autoerkennung, Quick Connect mit Passwort-Fallback) → Startbildschirm mit
 den Hub-Zeilen „Weiterschauen" / „Als Nächstes" / „Kürzlich hinzugefügt" → Bibliotheks-Posterwand-Browsing, inklusive
 Drilldown durch die TV- (Serie → Staffel → Episode) und Musik-Hierarchien (Interpret → Album → Titel),
-sowie ein Suchbildschirm → Detailseite eines Titels → Wiedergabe mit an den Server zurückgemeldetem Fortschritt und
-einem benutzerdefinierten Plex-artigen Sucher-/OSD-Dialog anstelle von Kodis eingebauten Videosteuerelementen
-sowie einem Server-Bildschirm zum Speichern von Logins für mehrere Jellyfin-Server und zum Wechseln zwischen ihnen.
+sowie ein Suchbildschirm → Detailseite eines Titels → Wiedergabe (mit Kodis eigenem nativen Video-OSD/
+Steuerelementen) mit an den Server zurückgemeldetem Fortschritt sowie einem Server-Bildschirm zum Speichern
+von Logins für mehrere Jellyfin-Server und zum Wechseln zwischen ihnen.
 
 Der TV-/Musik-Drilldown funktioniert, indem die direkten Kindelemente jedes Objekts nicht-rekursiv abgerufen werden
 (`lib/windows/browse.py` wird auf jeder Ebene wiederverwendet: die Top-Level-Elemente einer Bibliothek, die Staffeln
@@ -41,11 +41,6 @@ Startbildschirm (`lib/windows/servers.py`) öffnet eine Auswahl, um den aktiven 
 aktuell aktive Server kann nicht entfernt werden — dazu muss man zuerst zu einem anderen wechseln).
 Eine bestehende Einzelserver-Installation wird beim ersten Start nach dem Update automatisch in
 diese Liste übernommen, damit sie nicht abgemeldet wird.
-
-Das benutzerdefinierte OSD funktioniert, indem ausgenutzt wird, dass Kodi keine API besitzt, um sein eigenes
-Standard-Video-OSD beim Drücken einer Fernbedienungs-/Tastaturtaste zu unterdrücken: `lib/player.py` fragt in
-einem Hintergrund-Thread `Window.IsActive(videoosd)` ab und zeigt in dem Moment, in dem das OSD erscheint,
-den Dialog aus `lib/windows/seekdialog.py` darüber an — derselbe Trick, den das echte Plex-for-Kodi-Addon verwendet.
 
 ## Entwicklung
 

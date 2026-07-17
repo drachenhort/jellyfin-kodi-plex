@@ -51,20 +51,6 @@ class WindowMixin(object):
         del window
         return result
 
-    @classmethod
-    def create(cls, addon_path, show=True, **kwargs):
-        """Non-modal: returns immediately, caller keeps the live instance.
-
-        Used for overlays like SeekDialog that must coexist with a
-        background thread (playback progress reporting, OSD polling)
-        instead of blocking the thread that created them.
-        """
-        window = cls(cls.xmlFile, addon_path, cls.theme, cls.res)
-        window.setup(**kwargs)
-        if show:
-            window.show()
-        return window
-
     def onAction(self, action):
         if action.getId() in BACK_ACTIONS:
             self.result = None
@@ -91,11 +77,6 @@ class WindowMixin(object):
 class ControlledWindow(WindowMixin, xbmcgui.WindowXML):
     def __init__(self, *args, **kwargs):
         xbmcgui.WindowXML.__init__(self, *args, **kwargs)
-
-
-class BaseDialog(WindowMixin, xbmcgui.WindowXMLDialog):
-    def __init__(self, *args, **kwargs):
-        xbmcgui.WindowXMLDialog.__init__(self, *args, **kwargs)
 
 
 def _display_label(item):

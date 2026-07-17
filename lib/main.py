@@ -167,7 +167,6 @@ def _detail_loop(client, item_id):
                     client,
                     result["item_id"],
                     resume_ticks=result.get("resume_ticks", 0),
-                    title=result.get("title", ""),
                 )
             except Exception as exc:  # noqa: BLE001 - surface playback failures, don't crash the addon
                 xbmcgui.Dialog().notification("Jellyfin", f"Playback failed: {exc}")
