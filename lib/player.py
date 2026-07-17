@@ -15,6 +15,8 @@ import xbmcgui
 from lib.jellyfin import playback
 
 PROGRESS_REPORT_INTERVAL_SECONDS = 10
+STARTUP_TIMEOUT_SECONDS = 30
+LOG_PREFIX = "[script.jellyfin.plex]"
 
 
 class JellyfinPlayer(xbmc.Player):
@@ -63,6 +65,7 @@ class JellyfinPlayer(xbmc.Player):
         # playing in the background, orphaned from the rest of the addon.
         monitor = xbmc.Monitor()
         started = False
+        seconds_waiting_to_start = 0
         while True:
             if monitor.waitForAbort(1):
                 # Kodi is telling the script to exit (shutdown, being
@@ -75,6 +78,39 @@ class JellyfinPlayer(xbmc.Player):
             if self.isPlayingVideo():
                 started = True
             elif started or self._stop_event.is_set():
+                break
+            else:
+                # Still hasn't started (may just be slow to open/buffer) -
+                # but don't wait forever for a stream that will never come,
+                # in case Kodi doesn't fire onPlayBackError for this failure.
+                seconds_waiting_to_start += 1
+                if seconds_waiting_to_start >= STARTUP_TIMEOUT_SECONDS:
+                    xbmc.log(
+                        f"{LOG_PREFIX} giving up: playback of {item_id} never "
+                        f"started within {STARTUP_TIMEOUT_SECONDS}s",
+                        xbmc.LOGWARNING,
+                    )
+                    if self.isPlaying():
+                        self.stop()
+                    break
+            if started and xbmc.getCondVisibility("Window.IsActive(home)"):
+                # The user backed all the way out to Kodi's own native home
+                # screen (e.g. a remote's dedicated Home button) while this
+                # addon's playback was still going. Our own screens are all
+                # separate script windows, never Kodi's built-in "home", so
+                # this only fires on that specific escape route. Gated on
+                # `started` (not just isPlaying()) so it can't fire during
+                # the ambiguous opening/buffering phase - logged explicitly
+                # since a previous attempt at this check was reverted after
+                # a confusing real-device result that, on reflection, was
+                # likely actually caused by the startup race fixed above,
+                # not by this condition misfiring.
+                xbmc.log(
+                    f"{LOG_PREFIX} stopping playback of {item_id}: Kodi's home "
+                    "screen became active while still playing",
+                    xbmc.LOGINFO,
+                )
+                self.stop()
                 break
         self._finish()
 
