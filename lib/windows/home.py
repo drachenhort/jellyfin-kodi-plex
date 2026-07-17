@@ -26,12 +26,15 @@ HUB_CONTROLS = (
     CTRL_CONTINUE_WATCHING, CTRL_NEXT_UP, CTRL_RECENTLY_ADDED_MOVIES, CTRL_RECENTLY_ADDED_TV,
 )
 
+# Bundled skin texture shown for libraries with no folder image set (some
+# servers leave this blank rather than generating/scraping a placeholder).
+LIBRARY_PLACEHOLDER_ART = "library-placeholder.png"
+
 
 def _library_list_item(client, view):
     li = xbmcgui.ListItem(label=view.get("Name", ""))
-    art_url = images.primary_image_url(client, view)
-    if art_url:
-        li.setArt({"thumb": art_url, "poster": art_url})
+    art_url = images.primary_image_url(client, view) or LIBRARY_PLACEHOLDER_ART
+    li.setArt({"thumb": art_url, "poster": art_url})
     li.setProperty("jellyfin_id", view.get("Id", ""))
     return li
 
