@@ -105,6 +105,19 @@ def _display_label(item):
     return name
 
 
+def _progress_text(item):
+    """"72% watched · 34 min left"-style caption for a partially-played
+    item, or "" if it hasn't been started (or has no runtime to measure
+    against)."""
+    position_ticks = (item.get("UserData") or {}).get("PlaybackPositionTicks") or 0
+    runtime_ticks = item.get("RunTimeTicks") or 0
+    if position_ticks <= 0 or runtime_ticks <= 0:
+        return ""
+    percent = round(position_ticks / runtime_ticks * 100)
+    minutes_left = max(1, round((runtime_ticks - position_ticks) / 10_000_000 / 60))
+    return f"{percent}% watched · {minutes_left} min left"
+
+
 def list_item(item, primary_art=None, backdrop_art=None):
     """Build an xbmcgui.ListItem for a Jellyfin BaseItemDto."""
     li = xbmcgui.ListItem(label=_display_label(item))
@@ -132,4 +145,5 @@ def list_item(item, primary_art=None, backdrop_art=None):
     li.setProperty("jellyfin_id", item.get("Id", ""))
     li.setProperty("jellyfin_type", item.get("Type", ""))
     li.setProperty("series_name", item.get("SeriesName") or "")
+    li.setProperty("progress_text", _progress_text(item))
     return li

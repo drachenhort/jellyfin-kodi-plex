@@ -313,7 +313,7 @@
 
       <control type="group">
         <width>1760</width>
-        <height>480</height>
+        <height>510</height>
         <control type="label">
           <posx>0</posx>
           <posy>0</posy>
@@ -326,7 +326,7 @@
           <posx>0</posx>
           <posy>40</posy>
           <width>1760</width>
-          <height>440</height>
+          <height>470</height>
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
           <onup>202</onup>
@@ -368,6 +368,13 @@
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Label]</label>
+            </control>
+            <control type="label">
+              <posy>440</posy>
+              <width>260</width>
+              <height>24</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Property(progress_text)]</label>
             </control>
             <control type="image">
               <posx>112</posx>
