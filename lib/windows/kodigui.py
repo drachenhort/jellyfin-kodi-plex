@@ -112,6 +112,20 @@ def _display_label(item):
     return name
 
 
+def _episode_code(item):
+    """"4x12"-style season/episode code for an Episode item, or "" for
+    anything else (or an episode missing season/episode numbers) - used
+    where the number needs to display separately from the plain title
+    rather than combined the way _display_label() combines them."""
+    if item.get("Type") != "Episode":
+        return ""
+    season = item.get("ParentIndexNumber")
+    episode = item.get("IndexNumber")
+    if season is None or episode is None:
+        return ""
+    return f"{season}x{episode:02d}"
+
+
 def _progress_text(item):
     """"72% watched · 34 min left"-style caption for a partially-played
     item, or "" if it hasn't been started (or has no runtime to measure
@@ -164,6 +178,7 @@ def list_item(item, primary_art=None, backdrop_art=None):
     li.setProperty("jellyfin_id", item.get("Id", ""))
     li.setProperty("jellyfin_type", item.get("Type", ""))
     li.setProperty("series_name", item.get("SeriesName") or "")
+    li.setProperty("episode_code", _episode_code(item))
     li.setProperty("progress_text", _progress_text(item))
     li.setProperty("ratings_text", _ratings_text(item))
     return li
