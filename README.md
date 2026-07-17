@@ -10,6 +10,13 @@ Architecture is modelled on the open-source [Plex for Kodi](https://github.com/p
 addon: a Kodi *script* addon (not `plugin.video.*`) that opens its own `WindowXML`/`WindowXMLDialog`
 windows to fully control the UI, independent of the active Kodi skin.
 
+## Screenshot
+
+![Home screen with library row, Recently Added Movies, and Recently Added TV](screenshots/home-screen.png)
+
+The Home screen's hub rows: a watched checkmark badge on already-seen movies, and an
+unwatched-episode-count badge (capped at "99+") on TV shows with episodes left to watch.
+
 ## Status
 
 Milestone 1 (in progress): login (LAN autodiscovery, Quick Connect + password fallback) → home screen with

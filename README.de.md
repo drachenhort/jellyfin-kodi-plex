@@ -10,6 +10,14 @@ Die Architektur orientiert sich am Open-Source-Addon [Plex for Kodi](https://git
 ein Kodi-*Skript*-Addon (kein `plugin.video.*`), das eigene `WindowXML`/`WindowXMLDialog`-Fenster öffnet,
 um die Oberfläche vollständig selbst zu steuern, unabhängig vom aktiven Kodi-Skin.
 
+## Screenshot
+
+![Startbildschirm mit Bibliotheks-Zeile, kürzlich hinzugefügten Filmen und Serien](screenshots/home-screen.png)
+
+Die Hub-Zeilen des Startbildschirms: ein Häkchen-Badge für bereits gesehene Filme sowie ein
+Badge mit der Anzahl ungesehener Episoden (gedeckelt bei „99+") bei Serien, die noch Episoden
+zum Nachholen haben.
+
 ## Status
 
 Meilenstein 1 (in Arbeit): Login (LAN-Autoerkennung, Quick Connect mit Passwort-Fallback) → Startbildschirm mit
