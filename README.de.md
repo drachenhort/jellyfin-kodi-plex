@@ -10,13 +10,24 @@ Die Architektur orientiert sich am Open-Source-Addon [Plex for Kodi](https://git
 ein Kodi-*Skript*-Addon (kein `plugin.video.*`), das eigene `WindowXML`/`WindowXMLDialog`-Fenster öffnet,
 um die Oberfläche vollständig selbst zu steuern, unabhängig vom aktiven Kodi-Skin.
 
-## Screenshot
+## Screenshots
 
 ![Startbildschirm mit Bibliotheks-Zeile, kürzlich hinzugefügten Filmen und Serien](screenshots/home-screen.png)
 
 Die Hub-Zeilen des Startbildschirms: ein Häkchen-Badge für bereits gesehene Filme sowie ein
 Badge mit der Anzahl ungesehener Episoden (gedeckelt bei „99+") bei Serien, die noch Episoden
 zum Nachholen haben.
+
+![TV-Bibliotheksraster mit Kurzbeschreibung der fokussierten Serie](screenshots/tv-library-synopsis.png)
+
+Die TV-Bibliothek beim Durchsehen: Die Kurzbeschreibung unterhalb des Rasters folgt dem jeweils
+fokussierten Poster.
+
+![Staffeln einer Serie mit der Kurzbeschreibung einer Staffel](screenshots/tv-seasons-synopsis-1.png)
+![Eine andere Staffel derselben Serie, die Kurzbeschreibung passt sich entsprechend an](screenshots/tv-seasons-synopsis-2.png)
+
+Dieselbe Kurzbeschreibung eine Ebene tiefer, beim Durchsehen der Staffeln einer Serie — sie
+aktualisiert sich sofort, sobald der Fokus zwischen Staffeln wechselt.
 
 ## Status
 

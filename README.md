@@ -10,12 +10,22 @@ Architecture is modelled on the open-source [Plex for Kodi](https://github.com/p
 addon: a Kodi *script* addon (not `plugin.video.*`) that opens its own `WindowXML`/`WindowXMLDialog`
 windows to fully control the UI, independent of the active Kodi skin.
 
-## Screenshot
+## Screenshots
 
 ![Home screen with library row, Recently Added Movies, and Recently Added TV](screenshots/home-screen.png)
 
 The Home screen's hub rows: a watched checkmark badge on already-seen movies, and an
 unwatched-episode-count badge (capped at "99+") on TV shows with episodes left to watch.
+
+![TV library grid with a synopsis pane for the focused show](screenshots/tv-library-synopsis.png)
+
+Browsing the TV library: the synopsis pane below the grid tracks whichever poster has focus.
+
+![Seasons of a series with a season's synopsis shown](screenshots/tv-seasons-synopsis-1.png)
+![A different season of the same series, synopsis updated accordingly](screenshots/tv-seasons-synopsis-2.png)
+
+The same synopsis pane one level deeper, browsing a series' seasons — it updates instantly as
+focus moves between seasons.
 
 ## Status
 
