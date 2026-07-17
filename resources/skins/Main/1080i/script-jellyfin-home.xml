@@ -195,7 +195,7 @@
               <posy>307</posy>
               <width>254</width>
               <height>80</height>
-              <texture>gradient-overlay.png</texture>
+              <texture>focus-turquoise.png</texture>
             </control>
             <control type="label">
               <posx>13</posx>
@@ -315,16 +315,25 @@
               <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
-            <control type="label">
+            <control type="image">
+              <posx>3</posx>
               <posy>392</posy>
-              <width>260</width>
+              <width>254</width>
+              <height>48</height>
+              <texture>focus-turquoise.png</texture>
+            </control>
+            <control type="label">
+              <posx>13</posx>
+              <posy>392</posy>
+              <width>234</width>
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(series_name)]</label>
             </control>
             <control type="label">
+              <posx>13</posx>
               <posy>416</posy>
-              <width>260</width>
+              <width>234</width>
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Label]</label>
@@ -384,23 +393,33 @@
               <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
-            <control type="label">
+            <control type="image">
+              <posx>3</posx>
               <posy>392</posy>
-              <width>260</width>
+              <width>254</width>
+              <height>72</height>
+              <texture>focus-turquoise.png</texture>
+            </control>
+            <control type="label">
+              <posx>13</posx>
+              <posy>392</posy>
+              <width>234</width>
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(series_name)]</label>
             </control>
             <control type="label">
+              <posx>13</posx>
               <posy>416</posy>
-              <width>260</width>
+              <width>234</width>
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Label]</label>
             </control>
             <control type="label">
+              <posx>13</posx>
               <posy>440</posy>
-              <width>260</width>
+              <width>234</width>
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(progress_text)]</label>

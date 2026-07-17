@@ -68,8 +68,7 @@
           <posy>274</posy>
           <width>214</width>
           <height>56</height>
-          <texture>gradient-overlay.png</texture>
-          <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
+          <texture>focus-turquoise.png</texture>
         </control>
         <control type="label">
           <posx>13</posx>
