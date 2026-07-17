@@ -54,7 +54,7 @@
       <posx>80</posx>
       <posy>130</posy>
       <width>1760</width>
-      <height>900</height>
+      <height>660</height>
       <onup>302</onup>
       <itemgap>20</itemgap>
       <itemlayout width="220" height="330">
@@ -180,6 +180,31 @@
           <visible>!String.IsEmpty(ListItem.Property(unwatched_count))</visible>
         </control>
       </focusedlayout>
+    </control>
+
+    <!-- Synopsis pane for the focused grid item (a season's overview when
+         browsing a series, but works for any item type with an Overview -
+         Container(301).ListItem.* always reflects whichever tile has focus,
+         no Python wiring needed beyond list_item() already calling
+         setPlot()). Collapses to blank space rather than being hidden
+         outright when the focused item has no Overview. -->
+    <control type="label">
+      <posx>80</posx>
+      <posy>810</posy>
+      <width>1760</width>
+      <height>30</height>
+      <font>font16</font>
+      <label>$INFO[Container(301).ListItem.Label]</label>
+      <visible>!String.IsEmpty(Container(301).ListItem.Plot)</visible>
+    </control>
+    <control type="textbox">
+      <posx>80</posx>
+      <posy>845</posy>
+      <width>1760</width>
+      <height>185</height>
+      <font>font13</font>
+      <label>$INFO[Container(301).ListItem.Plot]</label>
+      <visible>!String.IsEmpty(Container(301).ListItem.Plot)</visible>
     </control>
   </controls>
 </window>
