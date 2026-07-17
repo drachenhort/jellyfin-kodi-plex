@@ -287,7 +287,14 @@
             <control type="label">
               <posy>160</posy>
               <width>280</width>
-              <height>30</height>
+              <height>24</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Property(series_name)]</label>
+            </control>
+            <control type="label">
+              <posy>184</posy>
+              <width>280</width>
+              <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Label]</label>
             </control>

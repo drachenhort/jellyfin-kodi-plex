@@ -131,4 +131,5 @@ def list_item(item, primary_art=None, backdrop_art=None):
         info_tag.setResumePoint(user_data["PlaybackPositionTicks"] / 10_000_000)
     li.setProperty("jellyfin_id", item.get("Id", ""))
     li.setProperty("jellyfin_type", item.get("Type", ""))
+    li.setProperty("series_name", item.get("SeriesName") or "")
     return li
