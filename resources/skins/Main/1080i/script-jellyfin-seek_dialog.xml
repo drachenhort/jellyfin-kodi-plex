@@ -12,24 +12,26 @@
 
     <control type="label" id="203">
       <posx>60</posx>
-      <posy>870</posy>
-      <width>1800</width>
-      <height>40</height>
+      <posy>878</posy>
+      <width>1700</width>
+      <height>36</height>
       <font>font16</font>
       <label></label>
     </control>
 
     <control type="progress" id="300">
       <posx>60</posx>
-      <posy>930</posy>
+      <posy>935</posy>
       <width>1800</width>
-      <height>12</height>
+      <height>16</height>
       <info>Player.Progress</info>
+      <texturebg border="7">osd-progress-bg.png</texturebg>
+      <midtexture border="7">osd-progress-fill.png</midtexture>
     </control>
 
     <control type="label">
       <posx>60</posx>
-      <posy>950</posy>
+      <posy>958</posy>
       <width>200</width>
       <height>30</height>
       <font>font12</font>
@@ -37,53 +39,88 @@
     </control>
     <control type="label">
       <posx>1660</posx>
-      <posy>950</posy>
+      <posy>958</posy>
       <width>200</width>
       <height>30</height>
       <font>font12</font>
       <align>right</align>
-      <label>$INFO[Player.Duration]</label>
+      <label>-$INFO[Player.TimeRemaining]</label>
     </control>
 
+    <!-- Transport row: rewind / play-or-pause / forward, centered. The
+         play/pause button is two controls sharing id=100 (Kodi's standard
+         toggle-icon idiom) so lib/windows/seekdialog.py's click handling
+         doesn't need to know which state is showing - only one is ever
+         visible, gated on the Player.Paused boolean condition. It stays
+         accented orange in both states, using a zoom animation rather than
+         a texture swap for focus feedback (matching the poster rows
+         elsewhere in this addon), since a focus-color swap would clash
+         with the always-on accent. -->
     <control type="button" id="101">
-      <posx>700</posx>
-      <posy>990</posy>
-      <width>140</width>
-      <height>60</height>
-      <font>font16</font>
-      <label>&lt;&lt; 10s</label>
-      <texturefocus>button-focus.png</texturefocus>
-      <texturenofocus>button-nofocus.png</texturenofocus>
+      <posx>775</posx>
+      <posy>980</posy>
+      <width>90</width>
+      <height>90</height>
+      <label></label>
+      <texturenofocus>osd-rewind-nofocus.png</texturenofocus>
+      <texturefocus>osd-rewind-focus.png</texturefocus>
+      <onleft>101</onleft>
+      <onright>100</onright>
+    </control>
+
+    <control type="button" id="100">
+      <posx>905</posx>
+      <posy>970</posy>
+      <width>110</width>
+      <height>110</height>
+      <label></label>
+      <texturenofocus>osd-pause.png</texturenofocus>
+      <texturefocus>osd-pause.png</texturefocus>
+      <visible>!Player.Paused</visible>
+      <animation effect="zoom" start="100" end="112" center="auto" time="150" tween="quadratic" easing="out">Focus</animation>
+      <animation effect="zoom" start="112" end="100" center="auto" time="150" tween="quadratic" easing="out">UnFocus</animation>
+      <onleft>101</onleft>
+      <onright>102</onright>
     </control>
     <control type="button" id="100">
-      <posx>860</posx>
-      <posy>990</posy>
-      <width>200</width>
-      <height>60</height>
-      <font>font16</font>
-      <label>Play / Pause</label>
-      <texturefocus>button-focus.png</texturefocus>
-      <texturenofocus>button-nofocus.png</texturenofocus>
+      <posx>905</posx>
+      <posy>970</posy>
+      <width>110</width>
+      <height>110</height>
+      <label></label>
+      <texturenofocus>osd-play.png</texturenofocus>
+      <texturefocus>osd-play.png</texturefocus>
+      <visible>Player.Paused</visible>
+      <animation effect="zoom" start="100" end="112" center="auto" time="150" tween="quadratic" easing="out">Focus</animation>
+      <animation effect="zoom" start="112" end="100" center="auto" time="150" tween="quadratic" easing="out">UnFocus</animation>
+      <onleft>101</onleft>
+      <onright>102</onright>
     </control>
+
     <control type="button" id="102">
-      <posx>1080</posx>
-      <posy>990</posy>
-      <width>140</width>
-      <height>60</height>
-      <font>font16</font>
-      <label>30s &gt;&gt;</label>
-      <texturefocus>button-focus.png</texturefocus>
-      <texturenofocus>button-nofocus.png</texturenofocus>
+      <posx>1055</posx>
+      <posy>980</posy>
+      <width>90</width>
+      <height>90</height>
+      <label></label>
+      <texturenofocus>osd-forward-nofocus.png</texturenofocus>
+      <texturefocus>osd-forward-focus.png</texturefocus>
+      <onleft>100</onleft>
+      <onright>103</onright>
     </control>
+
+    <!-- Close/stop, corner-positioned like Plex's OSD close button rather
+         than inline with the transport controls. -->
     <control type="button" id="103">
-      <posx>1240</posx>
-      <posy>990</posy>
-      <width>140</width>
-      <height>60</height>
-      <font>font16</font>
-      <label>Stop</label>
-      <texturefocus>button-focus.png</texturefocus>
-      <texturenofocus>button-nofocus.png</texturenofocus>
+      <posx>1820</posx>
+      <posy>880</posy>
+      <width>70</width>
+      <height>70</height>
+      <label></label>
+      <texturenofocus>osd-close-nofocus.png</texturenofocus>
+      <texturefocus>osd-close-focus.png</texturefocus>
+      <onleft>102</onleft>
+      <onright>103</onright>
     </control>
   </controls>
 </window>
