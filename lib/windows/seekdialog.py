@@ -14,6 +14,13 @@ The seek bar / position / duration in the skin XML are bound directly to
 Kodi's `Player.Progress` / `Player.Time` / `Player.Duration` infolabels
 rather than polled from Python — Kodi keeps those current on its own
 whenever this dialog is visible, no polling thread required for that part.
+
+Auto-hide only hides the on-screen controls (the CTRL_OSD_GROUP group),
+never the dialog window itself. The window has to stay open for the whole
+playback session, because closing it drops its ability to intercept Back -
+a closed dialog can't receive input, so a Back press once the OSD had timed
+out fell straight through to Kodi's own handling instead of onAction()
+below, leaving playback running with nothing left to stop it.
 """
 
 import threading
@@ -23,6 +30,7 @@ import xbmc
 
 from lib.windows.kodigui import BACK_ACTIONS, BaseDialog
 
+CTRL_OSD_GROUP = 900
 CTRL_TITLE_LABEL = 203
 CTRL_PLAY_PAUSE = 100
 CTRL_REWIND = 101
@@ -46,22 +54,32 @@ class SeekDialog(BaseDialog):
         super().setup(**kwargs)
         self.title = title
         self.player = xbmc.Player()
+        self._opened = False
         self._hide_at = 0
         self._hide_thread = None
         self._hide_stop = threading.Event()
 
     def onInit(self):
         self.getControl(CTRL_TITLE_LABEL).setLabel(self.title)
-        self.show_osd()
+        self._reveal()
 
     def show_osd(self):
-        """(Re)display the dialog and (re)start its auto-hide countdown.
-
-        Safe to call repeatedly on the same instance across an entire
-        playback session — lib/player.py keeps one SeekDialog alive for the
-        whole session rather than recreating it on every OSD trigger.
+        """(Re)reveal the OSD controls and (re)start the auto-hide
+        countdown. Safe to call repeatedly on the same instance across an
+        entire playback session — lib/player.py keeps one SeekDialog alive
+        for the whole session rather than recreating it on every trigger.
+        Only the first call actually opens the dialog window (which
+        triggers onInit -> _reveal()); later calls go straight to
+        _reveal() since the window is already open.
         """
-        self.show()
+        if not self._opened:
+            self._opened = True
+            self.show()
+        else:
+            self._reveal()
+
+    def _reveal(self):
+        self.getControl(CTRL_OSD_GROUP).setVisible(True)
         self._hide_at = time.time() + HIDE_DELAY_SECONDS
         if not (self._hide_thread and self._hide_thread.is_alive()):
             self._hide_stop.clear()
@@ -71,7 +89,7 @@ class SeekDialog(BaseDialog):
     def _auto_hide_loop(self):
         while not self._hide_stop.wait(0.5):
             if time.time() >= self._hide_at:
-                self.close()
+                self.getControl(CTRL_OSD_GROUP).setVisible(False)
                 return
 
     def onAction(self, action):
