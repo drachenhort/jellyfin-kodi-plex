@@ -5,6 +5,7 @@ self.result on close is one of:
   {"action": "browse", "library_id": ..., "library_name": ...}
   {"action": "open", "item_id": ..., "item_type": ..., "item_name": ...}
   {"action": "search"}
+  {"action": "servers"}
   None (user backed out — lib/main.py treats this as "quit the addon")
 """
 
@@ -19,6 +20,7 @@ CTRL_NEXT_UP = 202
 CTRL_RECENTLY_ADDED_MOVIES = 203
 CTRL_SEARCH = 204
 CTRL_RECENTLY_ADDED_TV = 205
+CTRL_SERVERS = 206
 
 HUB_CONTROLS = (
     CTRL_CONTINUE_WATCHING, CTRL_NEXT_UP, CTRL_RECENTLY_ADDED_MOVIES, CTRL_RECENTLY_ADDED_TV,
@@ -79,6 +81,9 @@ class HomeWindow(ControlledWindow):
             self._open_item(control_id)
         elif control_id == CTRL_SEARCH:
             self.result = {"action": "search"}
+            self.close()
+        elif control_id == CTRL_SERVERS:
+            self.result = {"action": "servers"}
             self.close()
 
     def _open_library(self):

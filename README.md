@@ -16,8 +16,8 @@ Milestone 1 (in progress): login (LAN autodiscovery, Quick Connect + password fa
 Continue Watching / Next Up / Recently Added hub rows → library poster-wall browsing, including
 drill-down through TV (Series → Season → Episode) and Music (Artist → Album → Track) hierarchies,
 and a Search screen → item detail page → playback with progress reported back to the server, and
-a custom Plex-style seek/OSD dialog in place of Kodi's stock video controls. Multi-server support
-is follow-up work.
+a custom Plex-style seek/OSD dialog in place of Kodi's stock video controls, and a Servers screen
+for saving logins to multiple Jellyfin servers and switching between them.
 
 The TV/Music drill-down works by fetching each item's direct children non-recursively
 (`lib/windows/browse.py` is reused at every level: a library's top-level items, a series'
@@ -29,6 +29,15 @@ folder per artist — Jellyfin's virtual cross-folder artist aggregation (`/Arti
 The login screen autodetects Jellyfin servers on the LAN (`lib/jellyfin/discovery.py`) using the
 UDP broadcast protocol inherited from Emby/MediaBrowser — found servers are offered as a pick-list
 that fills in the server URL field, with manual entry still available as a fallback.
+
+Multi-server support (`lib/servers.py`) stores saved logins as a list of `{name, server_url,
+access_token, user_id}` dicts, serialized into a single hidden addon setting rather than one
+setting per field — `lib/main.py` owns reading/writing that setting and matches re-logins to an
+already-saved server URL to update its entry in place instead of duplicating it. The Servers
+button on Home (`lib/windows/servers.py`) opens a picker to switch the active server, add another
+via the same login flow, or remove a saved one (the currently active server can't be removed —
+switch away from it first). An existing single-server install is migrated into this list
+automatically the first time it runs after updating, so it doesn't get logged out.
 
 The custom OSD works by exploiting the fact that Kodi has no API to suppress its own default video
 OSD from opening on a remote/keyboard press: `lib/player.py` polls `Window.IsActive(videoosd)` in a

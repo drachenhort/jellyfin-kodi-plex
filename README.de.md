@@ -16,8 +16,8 @@ Meilenstein 1 (in Arbeit): Login (LAN-Autoerkennung, Quick Connect mit Passwort-
 den Hub-Zeilen „Weiterschauen" / „Als Nächstes" / „Kürzlich hinzugefügt" → Bibliotheks-Posterwand-Browsing, inklusive
 Drilldown durch die TV- (Serie → Staffel → Episode) und Musik-Hierarchien (Interpret → Album → Titel),
 sowie ein Suchbildschirm → Detailseite eines Titels → Wiedergabe mit an den Server zurückgemeldetem Fortschritt und
-einem benutzerdefinierten Plex-artigen Sucher-/OSD-Dialog anstelle von Kodis eingebauten Videosteuerelementen.
-Multi-Server-Unterstützung ist eine Folgearbeit.
+einem benutzerdefinierten Plex-artigen Sucher-/OSD-Dialog anstelle von Kodis eingebauten Videosteuerelementen
+sowie einem Server-Bildschirm zum Speichern von Logins für mehrere Jellyfin-Server und zum Wechseln zwischen ihnen.
 
 Der TV-/Musik-Drilldown funktioniert, indem die direkten Kindelemente jedes Objekts nicht-rekursiv abgerufen werden
 (`lib/windows/browse.py` wird auf jeder Ebene wiederverwendet: die Top-Level-Elemente einer Bibliothek, die Staffeln
@@ -30,6 +30,17 @@ ordnerübergreifende Interpreten-Aggregation (`/Artists`) wird nicht verwendet.
 Der Login-Bildschirm erkennt Jellyfin-Server im lokalen Netzwerk automatisch (`lib/jellyfin/discovery.py`)
 über das von Emby/MediaBrowser übernommene UDP-Broadcast-Protokoll — gefundene Server werden als Auswahlliste
 angeboten, die das Server-URL-Feld ausfüllt; die manuelle Eingabe bleibt weiterhin als Fallback verfügbar.
+
+Die Multi-Server-Unterstützung (`lib/servers.py`) speichert gesicherte Logins als Liste von
+`{name, server_url, access_token, user_id}`-Dicts, serialisiert in eine einzelne versteckte
+Addon-Einstellung statt einer Einstellung pro Feld — `lib/main.py` übernimmt das Lesen/Schreiben
+dieser Einstellung und gleicht ein erneutes Login mit einer bereits gespeicherten Server-URL ab,
+um den vorhandenen Eintrag zu aktualisieren, statt ihn zu duplizieren. Der Server-Button auf dem
+Startbildschirm (`lib/windows/servers.py`) öffnet eine Auswahl, um den aktiven Server zu wechseln,
+über denselben Login-Ablauf einen weiteren hinzuzufügen oder einen gespeicherten zu entfernen (der
+aktuell aktive Server kann nicht entfernt werden — dazu muss man zuerst zu einem anderen wechseln).
+Eine bestehende Einzelserver-Installation wird beim ersten Start nach dem Update automatisch in
+diese Liste übernommen, damit sie nicht abgemeldet wird.
 
 Das benutzerdefinierte OSD funktioniert, indem ausgenutzt wird, dass Kodi keine API besitzt, um sein eigenes
 Standard-Video-OSD beim Drücken einer Fernbedienungs-/Tastaturtaste zu unterdrücken: `lib/player.py` fragt in

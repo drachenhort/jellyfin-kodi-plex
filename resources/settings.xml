@@ -3,17 +3,7 @@
   <section id="script.jellyfin.plex">
     <category id="server" label="30000">
       <group id="1">
-        <setting id="server_url" type="string" label="30001" help="">
-          <level>0</level>
-          <default></default>
-          <control type="edit" format="string"/>
-        </setting>
-        <setting id="username" type="string" label="30002" help="">
-          <level>0</level>
-          <default></default>
-          <control type="edit" format="string"/>
-        </setting>
-        <setting id="access_token" type="string" label="30003" help="">
+        <setting id="servers" type="string" label="30001" help="">
           <level>2</level>
           <default></default>
           <control type="edit" format="string"/>
@@ -21,10 +11,13 @@
             <options>hidden</options>
           </constraints>
         </setting>
-        <setting id="user_id" type="string" label="30004" help="">
+        <setting id="active_server_id" type="string" label="30002" help="">
           <level>2</level>
           <default></default>
           <control type="edit" format="string"/>
+          <constraints>
+            <options>hidden</options>
+          </constraints>
         </setting>
         <setting id="device_id" type="string" label="30005" help="">
           <level>2</level>

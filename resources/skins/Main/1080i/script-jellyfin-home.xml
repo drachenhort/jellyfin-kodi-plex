@@ -19,6 +19,20 @@
       <label>Jellyfin</label>
     </control>
 
+    <control type="button" id="206">
+      <posx>1580</posx>
+      <posy>45</posy>
+      <width>140</width>
+      <height>50</height>
+      <font>font16</font>
+      <label>Servers</label>
+      <texturefocus border="10">focus-highlight.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onright>204</onright>
+      <onleft>206</onleft>
+      <ondown>200</ondown>
+      <onup>206</onup>
+    </control>
     <control type="button" id="204">
       <posx>1740</posx>
       <posy>45</posy>
@@ -28,6 +42,8 @@
       <label>Search</label>
       <texturefocus border="10">focus-highlight.png</texturefocus>
       <texturenofocus>button-nofocus.png</texturenofocus>
+      <onright>204</onright>
+      <onleft>206</onleft>
       <ondown>200</ondown>
       <onup>204</onup>
     </control>
