@@ -88,6 +88,25 @@
           <texture>watched-badge.png</texture>
           <visible>ListItem.Property(watched)</visible>
         </control>
+        <control type="image">
+          <posx>8</posx>
+          <posy>8</posy>
+          <width>64</width>
+          <height>40</height>
+          <texture>unwatched-badge.png</texture>
+          <visible>!String.IsEmpty(ListItem.Property(unwatched_count))</visible>
+        </control>
+        <control type="label">
+          <posx>8</posx>
+          <posy>8</posy>
+          <width>64</width>
+          <height>40</height>
+          <font>font12</font>
+          <align>center</align>
+          <aligny>center</aligny>
+          <label>$INFO[ListItem.Property(unwatched_count)]</label>
+          <visible>!String.IsEmpty(ListItem.Property(unwatched_count))</visible>
+        </control>
       </itemlayout>
       <focusedlayout width="220" height="330">
         <control type="image">
@@ -140,6 +159,25 @@
           <height>40</height>
           <texture>watched-badge.png</texture>
           <visible>ListItem.Property(watched)</visible>
+        </control>
+        <control type="image">
+          <posx>8</posx>
+          <posy>28</posy>
+          <width>64</width>
+          <height>40</height>
+          <texture>unwatched-badge.png</texture>
+          <visible>!String.IsEmpty(ListItem.Property(unwatched_count))</visible>
+        </control>
+        <control type="label">
+          <posx>8</posx>
+          <posy>28</posy>
+          <width>64</width>
+          <height>40</height>
+          <font>font12</font>
+          <align>center</align>
+          <aligny>center</aligny>
+          <label>$INFO[ListItem.Property(unwatched_count)]</label>
+          <visible>!String.IsEmpty(ListItem.Property(unwatched_count))</visible>
         </control>
       </focusedlayout>
     </control>

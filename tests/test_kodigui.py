@@ -11,6 +11,7 @@ from lib.windows.kodigui import (
     _episode_code,
     _progress_text,
     _ratings_text,
+    _unwatched_count_text,
     list_item,
     placeholder_art,
 )
@@ -109,6 +110,32 @@ def test_ratings_text_empty_when_neither_present():
 
 def test_ratings_text_critic_zero_is_not_treated_as_missing():
     assert _ratings_text({"CriticRating": 0}) == "RT 0%"
+
+
+# -- _unwatched_count_text -------------------------------------------------
+
+def test_unwatched_count_text_for_series_with_remaining_episodes():
+    item = {"Type": "Series", "UserData": {"UnplayedItemCount": 7}}
+    assert _unwatched_count_text(item) == "7"
+
+
+def test_unwatched_count_text_empty_when_fully_watched():
+    item = {"Type": "Series", "UserData": {"UnplayedItemCount": 0}}
+    assert _unwatched_count_text(item) == ""
+
+
+def test_unwatched_count_text_empty_when_field_absent():
+    assert _unwatched_count_text({"Type": "Movie"}) == ""
+
+
+def test_unwatched_count_text_caps_at_99_plus():
+    item = {"Type": "Series", "UserData": {"UnplayedItemCount": 143}}
+    assert _unwatched_count_text(item) == "99+"
+
+
+def test_unwatched_count_text_not_capped_at_exactly_99():
+    item = {"Type": "Series", "UserData": {"UnplayedItemCount": 99}}
+    assert _unwatched_count_text(item) == "99"
 
 
 # -- list_item --------------------------------------------------------
@@ -211,6 +238,18 @@ def test_list_item_watched_property_empty_when_not_played():
 def test_list_item_watched_property_empty_when_no_user_data():
     li = list_item({"Id": "1", "Name": "Alien"})
     assert li.getProperty("watched") == ""
+
+
+def test_list_item_unwatched_count_property():
+    item = {"Id": "1", "Name": "The Wire", "Type": "Series", "UserData": {"UnplayedItemCount": 12}}
+    li = list_item(item)
+    assert li.getProperty("unwatched_count") == "12"
+
+
+def test_list_item_unwatched_count_property_empty_when_fully_watched():
+    item = {"Id": "1", "Name": "The Wire", "Type": "Series", "UserData": {"UnplayedItemCount": 0}}
+    li = list_item(item)
+    assert li.getProperty("unwatched_count") == ""
 
 
 # -- WindowMixin Back-action handling --------------------------------------

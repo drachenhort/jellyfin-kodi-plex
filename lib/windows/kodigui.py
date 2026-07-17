@@ -136,6 +136,17 @@ def _progress_text(item):
     return f"{percent}% watched · {minutes_left} min left"
 
 
+def _unwatched_count_text(item):
+    """Remaining-unwatched-episode count for a Series/Season/BoxSet, capped at
+    "99+" since the badge is only sized for a couple of digits, or "" if
+    fully watched (or the item type doesn't carry UnplayedItemCount at all,
+    e.g. a plain Movie or Episode)."""
+    count = (item.get("UserData") or {}).get("UnplayedItemCount") or 0
+    if count <= 0:
+        return ""
+    return "99+" if count > 99 else str(count)
+
+
 def _ratings_text(item):
     """"TMDb 6.7 · RT 80%"-style caption from Jellyfin's two rating fields:
     CommunityRating (whichever metadata plugin populated it, commonly TMDb)
@@ -180,4 +191,5 @@ def list_item(item, primary_art=None, backdrop_art=None):
     li.setProperty("progress_text", _progress_text(item))
     li.setProperty("ratings_text", _ratings_text(item))
     li.setProperty("watched", "true" if user_data.get("Played") else "")
+    li.setProperty("unwatched_count", _unwatched_count_text(item))
     return li
