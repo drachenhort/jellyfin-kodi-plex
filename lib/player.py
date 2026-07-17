@@ -84,8 +84,10 @@ class JellyfinPlayer(xbmc.Player):
         Kodi has no API to suppress its stock OSD from appearing on a
         remote/keyboard press during playback; the workaround (same one the
         real Plex-for-Kodi addon uses) is to let it open, notice via
-        `Window.IsActive(videoosd)`, and immediately show our own dialog on
-        top of it.
+        `Window.IsActive(videoosd)`, and immediately show our own dialog.
+        Showing ours isn't enough on its own - the native OSD stays open
+        underneath and can still win focus/rendering back, so it's
+        explicitly closed too rather than just assumed moot.
         """
         had_osd = False
         while not self._stop_event.wait(OSD_POLL_INTERVAL_SECONDS):
@@ -100,6 +102,7 @@ class JellyfinPlayer(xbmc.Player):
                 had_osd = False
 
     def _show_seek_dialog(self):
+        xbmc.executebuiltin("Dialog.Close(videoosd,true)")
         if self._seek_dialog is None:
             addon_path = xbmcaddon.Addon().getAddonInfo("path")
             self._seek_dialog = SeekDialog.create(addon_path, show=False, title=self._title)
