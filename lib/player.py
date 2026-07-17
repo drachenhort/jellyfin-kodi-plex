@@ -64,15 +64,6 @@ class JellyfinPlayer(xbmc.Player):
                 if self.isPlaying():
                     self.stop()
                 break
-            if self.isPlaying() and xbmc.getCondVisibility("Window.IsActive(home)"):
-                # The user backed all the way out to Kodi's own native home
-                # screen (e.g. a remote's dedicated Home button) while this
-                # addon's playback was still going. Our own screens are all
-                # separate script windows, never Kodi's built-in "home", so
-                # this only fires on that specific escape route - stop
-                # rather than leave the video running detached from any UI.
-                self.stop()
-                break
         self._finish()
 
     def onPlayBackStopped(self):
