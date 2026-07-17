@@ -73,6 +73,9 @@ class JellyfinClient:
     def post(self, path, json=None, params=None):
         return self._request("POST", path, json=json, params=params)
 
+    def delete(self, path, params=None):
+        return self._request("DELETE", path, params=params)
+
     def _request(self, method, path, json=None, params=None):
         response = requests.request(
             method,

@@ -84,6 +84,16 @@ def get_latest(client, parent_id=None, limit=20):
     return result or []
 
 
+def mark_played(client, item_id):
+    """POST /Users/{userId}/PlayedItems/{itemId} — mark an item watched."""
+    return client.post(f"/Users/{client.user_id}/PlayedItems/{item_id}")
+
+
+def mark_unplayed(client, item_id):
+    """DELETE /Users/{userId}/PlayedItems/{itemId} — mark an item unwatched."""
+    return client.delete(f"/Users/{client.user_id}/PlayedItems/{item_id}")
+
+
 SEARCH_ITEM_TYPES = "Movie,Series,MusicArtist,MusicAlbum,Audio,Episode"
 
 

@@ -178,6 +178,28 @@ def test_get_items_by_ids_empty_list_short_circuits(client):
     assert library.get_items_by_ids(client, []) == []
 
 
+def test_mark_played_posts_to_played_items(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"Played": True})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    library.mark_played(client, "item-1")
+
+    call = fake.calls[0]
+    assert call["method"] == "POST"
+    assert call["url"].endswith(f"/Users/{client.user_id}/PlayedItems/item-1")
+
+
+def test_mark_unplayed_deletes_played_items(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"Played": False})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    library.mark_unplayed(client, "item-1")
+
+    call = fake.calls[0]
+    assert call["method"] == "DELETE"
+    assert call["url"].endswith(f"/Users/{client.user_id}/PlayedItems/item-1")
+
+
 def test_series_poster_url_prefers_season_art(client):
     episode = {"SeriesId": "series-1", "SeriesPrimaryImageTag": "series-tag"}
     season = {"Id": "season-1", "ImageTags": {"Primary": "season-tag"}}

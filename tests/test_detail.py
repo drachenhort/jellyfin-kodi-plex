@@ -90,3 +90,80 @@ def test_play_click_after_load_includes_item_type_and_resume_ticks(client, monke
         "resume_ticks": 20 * 10_000_000,
     }
     assert window.closed
+
+
+# -- watched/unwatched toggle -----------------------------------------------
+# handle_click() spawns _toggle_watched() on a background thread (same
+# reasoning as _load() above), so these tests call _toggle_watched()
+# directly for deterministic, non-racy assertions.
+
+def _loaded_window(client, monkeypatch, played):
+    monkeypatch.setattr(detail_mod.library, "get_item", lambda c, item_id, fields=None: {
+        "Id": "item-1", "Name": "Alien", "Type": "Movie",
+        "UserData": {"Played": played},
+    })
+    monkeypatch.setattr(detail_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(detail_mod.images, "backdrop_image_url", lambda *a, **k: None)
+    window = _make_window(client)
+    window._load()
+    return window
+
+
+def test_watched_button_label_for_unwatched_item(client, monkeypatch):
+    window = _loaded_window(client, monkeypatch, played=False)
+    assert window.getControl(detail_mod.CTRL_WATCHED_BUTTON).getLabel() == "Mark as Watched"
+
+
+def test_watched_button_label_for_watched_item(client, monkeypatch):
+    window = _loaded_window(client, monkeypatch, played=True)
+    assert window.getControl(detail_mod.CTRL_WATCHED_BUTTON).getLabel() == "Mark as Unwatched"
+
+
+def test_toggle_watched_marks_played_when_currently_unwatched(client, monkeypatch):
+    window = _loaded_window(client, monkeypatch, played=False)
+    calls = []
+    monkeypatch.setattr(detail_mod.library, "mark_played", lambda c, item_id: calls.append(item_id))
+
+    window._toggle_watched()
+
+    assert calls == ["item-1"]
+    assert window.item["UserData"]["Played"] is True
+    assert window.getControl(detail_mod.CTRL_WATCHED_BUTTON).getLabel() == "Mark as Unwatched"
+    assert "Watched" in window.getControl(detail_mod.CTRL_META).getLabel()
+
+
+def test_toggle_watched_marks_unplayed_when_currently_watched(client, monkeypatch):
+    window = _loaded_window(client, monkeypatch, played=True)
+    calls = []
+    monkeypatch.setattr(detail_mod.library, "mark_unplayed", lambda c, item_id: calls.append(item_id))
+
+    window._toggle_watched()
+
+    assert calls == ["item-1"]
+    assert window.item["UserData"]["Played"] is False
+    assert window.getControl(detail_mod.CTRL_WATCHED_BUTTON).getLabel() == "Mark as Watched"
+    assert "Watched" not in window.getControl(detail_mod.CTRL_META).getLabel()
+
+
+def test_toggle_watched_leaves_state_unchanged_on_server_error(client, monkeypatch):
+    window = _loaded_window(client, monkeypatch, played=False)
+
+    def raise_error(c, item_id):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(detail_mod.library, "mark_played", raise_error)
+
+    window._toggle_watched()
+
+    assert window.item["UserData"]["Played"] is False
+    assert window.getControl(detail_mod.CTRL_WATCHED_BUTTON).getLabel() == "Mark as Watched"
+
+
+def test_clicking_watched_button_before_item_is_loaded_is_a_no_op(client):
+    window = _make_window(client)
+    assert window.item is None
+
+    window.handle_click(detail_mod.CTRL_WATCHED_BUTTON)
+
+    assert window.result is None
+    assert not window.closed

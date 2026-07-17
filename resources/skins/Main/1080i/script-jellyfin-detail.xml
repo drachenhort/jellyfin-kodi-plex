@@ -44,13 +44,13 @@
     <control type="textbox" id="404">
       <posx>420</posx>
       <posy>260</posy>
-      <width>1000</width>
-      <height>150</height>
+      <width>1400</width>
+      <height>260</height>
       <font>font13</font>
     </control>
     <control type="label" id="405">
       <posx>420</posx>
-      <posy>430</posy>
+      <posy>530</posy>
       <width>1000</width>
       <height>30</height>
       <font>font12</font>
@@ -59,13 +59,27 @@
 
     <control type="button" id="406">
       <posx>420</posx>
-      <posy>500</posy>
+      <posy>590</posy>
       <width>260</width>
       <height>60</height>
       <font>font16</font>
       <label>Play</label>
       <texturefocus>button-focus.png</texturefocus>
       <texturenofocus>button-nofocus.png</texturenofocus>
+      <onright>407</onright>
+      <onleft>406</onleft>
+    </control>
+    <control type="button" id="407">
+      <posx>700</posx>
+      <posy>590</posy>
+      <width>320</width>
+      <height>60</height>
+      <font>font16</font>
+      <label>Mark as Watched</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onright>407</onright>
+      <onleft>406</onleft>
     </control>
   </controls>
 </window>

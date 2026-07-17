@@ -21,6 +21,7 @@ CTRL_META = 403
 CTRL_OVERVIEW = 404
 CTRL_CAST = 405
 CTRL_PLAY_BUTTON = 406
+CTRL_WATCHED_BUTTON = 407
 
 RESUME_THRESHOLD_TICKS = 10 * 10_000_000  # ignore resume points under 10s
 
@@ -111,9 +112,21 @@ class DetailWindow(ControlledWindow):
         else:
             self.getControl(CTRL_PLAY_BUTTON).setLabel("Play")
 
+        self._set_watched_button_label()
+
+    def _set_watched_button_label(self):
+        played = bool((self.item.get("UserData") or {}).get("Played"))
+        self.getControl(CTRL_WATCHED_BUTTON).setLabel("Mark as Unwatched" if played else "Mark as Watched")
+
     def handle_click(self, control_id):
-        if control_id != CTRL_PLAY_BUTTON or self.item is None:
+        if self.item is None:
             return
+        if control_id == CTRL_PLAY_BUTTON:
+            self._play()
+        elif control_id == CTRL_WATCHED_BUTTON:
+            threading.Thread(target=self._toggle_watched, daemon=True).start()
+
+    def _play(self):
         resume_ticks = (self.item.get("UserData") or {}).get("PlaybackPositionTicks", 0)
         if resume_ticks <= RESUME_THRESHOLD_TICKS:
             resume_ticks = 0
@@ -124,3 +137,27 @@ class DetailWindow(ControlledWindow):
             "resume_ticks": resume_ticks,
         }
         self.close()
+
+    def _toggle_watched(self):
+        played = bool((self.item.get("UserData") or {}).get("Played"))
+        try:
+            if played:
+                library.mark_unplayed(self.client, self.item_id)
+            else:
+                library.mark_played(self.client, self.item_id)
+        except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
+            xbmc.log(
+                f"{LOG_PREFIX} Detail: marking {self.item_id!r} "
+                f"{'unwatched' if played else 'watched'} failed: {exc}",
+                xbmc.LOGWARNING,
+            )
+            if self.closed_event.is_set():
+                return
+            xbmcgui.Dialog().notification("Jellyfin", f"Couldn't update watched state: {exc}")
+            return
+        if self.closed_event.is_set():
+            return
+        self.item["UserData"] = self.item.get("UserData") or {}
+        self.item["UserData"]["Played"] = not played
+        self._set_watched_button_label()
+        self.getControl(CTRL_META).setLabel(_meta_line(self.item))
