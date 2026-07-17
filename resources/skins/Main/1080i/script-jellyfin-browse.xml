@@ -80,6 +80,14 @@
           <label>$INFO[ListItem.Property(ratings_text)]</label>
           <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
         </control>
+        <control type="image">
+          <posx>172</posx>
+          <posy>8</posy>
+          <width>40</width>
+          <height>40</height>
+          <texture>watched-badge.png</texture>
+          <visible>ListItem.Property(watched)</visible>
+        </control>
       </itemlayout>
       <focusedlayout width="220" height="330">
         <control type="image">
@@ -124,6 +132,14 @@
           <width>36</width>
           <height>22</height>
           <texture>focus-arrow.png</texture>
+        </control>
+        <control type="image">
+          <posx>168</posx>
+          <posy>28</posy>
+          <width>40</width>
+          <height>40</height>
+          <texture>watched-badge.png</texture>
+          <visible>ListItem.Property(watched)</visible>
         </control>
       </focusedlayout>
     </control>

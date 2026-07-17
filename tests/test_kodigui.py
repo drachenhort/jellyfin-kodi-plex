@@ -198,6 +198,21 @@ def test_list_item_no_resume_point_when_unwatched():
     assert li.getVideoInfoTag().resume_point is None
 
 
+def test_list_item_watched_property_set_when_played():
+    li = list_item({"Id": "1", "Name": "Alien", "UserData": {"Played": True}})
+    assert li.getProperty("watched") == "true"
+
+
+def test_list_item_watched_property_empty_when_not_played():
+    li = list_item({"Id": "1", "Name": "Alien", "UserData": {"Played": False}})
+    assert li.getProperty("watched") == ""
+
+
+def test_list_item_watched_property_empty_when_no_user_data():
+    li = list_item({"Id": "1", "Name": "Alien"})
+    assert li.getProperty("watched") == ""
+
+
 # -- WindowMixin Back-action handling --------------------------------------
 
 def test_back_action_clears_result_and_closes():

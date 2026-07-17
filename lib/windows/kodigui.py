@@ -179,4 +179,5 @@ def list_item(item, primary_art=None, backdrop_art=None):
     li.setProperty("episode_code", _episode_code(item))
     li.setProperty("progress_text", _progress_text(item))
     li.setProperty("ratings_text", _ratings_text(item))
+    li.setProperty("watched", "true" if user_data.get("Played") else "")
     return li

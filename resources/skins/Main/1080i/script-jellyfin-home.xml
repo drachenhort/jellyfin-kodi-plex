@@ -177,6 +177,14 @@
               <font>font12</font>
               <label>$INFO[ListItem.Property(ratings_text)]</label>
             </control>
+            <control type="image">
+              <posx>212</posx>
+              <posy>8</posy>
+              <width>40</width>
+              <height>40</height>
+              <texture>watched-badge.png</texture>
+              <visible>ListItem.Property(watched)</visible>
+            </control>
           </itemlayout>
           <focusedlayout width="260" height="390">
             <control type="image">
@@ -213,6 +221,14 @@
               <width>36</width>
               <height>22</height>
               <texture>focus-arrow.png</texture>
+            </control>
+            <control type="image">
+              <posx>208</posx>
+              <posy>28</posy>
+              <width>40</width>
+              <height>40</height>
+              <texture>watched-badge.png</texture>
+              <visible>ListItem.Property(watched)</visible>
             </control>
           </focusedlayout>
         </control>
@@ -286,6 +302,14 @@
               <font>font12</font>
               <label>$INFO[ListItem.Property(ratings_text)]</label>
             </control>
+            <control type="image">
+              <posx>212</posx>
+              <posy>8</posy>
+              <width>40</width>
+              <height>40</height>
+              <texture>watched-badge.png</texture>
+              <visible>ListItem.Property(watched)</visible>
+            </control>
           </itemlayout>
           <focusedlayout width="260" height="390">
             <control type="image">
@@ -346,6 +370,14 @@
               <width>36</width>
               <height>22</height>
               <texture>focus-arrow.png</texture>
+            </control>
+            <control type="image">
+              <posx>208</posx>
+              <posy>28</posy>
+              <width>40</width>
+              <height>40</height>
+              <texture>watched-badge.png</texture>
+              <visible>ListItem.Property(watched)</visible>
             </control>
           </focusedlayout>
         </control>

@@ -42,6 +42,8 @@ def _meta_line(item):
         parts.append(f"{item['CommunityRating']:.1f}★")
     if item.get("Genres"):
         parts.append(", ".join(item["Genres"]))
+    if (item.get("UserData") or {}).get("Played"):
+        parts.append("Watched")
     return "  •  ".join(parts)
 
 

@@ -43,6 +43,16 @@ def test_meta_line_track_with_no_artist_or_album_omits_them():
     assert _meta_line(item) == "3 min"
 
 
+def test_meta_line_appends_watched_when_played():
+    item = {"ProductionYear": 1979, "UserData": {"Played": True}}
+    assert _meta_line(item) == "1979  •  Watched"
+
+
+def test_meta_line_omits_watched_when_not_played():
+    item = {"ProductionYear": 1979, "UserData": {"Played": False}}
+    assert _meta_line(item) == "1979"
+
+
 def _make_window(client, item_id="item-1"):
     window = detail_mod.DetailWindow(None, "/fake/addon/path", "Main", "1080i")
     window.setup(client=client, item_id=item_id)
