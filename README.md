@@ -27,6 +27,11 @@ Browsing the TV library: the synopsis pane below the grid tracks whichever poste
 The same synopsis pane one level deeper, browsing a series' seasons — it updates instantly as
 focus moves between seasons.
 
+![A season's episodes listed ls -l style with code, title, duration, rating, and watched state](screenshots/tv-episode-list.png)
+
+A season's episodes get an `ls -l`-style detail list instead of a poster grid: episode code,
+title, duration, rating, and watched state in aligned columns, plus the same synopsis pane below.
+
 ## Status
 
 Milestone 1 (in progress): login (LAN autodiscovery, Quick Connect + password fallback) → home screen with

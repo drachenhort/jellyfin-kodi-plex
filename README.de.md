@@ -29,6 +29,12 @@ fokussierten Poster.
 Dieselbe Kurzbeschreibung eine Ebene tiefer, beim Durchsehen der Staffeln einer Serie — sie
 aktualisiert sich sofort, sobald der Fokus zwischen Staffeln wechselt.
 
+![Episodenliste einer Staffel im "ls -l"-Stil mit Code, Titel, Länge, Bewertung und Sehstatus](screenshots/tv-episode-list.png)
+
+Die Episoden einer Staffel bekommen statt eines Posterrasters eine detaillierte Liste im
+`ls -l`-Stil: Episodencode, Titel, Länge, Bewertung und Sehstatus in ausgerichteten Spalten, dazu
+dieselbe Kurzbeschreibung darunter.
+
 ## Status
 
 Meilenstein 1 (in Arbeit): Login (LAN-Autoerkennung, Quick Connect mit Passwort-Fallback) → Startbildschirm mit
