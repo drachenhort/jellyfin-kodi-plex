@@ -13,10 +13,10 @@ import xbmc
 import xbmcgui
 
 from lib.jellyfin import playback
+from lib.windows.kodigui import LOG_PREFIX
 
 PROGRESS_REPORT_INTERVAL_SECONDS = 10
 STARTUP_TIMEOUT_SECONDS = 30
-LOG_PREFIX = "[script.jellyfin.plex]"
 
 
 class JellyfinPlayer(xbmc.Player):

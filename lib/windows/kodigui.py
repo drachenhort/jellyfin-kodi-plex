@@ -17,16 +17,32 @@ import threading
 
 import xbmcgui
 
+# Shared xbmc.log() prefix so log lines from any window or the player are
+# easy to grep for as one group (e.g. `grep "script.jellyfin.plex" kodi.log`).
+LOG_PREFIX = "[script.jellyfin.plex]"
+
 ACTION_PREVIOUS_MENU = 10
 ACTION_NAV_BACK = 92
 BACK_ACTIONS = (ACTION_PREVIOUS_MENU, ACTION_NAV_BACK)
 
-# Bundled skin texture shown wherever a Jellyfin item/library has no art of
+# Bundled skin textures shown wherever a Jellyfin item/library has no art of
 # its own (some servers leave this blank rather than generating/scraping a
-# placeholder). Composed with generous margin around the icon so it survives
-# both the 16:9 (Libraries row) and 2:3 (posters) crop-to-fill boxes used
-# across the skin without clipping.
+# placeholder, and a music track/album/artist essentially never has its own
+# image beyond the album's). Both are composed with generous margin around
+# the icon so they survive both the 16:9 (Libraries row) and 2:3 (posters)
+# crop-to-fill boxes used across the skin without clipping.
 PLACEHOLDER_ART = "art-placeholder.png"
+PLACEHOLDER_ART_MUSIC = "art-placeholder-music.png"
+
+MUSIC_ITEM_TYPES = {"Audio", "MusicAlbum", "MusicArtist"}
+
+
+def placeholder_art(item):
+    """Which placeholder texture fits `item` - a BaseItemDto (checked via
+    Type) or a library View (checked via CollectionType)."""
+    if item.get("Type") in MUSIC_ITEM_TYPES or item.get("CollectionType") == "music":
+        return PLACEHOLDER_ART_MUSIC
+    return PLACEHOLDER_ART
 
 
 class WindowMixin(object):
@@ -139,7 +155,8 @@ def _ratings_text(item):
 def list_item(item, primary_art=None, backdrop_art=None):
     """Build an xbmcgui.ListItem for a Jellyfin BaseItemDto."""
     li = xbmcgui.ListItem(label=_display_label(item))
-    art = {"thumb": primary_art or PLACEHOLDER_ART, "poster": primary_art or PLACEHOLDER_ART}
+    placeholder = placeholder_art(item)
+    art = {"thumb": primary_art or placeholder, "poster": primary_art or placeholder}
     if backdrop_art:
         art["fanart"] = backdrop_art
     li.setArt(art)

@@ -4,7 +4,12 @@ window stays open since it already loaded fine before the query ran).
 
 None of these windows have their onInit() invoked automatically by the
 tests/kodi_stubs WindowXML stand-in (doModal() there is a no-op, unlike real
-Kodi) - so each test builds the window directly and calls onInit() itself.
+Kodi) - so each test builds the window directly. Home/Browse/Detail's actual
+fetch-and-populate logic lives in _load() (onInit() just starts it on a
+background thread, to avoid blocking Kodi's GUI thread for the duration) so
+tests call _load() directly for a deterministic, non-racy assertion; Search's
+equivalent is _search(term), called directly instead of via the button-click
+entrypoint _start_search().
 """
 
 import xbmcgui
@@ -36,7 +41,7 @@ def test_home_window_closes_with_no_result_on_load_failure(client, monkeypatch):
     )
 
     window = _make_window(home_mod.HomeWindow, client=client)
-    window.onInit()
+    window._load()
 
     assert window.result is None
     assert window.closed
@@ -52,7 +57,7 @@ def test_browse_window_closes_with_no_result_on_load_failure(client, monkeypatch
     )
 
     window = _make_window(browse_mod.BrowseWindow, client=client, parent_id="lib-1", title="Movies")
-    window.onInit()
+    window._load()
 
     assert window.result is None
     assert window.closed
@@ -68,7 +73,7 @@ def test_detail_window_closes_with_no_result_on_load_failure(client, monkeypatch
     )
 
     window = _make_window(detail_mod.DetailWindow, client=client, item_id="item-1")
-    window.onInit()
+    window._load()
 
     assert window.result is None
     assert window.closed
@@ -85,9 +90,7 @@ def test_search_window_shows_inline_error_and_stays_open(client, monkeypatch):
 
     window = _make_window(search_mod.SearchWindow, client=client)
     window.onInit()
-    window.getControl(search_mod.CTRL_QUERY).setText("alien")
-
-    window._search()
+    window._search("alien")
 
     assert window.result is None
     assert not window.closed

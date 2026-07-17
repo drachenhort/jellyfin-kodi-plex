@@ -10,10 +10,14 @@ self.result on close is one of:
   None (user backed out — lib/main.py treats this as "quit the addon")
 """
 
+import threading
+import time
+
+import xbmc
 import xbmcgui
 
 from lib.jellyfin import images, library
-from lib.windows.kodigui import PLACEHOLDER_ART, ControlledWindow, list_item
+from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item, placeholder_art
 
 CTRL_LIBRARIES = 200
 CTRL_CONTINUE_WATCHING = 201
@@ -32,7 +36,7 @@ HUB_CONTROLS = (
 
 def _library_list_item(client, view):
     li = xbmcgui.ListItem(label=view.get("Name", ""))
-    art_url = images.primary_image_url(client, view) or PLACEHOLDER_ART
+    art_url = images.primary_image_url(client, view) or placeholder_art(view)
     li.setArt({"thumb": art_url, "poster": art_url})
     li.setProperty("jellyfin_id", view.get("Id", ""))
     return li
@@ -46,21 +50,68 @@ class HomeWindow(ControlledWindow):
         self.client = client
 
     def onInit(self):
+        # The actual fetch runs on a background thread (see _load()) so a
+        # slow/large library (e.g. a big Music collection - the request that
+        # first exposed this) doesn't freeze the whole GUI thread for the
+        # duration; each population step below checks closed_event first in
+        # case the user has already backed out while it was in flight.
+        self.setFocusId(CTRL_LIBRARIES)
+        threading.Thread(target=self._load, daemon=True).start()
+
+    def _load(self):
+        # Only the Libraries row is essential - without it there's no Home
+        # screen at all, so a failure there still closes the window. Each
+        # hub row below is independent: a slow/failing real library (seen in
+        # practice: a large Music collection's "recently added" query) must
+        # not take the other, already-succeeded rows down with it.
         try:
-            views = library.get_views(self.client)
-            self._populate(CTRL_LIBRARIES, views, is_library=True)
-            self._populate_episode_aware(CTRL_CONTINUE_WATCHING, library.get_resume(self.client))
-            self._populate_episode_aware(CTRL_NEXT_UP, library.get_next_up(self.client))
-            self._populate(CTRL_RECENTLY_ADDED_MOVIES, self._latest(views, "movies"))
-            self._populate(CTRL_RECENTLY_ADDED_TV, self._latest(views, "tvshows"))
-            self._populate(CTRL_RECENTLY_ADDED_MUSIC, self._latest(views, "music"))
+            views = self._timed("get_views", library.get_views, self.client)
         except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
+            if self.closed_event.is_set():
+                return
             xbmcgui.Dialog().notification("Jellyfin", f"Couldn't load Home: {exc}")
             self.result = None
             self.close()
             return
+        if self.closed_event.is_set():
+            return
+        self._populate(CTRL_LIBRARIES, views, is_library=True)
 
-        self.setFocusId(CTRL_LIBRARIES)
+        self._load_hub_row(
+            CTRL_CONTINUE_WATCHING, "get_resume", library.get_resume, self.client, episode_aware=True
+        )
+        self._load_hub_row(
+            CTRL_NEXT_UP, "get_next_up", library.get_next_up, self.client, episode_aware=True
+        )
+        self._load_hub_row(CTRL_RECENTLY_ADDED_MOVIES, "latest movies", self._latest, views, "movies")
+        self._load_hub_row(CTRL_RECENTLY_ADDED_TV, "latest tvshows", self._latest, views, "tvshows")
+        self._load_hub_row(CTRL_RECENTLY_ADDED_MUSIC, "latest music", self._latest, views, "music")
+
+    def _load_hub_row(self, control_id, label, fetch, *args, episode_aware=False, **kwargs):
+        if self.closed_event.is_set():
+            return
+        try:
+            items = self._timed(label, fetch, *args, **kwargs)
+        except Exception as exc:  # noqa: BLE001 - one slow/broken row shouldn't blank the rest of Home
+            xbmc.log(f"{LOG_PREFIX} Home: {label} failed, leaving that row empty: {exc}", xbmc.LOGWARNING)
+            return
+        if self.closed_event.is_set():
+            return
+        if episode_aware:
+            self._populate_episode_aware(control_id, items)
+        else:
+            self._populate(control_id, items)
+
+    def _timed(self, label, fn, *args, **kwargs):
+        """Logs how long each Home fetch step took (or how long it ran
+        before failing) - a slow real library (e.g. a big Music collection)
+        can make any one of these steps the one that's actually slow, and
+        without this a timeout only shows as an unexplained gap in the log."""
+        started = time.time()
+        try:
+            return fn(*args, **kwargs)
+        finally:
+            xbmc.log(f"{LOG_PREFIX} Home: {label} took {time.time() - started:.1f}s", xbmc.LOGINFO)
 
     def _latest(self, views, collection_type):
         latest = []

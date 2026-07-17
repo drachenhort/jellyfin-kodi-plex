@@ -13,6 +13,14 @@ CLIENT_NAME = "Jellyfin Plex-style Kodi Client"
 # to be bumped by hand and can't drift from the version Jellyfin displays.
 CLIENT_VERSION = "0.0.0"
 
+# A large real library (seen in practice with Music: thousands of tracks)
+# can take noticeably longer than a quick request to enumerate or compute
+# "recently added" for, especially before Jellyfin's own caches are warm.
+# lib/windows/*.py now runs this call on a background thread rather than
+# Kodi's GUI thread, so a generous timeout here no longer costs a frozen
+# UI - it's safe to give a slow real query more room before giving up.
+REQUEST_TIMEOUT_SECONDS = 60
+
 
 class JellyfinApiError(Exception):
     def __init__(self, status_code, message):
@@ -72,7 +80,7 @@ class JellyfinClient:
             headers=self._headers(),
             json=json,
             params=params,
-            timeout=15,
+            timeout=REQUEST_TIMEOUT_SECONDS,
         )
         if response.status_code >= 400:
             raise JellyfinApiError(response.status_code, response.text)

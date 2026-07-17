@@ -1,6 +1,13 @@
 """Library/item browsing: views, item listings, and home-screen hubs."""
 
-DEFAULT_ITEM_FIELDS = "Overview,Genres,People,RunTimeTicks,ProductionYear,CommunityRating,CriticRating"
+# People (cast) is the most expensive field for Jellyfin to hydrate per item,
+# and it's only ever displayed on the single-item Detail page (_cast_line in
+# lib/windows/detail.py) - every other call here returns many items at once
+# (a 200-item Browse page, hub rows, search results), so requesting it there
+# too was pure overhead nobody saw, on exactly the kind of large listing
+# (e.g. a big real Music library) most likely to make a slow query timeout.
+LISTING_ITEM_FIELDS = "Overview,Genres,RunTimeTicks,ProductionYear,CommunityRating,CriticRating"
+DEFAULT_ITEM_FIELDS = LISTING_ITEM_FIELDS + ",People"
 
 
 def get_views(client):
@@ -11,7 +18,7 @@ def get_views(client):
 
 def get_items(client, parent_id=None, start_index=0, limit=50, sort_by="SortName",
               sort_order="Ascending", include_item_types=None, recursive=True,
-              search_term=None, fields=DEFAULT_ITEM_FIELDS):
+              search_term=None, fields=LISTING_ITEM_FIELDS):
     """GET /Users/{userId}/Items — browse within a library/folder, paged."""
     params = {
         "StartIndex": start_index,
@@ -42,7 +49,7 @@ def get_resume(client, limit=20):
     """GET /Users/{userId}/Items/Resume — Continue Watching hub."""
     result = client.get(
         f"/Users/{client.user_id}/Items/Resume",
-        params={"Limit": limit, "Fields": DEFAULT_ITEM_FIELDS},
+        params={"Limit": limit, "Fields": LISTING_ITEM_FIELDS},
     )
     return result.get("Items", [])
 
@@ -51,7 +58,7 @@ def get_next_up(client, limit=20):
     """GET /Shows/NextUp — Next Up hub."""
     result = client.get(
         "/Shows/NextUp",
-        params={"UserId": client.user_id, "Limit": limit, "Fields": DEFAULT_ITEM_FIELDS},
+        params={"UserId": client.user_id, "Limit": limit, "Fields": LISTING_ITEM_FIELDS},
     )
     return result.get("Items", [])
 
@@ -70,7 +77,7 @@ def get_items_by_ids(client, item_ids, fields="ImageTags"):
 
 def get_latest(client, parent_id=None, limit=20):
     """GET /Users/{userId}/Items/Latest — Recently Added hub, per library."""
-    params = {"Limit": limit, "Fields": DEFAULT_ITEM_FIELDS}
+    params = {"Limit": limit, "Fields": LISTING_ITEM_FIELDS}
     if parent_id:
         params["ParentId"] = parent_id
     result = client.get(f"/Users/{client.user_id}/Items/Latest", params=params)
@@ -80,7 +87,7 @@ def get_latest(client, parent_id=None, limit=20):
 SEARCH_ITEM_TYPES = "Movie,Series,MusicArtist,MusicAlbum,Audio,Episode"
 
 
-def search_items(client, term, limit=50, fields=DEFAULT_ITEM_FIELDS):
+def search_items(client, term, limit=50, fields=LISTING_ITEM_FIELDS):
     """GET /Users/{userId}/Items with SearchTerm — used by the Search screen."""
     return get_items(
         client, limit=limit, recursive=True, search_term=term,

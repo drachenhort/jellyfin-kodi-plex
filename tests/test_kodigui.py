@@ -5,12 +5,14 @@ setting, and WindowMixin's Back-action handling.
 
 from lib.windows.kodigui import (
     PLACEHOLDER_ART,
+    PLACEHOLDER_ART_MUSIC,
     ControlledWindow,
     _display_label,
     _episode_code,
     _progress_text,
     _ratings_text,
     list_item,
+    placeholder_art,
 )
 
 
@@ -116,6 +118,27 @@ def test_list_item_sets_placeholder_art_when_none_given():
     assert li.art["thumb"] == PLACEHOLDER_ART
     assert li.art["poster"] == PLACEHOLDER_ART
     assert "fanart" not in li.art
+
+
+def test_list_item_sets_music_placeholder_for_a_track():
+    li = list_item({"Id": "1", "Name": "One", "Type": "Audio"})
+    assert li.art["thumb"] == PLACEHOLDER_ART_MUSIC
+    assert li.art["poster"] == PLACEHOLDER_ART_MUSIC
+
+
+def test_placeholder_art_for_music_item_types():
+    for item_type in ("Audio", "MusicAlbum", "MusicArtist"):
+        assert placeholder_art({"Type": item_type}) == PLACEHOLDER_ART_MUSIC
+
+
+def test_placeholder_art_for_music_collection_view():
+    assert placeholder_art({"CollectionType": "music"}) == PLACEHOLDER_ART_MUSIC
+
+
+def test_placeholder_art_defaults_to_generic():
+    assert placeholder_art({"Type": "Movie"}) == PLACEHOLDER_ART
+    assert placeholder_art({"CollectionType": "movies"}) == PLACEHOLDER_ART
+    assert placeholder_art({}) == PLACEHOLDER_ART
 
 
 def test_list_item_uses_given_art():

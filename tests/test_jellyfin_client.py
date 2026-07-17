@@ -16,6 +16,15 @@ def test_auth_header_with_token(client):
     assert 'Token="test-token"' in header
 
 
+def test_requests_use_the_configured_timeout(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"ServerName": "Tower"})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    client.get("/System/Info/Public")
+
+    assert fake.calls[0]["timeout"] == client_mod.REQUEST_TIMEOUT_SECONDS
+
+
 def test_authenticate_by_name_sets_token_and_user(anon_client, monkeypatch):
     fake = FakeRequests([
         FakeResponse({"AccessToken": "abc123", "User": {"Id": "user-1", "Name": "steve"}})
@@ -78,6 +87,29 @@ def test_get_items_builds_params(client, monkeypatch):
     assert params["StartIndex"] == 20
     assert params["Limit"] == 10
     assert params["Recursive"] == "true"
+
+
+def test_get_items_does_not_request_people_by_default(client, monkeypatch):
+    """People (cast) is expensive for Jellyfin to hydrate per item and is
+    only ever shown on the single-item Detail page - a multi-item listing
+    call (up to MAX_ITEMS=200 in lib/windows/browse.py) requesting it too
+    was pure overhead, plausibly a real contributor to real, large-library
+    listings timing out."""
+    fake = FakeRequests([FakeResponse({"Items": [], "TotalRecordCount": 0})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    library.get_items(client, parent_id="lib-1")
+
+    assert "People" not in fake.calls[0]["params"]["Fields"]
+
+
+def test_get_item_still_requests_people(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"Id": "item-1"})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    library.get_item(client, "item-1")
+
+    assert "People" in fake.calls[0]["params"]["Fields"]
 
 
 def test_get_items_non_recursive(client, monkeypatch):

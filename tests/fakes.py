@@ -23,6 +23,7 @@ class FakeRequests:
 
     def request(self, method, url, headers=None, json=None, params=None, timeout=None):
         self.calls.append(
-            {"method": method, "url": url, "headers": headers, "json": json, "params": params}
+            {"method": method, "url": url, "headers": headers, "json": json, "params": params,
+             "timeout": timeout}
         )
         return self.responses.pop(0)

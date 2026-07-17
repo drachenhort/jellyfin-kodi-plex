@@ -14,11 +14,14 @@ self.result on close: {"action": "open", "item_id": ..., "item_type": ...,
 """
 
 import random
+import threading
+import time
 
+import xbmc
 import xbmcgui
 
 from lib.jellyfin import images, library
-from lib.windows.kodigui import ControlledWindow, list_item
+from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item
 
 CTRL_TITLE = 300
 CTRL_GRID = 301
@@ -44,18 +47,43 @@ class BrowseWindow(ControlledWindow):
         self.items = []
 
     def onInit(self):
+        # Title shows immediately (cheap, no network); the actual listing
+        # fetch runs on a background thread (_load()) so a slow response
+        # doesn't freeze the whole GUI thread - each step below checks
+        # closed_event first in case the user already backed out.
         self.getControl(CTRL_TITLE).setLabel(self.title)
+        self.getControl(CTRL_PLAY_ALL).setVisible(False)
+        self.getControl(CTRL_SHUFFLE).setVisible(False)
+        self.setFocusId(CTRL_GRID)
+        threading.Thread(target=self._load, daemon=True).start()
+
+    def _load(self):
+        started = time.time()
         try:
             response = library.get_items(
                 self.client, parent_id=self.parent_id, start_index=0, limit=MAX_ITEMS,
                 recursive=False,
             )
         except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
+            xbmc.log(
+                f"{LOG_PREFIX} Browse: fetching children of {self.parent_id!r} ({self.title!r}) "
+                f"failed after {time.time() - started:.1f}s: {exc}",
+                xbmc.LOGWARNING,
+            )
+            if self.closed_event.is_set():
+                return
             xbmcgui.Dialog().notification("Jellyfin", f"Couldn't load {self.title}: {exc}")
             self.result = None
             self.close()
             return
         self.items = response.get("Items", [])
+        xbmc.log(
+            f"{LOG_PREFIX} Browse: fetched {len(self.items)} children of {self.parent_id!r} "
+            f"({self.title!r}) in {time.time() - started:.1f}s",
+            xbmc.LOGINFO,
+        )
+        if self.closed_event.is_set():
+            return
 
         control = self.getControl(CTRL_GRID)
         control.reset()
@@ -69,8 +97,6 @@ class BrowseWindow(ControlledWindow):
         show_queue_controls = self.parent_item_type in QUEUEABLE_PARENT_TYPES and self._track_ids()
         self.getControl(CTRL_PLAY_ALL).setVisible(bool(show_queue_controls))
         self.getControl(CTRL_SHUFFLE).setVisible(bool(show_queue_controls))
-
-        self.setFocusId(CTRL_GRID)
 
     def _track_ids(self):
         return [item["Id"] for item in self.items if item.get("Type") == "Audio"]

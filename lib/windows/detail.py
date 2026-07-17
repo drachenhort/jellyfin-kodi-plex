@@ -5,10 +5,14 @@ self.result on close: {"action": "play", "item_id": ..., "resume_ticks": N}
 or None (back).
 """
 
+import threading
+import time
+
+import xbmc
 import xbmcgui
 
 from lib.jellyfin import images, library
-from lib.windows.kodigui import ControlledWindow
+from lib.windows.kodigui import LOG_PREFIX, ControlledWindow
 
 CTRL_BACKDROP = 400
 CTRL_POSTER = 401
@@ -56,13 +60,36 @@ class DetailWindow(ControlledWindow):
         self.item = None
 
     def onInit(self):
+        # The skin's defaultcontrol already focuses the Play button before
+        # this even runs, so handle_click() below must cope with a click
+        # landing while self.item is still None - the fetch itself runs on
+        # a background thread (_load()) so it can't block the GUI thread.
+        self.getControl(CTRL_TITLE).setLabel("Loading…")
+        threading.Thread(target=self._load, daemon=True).start()
+
+    def _load(self):
+        started = time.time()
         try:
-            self.item = library.get_item(self.client, self.item_id)
+            item = library.get_item(self.client, self.item_id)
         except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
+            xbmc.log(
+                f"{LOG_PREFIX} Detail: fetching {self.item_id!r} failed after "
+                f"{time.time() - started:.1f}s: {exc}",
+                xbmc.LOGWARNING,
+            )
+            if self.closed_event.is_set():
+                return
             xbmcgui.Dialog().notification("Jellyfin", f"Couldn't load item: {exc}")
             self.result = None
             self.close()
             return
+        xbmc.log(
+            f"{LOG_PREFIX} Detail: fetched {self.item_id!r} in {time.time() - started:.1f}s",
+            xbmc.LOGINFO,
+        )
+        if self.closed_event.is_set():
+            return
+        self.item = item
 
         backdrop = images.backdrop_image_url(self.client, self.item)
         if backdrop:
@@ -82,10 +109,8 @@ class DetailWindow(ControlledWindow):
         else:
             self.getControl(CTRL_PLAY_BUTTON).setLabel("Play")
 
-        self.setFocusId(CTRL_PLAY_BUTTON)
-
     def handle_click(self, control_id):
-        if control_id != CTRL_PLAY_BUTTON:
+        if control_id != CTRL_PLAY_BUTTON or self.item is None:
             return
         resume_ticks = (self.item.get("UserData") or {}).get("PlaybackPositionTicks", 0)
         if resume_ticks <= RESUME_THRESHOLD_TICKS:
