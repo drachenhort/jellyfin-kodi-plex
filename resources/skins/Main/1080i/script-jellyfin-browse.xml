@@ -32,6 +32,22 @@
           <aspectratio>scale</aspectratio>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
+        <control type="image">
+          <posy>274</posy>
+          <width>220</width>
+          <height>56</height>
+          <texture>gradient-overlay.png</texture>
+          <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
+        </control>
+        <control type="label">
+          <posx>10</posx>
+          <posy>278</posy>
+          <width>200</width>
+          <height>20</height>
+          <font>font12</font>
+          <label>$INFO[ListItem.Property(ratings_text)]</label>
+          <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
+        </control>
       </itemlayout>
       <focusedlayout width="220" height="330">
         <control type="image">
@@ -46,6 +62,23 @@
           <height>324</height>
           <aspectratio>scale</aspectratio>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
+        </control>
+        <control type="image">
+          <posx>3</posx>
+          <posy>274</posy>
+          <width>214</width>
+          <height>56</height>
+          <texture>gradient-overlay.png</texture>
+          <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
+        </control>
+        <control type="label">
+          <posx>13</posx>
+          <posy>278</posy>
+          <width>194</width>
+          <height>20</height>
+          <font>font12</font>
+          <label>$INFO[ListItem.Property(ratings_text)]</label>
+          <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
         </control>
         <control type="label">
           <posy>300</posy>
