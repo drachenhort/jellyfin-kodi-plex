@@ -313,7 +313,7 @@
 
       <control type="group">
         <width>1760</width>
-        <height>260</height>
+        <height>480</height>
         <control type="label">
           <posx>0</posx>
           <posy>0</posy>
@@ -326,44 +326,51 @@
           <posx>0</posx>
           <posy>40</posy>
           <width>1760</width>
-          <height>220</height>
+          <height>440</height>
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
           <onup>202</onup>
           <ondown>201</ondown>
           <animation effect="zoom" start="100" end="108" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
           <animation effect="zoom" start="108" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
-          <itemlayout width="280" height="158">
+          <itemlayout width="260" height="390">
             <control type="image">
-              <width>280</width>
-              <height>158</height>
+              <width>260</width>
+              <height>390</height>
               <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
           </itemlayout>
-          <focusedlayout width="280" height="158">
+          <focusedlayout width="260" height="390">
             <control type="image">
-              <width>280</width>
-              <height>158</height>
+              <width>260</width>
+              <height>390</height>
               <texture border="10">focus-highlight.png</texture>
             </control>
             <control type="image">
               <posx>3</posx>
               <posy>3</posy>
-              <width>274</width>
-              <height>152</height>
+              <width>254</width>
+              <height>384</height>
               <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="label">
-              <posy>160</posy>
-              <width>280</width>
-              <height>30</height>
+              <posy>392</posy>
+              <width>260</width>
+              <height>24</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Property(series_name)]</label>
+            </control>
+            <control type="label">
+              <posy>416</posy>
+              <width>260</width>
+              <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Label]</label>
             </control>
             <control type="image">
-              <posx>122</posx>
+              <posx>112</posx>
               <posy>0</posy>
               <width>36</width>
               <height>22</height>

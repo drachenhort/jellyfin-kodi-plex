@@ -46,8 +46,8 @@ class HomeWindow(ControlledWindow):
     def onInit(self):
         views = library.get_views(self.client)
         self._populate(CTRL_LIBRARIES, views, is_library=True)
-        self._populate(CTRL_CONTINUE_WATCHING, library.get_resume(self.client))
-        self._populate_next_up(library.get_next_up(self.client))
+        self._populate_episode_aware(CTRL_CONTINUE_WATCHING, library.get_resume(self.client))
+        self._populate_episode_aware(CTRL_NEXT_UP, library.get_next_up(self.client))
         self._populate(CTRL_RECENTLY_ADDED_MOVIES, self._latest(views, "movies"))
         self._populate(CTRL_RECENTLY_ADDED_TV, self._latest(views, "tvshows"))
 
@@ -74,21 +74,26 @@ class HomeWindow(ControlledWindow):
                 list_items.append(list_item(item, primary, backdrop))
         control.addItems(list_items)
 
-    def _populate_next_up(self, items):
-        """Next Up shows each episode's show poster (current season's own
-        poster if it has one, else the series poster) rather than the
-        episode's own landscape screengrab, so the row reads as "here's
-        what's next for each show" rather than a strip of random stills."""
+    def _populate_episode_aware(self, control_id, items):
+        """Shared by Next Up and Continue Watching. Episode items show their
+        show's poster (current season's own poster if it has one, else the
+        series poster) instead of their own landscape screengrab, so the row
+        reads as "here's what's next/in progress for each show" rather than
+        a strip of random stills. Continue Watching also mixes in movies,
+        which keep their own poster art since they have no season/series."""
         season_ids = {item["SeasonId"] for item in items if item.get("SeasonId")}
         seasons = library.get_items_by_ids(self.client, list(season_ids))
         season_by_id = {season["Id"]: season for season in seasons}
 
-        control = self.getControl(CTRL_NEXT_UP)
+        control = self.getControl(control_id)
         control.reset()
         list_items = []
         for item in items:
-            season = season_by_id.get(item.get("SeasonId"))
-            primary = images.series_poster_url(self.client, item, season=season)
+            season_id = item.get("SeasonId")
+            if season_id:
+                primary = images.series_poster_url(self.client, item, season=season_by_id.get(season_id))
+            else:
+                primary = images.primary_image_url(self.client, item)
             backdrop = images.backdrop_image_url(self.client, item)
             list_items.append(list_item(item, primary, backdrop))
         control.addItems(list_items)
