@@ -20,5 +20,8 @@
     </description>
     <platform>all</platform>
     <license>MIT</license>
+    <assets>
+      <icon>icon.png</icon>
+    </assets>
   </extension>
 </addon>
