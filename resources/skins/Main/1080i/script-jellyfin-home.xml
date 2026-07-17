@@ -248,6 +248,20 @@
               <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
+            <control type="image">
+              <posy>310</posy>
+              <width>260</width>
+              <height>80</height>
+              <texture>gradient-overlay.png</texture>
+            </control>
+            <control type="label">
+              <posx>10</posx>
+              <posy>356</posy>
+              <width>240</width>
+              <height>24</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Property(ratings_text)]</label>
+            </control>
           </itemlayout>
           <focusedlayout width="260" height="390">
             <control type="image">
@@ -262,6 +276,21 @@
               <height>384</height>
               <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
+            </control>
+            <control type="image">
+              <posx>3</posx>
+              <posy>307</posy>
+              <width>254</width>
+              <height>80</height>
+              <texture>focus-turquoise.png</texture>
+            </control>
+            <control type="label">
+              <posx>13</posx>
+              <posy>353</posy>
+              <width>234</width>
+              <height>24</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Property(ratings_text)]</label>
             </control>
             <control type="image">
               <posx>112</posx>
