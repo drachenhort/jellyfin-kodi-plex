@@ -212,15 +212,15 @@
         </control>
         <control type="label">
           <posx>260</posx>
-          <width>1040</width>
+          <width>850</width>
           <height>84</height>
           <font>font13</font>
           <aligny>center</aligny>
           <label>$INFO[ListItem.Title]</label>
         </control>
         <control type="label">
-          <posx>1310</posx>
-          <width>110</width>
+          <posx>1120</posx>
+          <width>100</width>
           <height>84</height>
           <font>font13</font>
           <align>right</align>
@@ -229,8 +229,17 @@
           <visible>Integer.IsGreater(ListItem.Duration,0)</visible>
         </control>
         <control type="label">
-          <posx>1430</posx>
-          <width>140</width>
+          <posx>1240</posx>
+          <width>190</width>
+          <height>84</height>
+          <font>font13</font>
+          <aligny>center</aligny>
+          <label>$INFO[ListItem.Property(ratings_text)]</label>
+          <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
+        </control>
+        <control type="label">
+          <posx>1440</posx>
+          <width>150</width>
           <height>84</height>
           <font>font13</font>
           <aligny>center</aligny>
@@ -238,7 +247,7 @@
           <visible>!String.IsEmpty(ListItem.Property(progress_text))</visible>
         </control>
         <control type="image">
-          <posx>1596</posx>
+          <posx>1610</posx>
           <posy>22</posy>
           <width>40</width>
           <height>40</height>
@@ -270,15 +279,15 @@
         </control>
         <control type="label">
           <posx>264</posx>
-          <width>1030</width>
+          <width>840</width>
           <height>84</height>
           <font>font13</font>
           <aligny>center</aligny>
           <label>$INFO[ListItem.Title]</label>
         </control>
         <control type="label">
-          <posx>1310</posx>
-          <width>110</width>
+          <posx>1120</posx>
+          <width>100</width>
           <height>84</height>
           <font>font13</font>
           <align>right</align>
@@ -287,8 +296,17 @@
           <visible>Integer.IsGreater(ListItem.Duration,0)</visible>
         </control>
         <control type="label">
-          <posx>1430</posx>
-          <width>140</width>
+          <posx>1240</posx>
+          <width>190</width>
+          <height>84</height>
+          <font>font13</font>
+          <aligny>center</aligny>
+          <label>$INFO[ListItem.Property(ratings_text)]</label>
+          <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
+        </control>
+        <control type="label">
+          <posx>1440</posx>
+          <width>150</width>
           <height>84</height>
           <font>font13</font>
           <aligny>center</aligny>
@@ -296,7 +314,7 @@
           <visible>!String.IsEmpty(ListItem.Property(progress_text))</visible>
         </control>
         <control type="image">
-          <posx>1596</posx>
+          <posx>1610</posx>
           <posy>22</posy>
           <width>40</width>
           <height>40</height>
