@@ -1,0 +1,75 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+`script.jellyfin.plex` — a Kodi *program* addon (not `plugin.video.*`) that connects to a Jellyfin
+media server and renders its own Plex-style `WindowXML`/`WindowXMLDialog` UI, independent of the
+active Kodi skin. Architecture is modelled on the open-source
+[Plex for Kodi](https://github.com/plexinc/plex-for-kodi) addon.
+
+Milestone 1 (in progress): login (LAN autodiscovery, Quick Connect + password fallback) → home
+screen with hub rows (Continue Watching / Next Up / Recently Added) → library poster-wall browsing
+with drill-down through TV (Series → Season → Episode) and Music (Artist → Album → Track) → Search
+→ item detail → playback via Kodi's native OSD, with progress reported back to the server → a
+Servers screen for saving/switching between multiple Jellyfin server logins.
+
+## Commands
+
+```bash
+pip install -r requirements-dev.txt   # installs pytest, requests
+pytest                                 # run the full suite
+pytest tests/test_browse.py            # run one test file
+pytest tests/test_browse.py::test_name # run a single test
+```
+
+There is no lint/build step configured. To try the addon in Kodi itself: copy or symlink this
+directory into `~/.kodi/addons/script.jellyfin.plex/` and launch it from the Programs menu.
+
+## Architecture
+
+**Layering and testability.** `lib/jellyfin/*` is a pure-Python Jellyfin API client with no
+`xbmc*` imports, so it's tested directly with pytest. `lib/windows/*` and `lib/player.py` are the
+only modules that touch `xbmcgui`/`xbmc`; `tests/kodi_stubs/` provides minimal stand-ins for those
+modules, registered into `sys.modules` by `tests/conftest.py` *before* any test file imports a
+`lib.windows.*` module — so this layer also runs under plain pytest with no real Kodi environment.
+Keep new Jellyfin API logic in `lib/jellyfin/` free of `xbmc*` imports to preserve this.
+
+**Navigation model (`lib/main.py`).** Each window's `open()` blocks via `doModal()` until it
+closes, so the screen "stack" is just nested loops/function calls: showing a screen again after a
+deeper screen closes with no result is Back (loop again); moving to a deeper screen is a nested
+call. Only backing out of the root Home loop ends the script. Container item types that get
+browsed deeper rather than played are listed in `lib/main.py`'s `CONTAINER_TYPES` (`Series`,
+`Season`, `MusicArtist`, `MusicAlbum`, `BoxSet`, `Folder`).
+
+**Drill-down reuses one window.** `lib/windows/browse.py` handles every non-recursive
+child-listing level — a library's top-level items, a series' seasons, a season's episodes, an
+artist's albums, an album's tracks — branching only on the clicked item's type. Music artist
+grouping assumes the library is organized one folder per artist; Jellyfin's virtual cross-folder
+`/Artists` aggregation is not used.
+
+**Multi-server support (`lib/servers.py` + `lib/main.py`).** Saved logins are a list of `{name,
+server_url, access_token, user_id}` dicts, serialized into a single hidden addon setting (not one
+setting per field). `lib/main.py` owns reading/writing that setting and matches a re-login to an
+already-saved `server_url` to update the entry in place rather than duplicating it. An existing
+single-server install is migrated into this list automatically on first run after update
+(`_migrate_legacy_settings` in `lib/main.py`), so it doesn't get logged out. The currently active
+server can't be removed from the Servers screen (`lib/windows/servers.py`) — switch away first.
+
+**Discovery.** `lib/jellyfin/discovery.py` finds Jellyfin servers on the LAN via the UDP broadcast
+protocol inherited from Emby/MediaBrowser; results are offered as a pick-list on the login screen,
+with manual URL entry as a fallback.
+
+**Client version.** `lib/jellyfin/client.py`'s `CLIENT_VERSION` constant is only a fallback — real
+callers (`lib/main.py`) pass the addon's actual version from `addon.xml` via
+`ADDON.getAddonInfo("version")`, so it can't drift from what Jellyfin displays for the session.
+
+**Background threading.** Library/recently-added queries in `lib/windows/*.py` run on a background
+thread rather than Kodi's GUI thread, since a large real library (e.g. thousands of music tracks)
+can be slow to enumerate — this is why `JellyfinClient`'s request timeout is generous (60s): it no
+longer risks freezing the UI.
+
+**`service.py`** is currently a no-op placeholder reserved for M2 work (auto-discovery, session
+keep-alive); M1 playback-progress reporting runs inline in `lib/player.py` while the script addon
+is in the foreground.
