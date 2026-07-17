@@ -27,6 +27,7 @@ import threading
 import time
 
 import xbmc
+import xbmcgui
 
 from lib.windows.kodigui import BACK_ACTIONS, BaseDialog
 
@@ -121,9 +122,34 @@ class SeekDialog(BaseDialog):
         elif control_id == CTRL_STOP:
             self._stop_and_close()
         elif control_id == CTRL_SUBTITLES:
-            xbmc.executebuiltin("Action(nextsubtitle)")
+            self._choose_subtitle()
         elif control_id == CTRL_AUDIO:
-            xbmc.executebuiltin("Action(audionextlanguage)")
+            self._choose_audio()
+
+    def _choose_audio(self):
+        try:
+            streams = self.player.getAvailableAudioStreams()
+        except RuntimeError:
+            return  # not actually playing (race with playback ending)
+        if not streams:
+            return
+        selected = xbmcgui.Dialog().select("Audio Language", streams)
+        if selected >= 0:
+            self.player.setAudioStream(selected)
+        self.show_osd()
+
+    def _choose_subtitle(self):
+        try:
+            streams = self.player.getAvailableSubtitleStreams()
+        except RuntimeError:
+            return  # not actually playing (race with playback ending)
+        selected = xbmcgui.Dialog().select("Subtitles", ["Off"] + streams)
+        if selected == 0:
+            self.player.showSubtitles(False)
+        elif selected > 0:
+            self.player.setSubtitleStream(selected - 1)
+            self.player.showSubtitles(True)
+        self.show_osd()
 
     def _stop_and_close(self):
         self.player.stop()
