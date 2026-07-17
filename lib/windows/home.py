@@ -1,5 +1,6 @@
 """Home window: library shortcuts plus Plex-style hub rows (Continue
-Watching / Next Up / Recently Added Movies / Recently Added TV).
+Watching / Next Up / Recently Added Movies / Recently Added TV / Recently
+Added Music).
 
 self.result on close is one of:
   {"action": "browse", "library_id": ..., "library_name": ...}
@@ -21,9 +22,11 @@ CTRL_RECENTLY_ADDED_MOVIES = 203
 CTRL_SEARCH = 204
 CTRL_RECENTLY_ADDED_TV = 205
 CTRL_SERVERS = 206
+CTRL_RECENTLY_ADDED_MUSIC = 207
 
 HUB_CONTROLS = (
     CTRL_CONTINUE_WATCHING, CTRL_NEXT_UP, CTRL_RECENTLY_ADDED_MOVIES, CTRL_RECENTLY_ADDED_TV,
+    CTRL_RECENTLY_ADDED_MUSIC,
 )
 
 
@@ -50,6 +53,7 @@ class HomeWindow(ControlledWindow):
             self._populate_episode_aware(CTRL_NEXT_UP, library.get_next_up(self.client))
             self._populate(CTRL_RECENTLY_ADDED_MOVIES, self._latest(views, "movies"))
             self._populate(CTRL_RECENTLY_ADDED_TV, self._latest(views, "tvshows"))
+            self._populate(CTRL_RECENTLY_ADDED_MUSIC, self._latest(views, "music"))
         except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
             xbmcgui.Dialog().notification("Jellyfin", f"Couldn't load Home: {exc}")
             self.result = None

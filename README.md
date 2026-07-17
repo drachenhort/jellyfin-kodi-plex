@@ -13,11 +13,13 @@ windows to fully control the UI, independent of the active Kodi skin.
 ## Status
 
 Milestone 1 (in progress): login (LAN autodiscovery, Quick Connect + password fallback) → home screen with
-Continue Watching / Next Up / Recently Added hub rows → library poster-wall browsing, including
-drill-down through TV (Series → Season → Episode) and Music (Artist → Album → Track) hierarchies,
-and a Search screen → item detail page → playback (using Kodi's own native video OSD/controls)
-with progress reported back to the server, and a Servers screen for saving logins to multiple
-Jellyfin servers and switching between them.
+Continue Watching / Next Up / Recently Added Movies / Recently Added TV / Recently Added Music hub
+rows → library poster-wall browsing, including drill-down through TV (Series → Season → Episode)
+and Music (Artist → Album → Track) hierarchies, and a Search screen → item detail page → playback
+(video and audio, using Kodi's own native OSD/controls) with progress reported back to the server,
+and a Servers screen for saving logins to multiple Jellyfin servers and switching between them. An
+album's own screen adds Play All/Shuffle buttons to queue its tracks back-to-back, advancing to the
+next track only when the current one finishes naturally rather than being stopped early.
 
 The TV/Music drill-down works by fetching each item's direct children non-recursively
 (`lib/windows/browse.py` is reused at every level: a library's top-level items, a series'

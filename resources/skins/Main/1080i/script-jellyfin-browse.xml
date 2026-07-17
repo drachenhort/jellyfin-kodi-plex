@@ -19,11 +19,43 @@
       <label></label>
     </control>
 
+    <!-- Album screens only (BrowseWindow hides these otherwise): play every
+         track in listing order, or in a shuffled order. -->
+    <control type="button" id="302">
+      <posx>1580</posx>
+      <posy>45</posy>
+      <width>140</width>
+      <height>50</height>
+      <font>font16</font>
+      <label>Play All</label>
+      <texturefocus border="10">focus-highlight.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onright>303</onright>
+      <onleft>302</onleft>
+      <ondown>301</ondown>
+      <onup>302</onup>
+    </control>
+    <control type="button" id="303">
+      <posx>1740</posx>
+      <posy>45</posy>
+      <width>140</width>
+      <height>50</height>
+      <font>font16</font>
+      <label>Shuffle</label>
+      <texturefocus border="10">focus-highlight.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onright>303</onright>
+      <onleft>302</onleft>
+      <ondown>301</ondown>
+      <onup>303</onup>
+    </control>
+
     <control type="panel" id="301">
       <posx>80</posx>
       <posy>130</posy>
       <width>1760</width>
       <height>900</height>
+      <onup>302</onup>
       <itemgap>20</itemgap>
       <itemlayout width="220" height="330">
         <control type="image">

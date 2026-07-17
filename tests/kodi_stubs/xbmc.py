@@ -64,6 +64,9 @@ class Player:
     def isPlayingVideo(self):
         return False
 
+    def isPlayingAudio(self):
+        return False
+
     def getTime(self):
         return 0.0
 

@@ -192,6 +192,13 @@ def test_primary_image_url_none_when_no_art(client):
     assert images.primary_image_url(client, {"Id": "x"}) is None
 
 
+def test_primary_image_url_falls_back_to_album_for_a_track(client):
+    item = {"Id": "track-1", "AlbumId": "album-1", "AlbumPrimaryImageTag": "atag"}
+    url = images.primary_image_url(client, item)
+    assert url.startswith(client.build_url("/Items/album-1/Images/Primary"))
+    assert "tag=atag" in url
+
+
 def test_backdrop_image_url_falls_back_to_parent(client):
     item = {"Id": "ep-1", "ParentBackdropItemId": "series-1", "ParentBackdropImageTags": ["ptag"]}
     url = images.backdrop_image_url(client, item)
@@ -221,6 +228,20 @@ def test_stream_url_builds_expected_query(client):
     assert "mediaSourceId=ms-1" in url
     assert f"api_key={client.access_token}" in url
     assert play_session_id in url
+
+
+def test_stream_url_uses_audio_endpoint_for_audio_items(client):
+    media_source = {"Id": "ms-1", "Container": "mp3"}
+    url, _ = playback.stream_url(client, "track-1", media_source, item_type="Audio")
+
+    assert url.startswith(client.build_url("/Audio/track-1/stream.mp3"))
+
+
+def test_stream_url_defaults_to_video_endpoint_when_item_type_unknown(client):
+    media_source = {"Id": "ms-1", "Container": "mkv"}
+    url, _ = playback.stream_url(client, "item-1", media_source)
+
+    assert url.startswith(client.build_url("/Videos/item-1/stream.mkv"))
 
 
 def test_report_playback_progress_posts_expected_body(client, monkeypatch):

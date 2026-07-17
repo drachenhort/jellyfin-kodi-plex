@@ -238,7 +238,7 @@
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
           <onup>203</onup>
-          <ondown>202</ondown>
+          <ondown>207</ondown>
           <animation effect="zoom" start="100" end="108" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
           <animation effect="zoom" start="108" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
           <itemlayout width="260" height="390">
@@ -353,6 +353,91 @@
 
       <control type="group">
         <width>1760</width>
+        <height>430</height>
+        <visible>Integer.IsGreater(Container(207).NumItems,0)</visible>
+        <control type="label">
+          <posx>0</posx>
+          <posy>0</posy>
+          <width>1760</width>
+          <height>30</height>
+          <font>font16</font>
+          <label>Recently Added Music</label>
+        </control>
+        <control type="list" id="207">
+          <posx>0</posx>
+          <posy>40</posy>
+          <width>1760</width>
+          <height>390</height>
+          <orientation>horizontal</orientation>
+          <itemgap>20</itemgap>
+          <onup>205</onup>
+          <ondown>202</ondown>
+          <animation effect="zoom" start="100" end="108" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
+          <animation effect="zoom" start="108" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
+          <itemlayout width="260" height="390">
+            <control type="image">
+              <width>260</width>
+              <height>390</height>
+              <aspectratio>scale</aspectratio>
+              <texture>$INFO[ListItem.Art(thumb)]</texture>
+            </control>
+            <control type="image">
+              <posy>310</posy>
+              <width>260</width>
+              <height>80</height>
+              <texture>gradient-overlay.png</texture>
+            </control>
+            <control type="label">
+              <posx>10</posx>
+              <posy>356</posy>
+              <width>240</width>
+              <height>24</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Label]</label>
+            </control>
+          </itemlayout>
+          <focusedlayout width="260" height="390">
+            <control type="image">
+              <width>260</width>
+              <height>390</height>
+              <texture border="10">focus-highlight.png</texture>
+            </control>
+            <control type="image">
+              <posx>3</posx>
+              <posy>3</posy>
+              <width>254</width>
+              <height>384</height>
+              <aspectratio>scale</aspectratio>
+              <texture>$INFO[ListItem.Art(thumb)]</texture>
+            </control>
+            <control type="image">
+              <posx>3</posx>
+              <posy>307</posy>
+              <width>254</width>
+              <height>80</height>
+              <texture>focus-turquoise.png</texture>
+            </control>
+            <control type="label">
+              <posx>13</posx>
+              <posy>353</posy>
+              <width>234</width>
+              <height>24</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Label]</label>
+            </control>
+            <control type="image">
+              <posx>112</posx>
+              <posy>0</posy>
+              <width>36</width>
+              <height>22</height>
+              <texture>focus-arrow.png</texture>
+            </control>
+          </focusedlayout>
+        </control>
+      </control>
+
+      <control type="group">
+        <width>1760</width>
         <height>480</height>
         <visible>Integer.IsGreater(Container(202).NumItems,0)</visible>
         <control type="label">
@@ -370,7 +455,7 @@
           <height>440</height>
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
-          <onup>205</onup>
+          <onup>207</onup>
           <ondown>201</ondown>
           <animation effect="zoom" start="100" end="108" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
           <animation effect="zoom" start="108" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>

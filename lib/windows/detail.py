@@ -23,6 +23,12 @@ RESUME_THRESHOLD_TICKS = 10 * 10_000_000  # ignore resume points under 10s
 
 def _meta_line(item):
     parts = []
+    if item.get("Type") == "Audio":
+        artists = item.get("Artists") or ([item["AlbumArtist"]] if item.get("AlbumArtist") else [])
+        if artists:
+            parts.append(", ".join(artists))
+        if item.get("Album"):
+            parts.append(item["Album"])
     if item.get("ProductionYear"):
         parts.append(str(item["ProductionYear"]))
     if item.get("RunTimeTicks"):
@@ -87,6 +93,7 @@ class DetailWindow(ControlledWindow):
         self.result = {
             "action": "play",
             "item_id": self.item_id,
+            "item_type": self.item.get("Type"),
             "resume_ticks": resume_ticks,
         }
         self.close()

@@ -28,7 +28,9 @@ def image_url(client, item_id, image_type=PRIMARY, tag=None, max_width=None, ind
 
 
 def primary_image_url(client, item, max_width=None):
-    """Poster art for `item`, falling back to its series' art if needed."""
+    """Poster art for `item`, falling back to its series' (or, for a music
+    track, its album's) art if needed - tracks essentially never carry their
+    own Primary image, only AlbumId/AlbumPrimaryImageTag."""
     tag = item.get("ImageTags", {}).get(PRIMARY)
     if tag:
         return image_url(client, item["Id"], PRIMARY, tag=tag, max_width=max_width)
@@ -36,6 +38,10 @@ def primary_image_url(client, item, max_width=None):
     series_tag = item.get("SeriesPrimaryImageTag")
     if series_id and series_tag:
         return image_url(client, series_id, PRIMARY, tag=series_tag, max_width=max_width)
+    album_id = item.get("AlbumId")
+    album_tag = item.get("AlbumPrimaryImageTag")
+    if album_id and album_tag:
+        return image_url(client, album_id, PRIMARY, tag=album_tag, max_width=max_width)
     return None
 
 

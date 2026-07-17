@@ -170,6 +170,7 @@ def _detail_loop(client, item_id):
                 player.play_item(
                     client,
                     result["item_id"],
+                    item_type=result.get("item_type"),
                     resume_ticks=result.get("resume_ticks", 0),
                 )
             except Exception as exc:  # noqa: BLE001 - surface playback failures, don't crash the addon
@@ -179,18 +180,26 @@ def _detail_loop(client, item_id):
 
 def _open_item(client, item_id, item_type, item_name):
     if item_type in CONTAINER_TYPES:
-        _browse_loop(client, item_id, item_name)
+        _browse_loop(client, item_id, item_name, parent_item_type=item_type)
     else:
         _detail_loop(client, item_id)
 
 
-def _browse_loop(client, parent_id, title):
+def _browse_loop(client, parent_id, title, parent_item_type=None):
     while True:
-        result = BrowseWindow.open(ADDON_PATH, client=client, parent_id=parent_id, title=title)
+        result = BrowseWindow.open(
+            ADDON_PATH, client=client, parent_id=parent_id, title=title,
+            parent_item_type=parent_item_type,
+        )
         if not result:
             return
         if result["action"] == "open":
             _open_item(client, result["item_id"], result["item_type"], result["item_name"])
+        elif result["action"] == "play_queue":
+            try:
+                player.play_queue(client, result["item_ids"], item_type=result.get("item_type"))
+            except Exception as exc:  # noqa: BLE001 - surface playback failures, don't crash the addon
+                xbmcgui.Dialog().notification("Jellyfin", f"Playback failed: {exc}")
 
 
 def _search_loop(client):

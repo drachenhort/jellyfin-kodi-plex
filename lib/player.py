@@ -30,15 +30,21 @@ class JellyfinPlayer(xbmc.Player):
         self._stop_event = threading.Event()
         self._progress_thread = None
         self._reported_stop = False
+        self._end_reason = "ended"
 
-    def play_item(self, item_id, resume_ticks=0):
+    def play_item(self, item_id, item_type=None, resume_ticks=0):
+        """Returns "ended" (played to completion), "stopped" (user backed
+        out or explicitly stopped early), or "error" (playback never started,
+        or Kodi reported a playback error) - lib.player.play_queue() uses
+        this to decide whether to auto-advance to the next item."""
         media_info = playback.get_playback_info(self.client, item_id)
         media_source = media_info["MediaSources"][0]
-        url, play_session_id = playback.stream_url(self.client, item_id, media_source)
+        url, play_session_id = playback.stream_url(self.client, item_id, media_source, item_type=item_type)
 
         self._item_id = item_id
         self._play_session_id = play_session_id
         self._reported_stop = False
+        self._end_reason = "ended"
 
         list_item = xbmcgui.ListItem(path=url)
         resume_seconds = resume_ticks / 10_000_000 if resume_ticks else 0
@@ -72,10 +78,11 @@ class JellyfinPlayer(xbmc.Player):
                 # force-killed to launch something else, etc.) - without
                 # this, Kodi's player keeps playing after our script (and
                 # its progress-reporting thread) is already gone.
+                self._end_reason = "stopped"
                 if self.isPlaying():
                     self.stop()
                 break
-            if self.isPlayingVideo():
+            if self.isPlayingVideo() or self.isPlayingAudio():
                 started = True
             elif started or self._stop_event.is_set():
                 break
@@ -90,6 +97,7 @@ class JellyfinPlayer(xbmc.Player):
                         f"started within {STARTUP_TIMEOUT_SECONDS}s",
                         xbmc.LOGWARNING,
                     )
+                    self._end_reason = "error"
                     if self.isPlaying():
                         self.stop()
                     break
@@ -110,17 +118,22 @@ class JellyfinPlayer(xbmc.Player):
                     "screen became active while still playing",
                     xbmc.LOGINFO,
                 )
+                self._end_reason = "stopped"
                 self.stop()
                 break
         self._finish()
+        return self._end_reason
 
     def onPlayBackStopped(self):
+        self._end_reason = "stopped"
         self._stop_event.set()
 
     def onPlayBackEnded(self):
+        self._end_reason = "ended"
         self._stop_event.set()
 
     def onPlayBackError(self):
+        self._end_reason = "error"
         self._stop_event.set()
 
     def _report_progress_loop(self):
@@ -148,6 +161,18 @@ class JellyfinPlayer(xbmc.Player):
         )
 
 
-def play_item(client, item_id, resume_ticks=0):
+def play_item(client, item_id, item_type=None, resume_ticks=0):
     player = JellyfinPlayer(client)
-    player.play_item(item_id, resume_ticks=resume_ticks)
+    player.play_item(item_id, item_type=item_type, resume_ticks=resume_ticks)
+
+
+def play_queue(client, item_ids, item_type=None):
+    """Play a sequence of items back-to-back (e.g. an album's tracks, in
+    play-all or shuffled order). Auto-advances only when a track plays to
+    completion - if the user stops or backs out early, or a track errors,
+    the rest of the queue is abandoned rather than barrelling on."""
+    for item_id in item_ids:
+        player = JellyfinPlayer(client)
+        status = player.play_item(item_id, item_type=item_type)
+        if status != "ended":
+            break

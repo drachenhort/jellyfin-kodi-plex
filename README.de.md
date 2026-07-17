@@ -13,11 +13,15 @@ um die Oberfläche vollständig selbst zu steuern, unabhängig vom aktiven Kodi-
 ## Status
 
 Meilenstein 1 (in Arbeit): Login (LAN-Autoerkennung, Quick Connect mit Passwort-Fallback) → Startbildschirm mit
-den Hub-Zeilen „Weiterschauen" / „Als Nächstes" / „Kürzlich hinzugefügt" → Bibliotheks-Posterwand-Browsing, inklusive
-Drilldown durch die TV- (Serie → Staffel → Episode) und Musik-Hierarchien (Interpret → Album → Titel),
-sowie ein Suchbildschirm → Detailseite eines Titels → Wiedergabe (mit Kodis eigenem nativen Video-OSD/
-Steuerelementen) mit an den Server zurückgemeldetem Fortschritt sowie einem Server-Bildschirm zum Speichern
-von Logins für mehrere Jellyfin-Server und zum Wechseln zwischen ihnen.
+den Hub-Zeilen „Weiterschauen" / „Als Nächstes" / „Kürzlich hinzugefügte Filme" / „Kürzlich hinzugefügte Serien" /
+„Kürzlich hinzugefügte Musik" → Bibliotheks-Posterwand-Browsing, inklusive Drilldown durch die TV-
+(Serie → Staffel → Episode) und Musik-Hierarchien (Interpret → Album → Titel), sowie ein Suchbildschirm →
+Detailseite eines Titels → Wiedergabe (Video und Audio, mit Kodis eigenem nativen OSD/Steuerelementen) mit
+an den Server zurückgemeldetem Fortschritt sowie einem Server-Bildschirm zum Speichern von Logins für
+mehrere Jellyfin-Server und zum Wechseln zwischen ihnen. Die Detailseite eines Albums bietet zusätzlich
+„Alle abspielen"/„Zufällig abspielen"-Schaltflächen, um dessen Titel nacheinander abzuspielen — zum
+nächsten Titel wird nur gewechselt, wenn der aktuelle regulär zu Ende gespielt wurde, nicht bei
+vorzeitigem Stopp.
 
 Der TV-/Musik-Drilldown funktioniert, indem die direkten Kindelemente jedes Objekts nicht-rekursiv abgerufen werden
 (`lib/windows/browse.py` wird auf jeder Ebene wiederverwendet: die Top-Level-Elemente einer Bibliothek, die Staffeln

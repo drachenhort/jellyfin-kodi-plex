@@ -14,9 +14,11 @@ DEFAULT_DEVICE_PROFILE = {
     "MaxStreamingBitrate": 120000000,
     "DirectPlayProfiles": [
         {"Container": "mp4,m4v,mkv,avi", "Type": "Video"},
+        {"Container": "mp3,flac,m4a,aac,ogg,wav,wma", "Type": "Audio"},
     ],
     "TranscodingProfiles": [
         {"Container": "ts", "Type": "Video", "AudioCodec": "aac,mp3", "VideoCodec": "h264", "Context": "Streaming"},
+        {"Container": "mp3", "Type": "Audio", "AudioCodec": "mp3", "Context": "Streaming"},
     ],
 }
 
@@ -30,12 +32,17 @@ def get_playback_info(client, item_id, device_profile=None):
     )
 
 
-def stream_url(client, item_id, media_source):
-    """Build the direct playback URL for a MediaSourceInfo from PlaybackInfo."""
+def stream_url(client, item_id, media_source, item_type=None):
+    """Build the direct playback URL for a MediaSourceInfo from PlaybackInfo.
+
+    Jellyfin serves audio items (Track/"Audio") from a separate /Audio/
+    endpoint rather than /Videos/ - passing the wrong one 404s.
+    """
     container = media_source.get("Container", "mp4")
     play_session_id = str(uuid.uuid4())
+    endpoint = "Audio" if item_type == "Audio" else "Videos"
     return (
-        client.build_url(f"/Videos/{item_id}/stream.{container}")
+        client.build_url(f"/{endpoint}/{item_id}/stream.{container}")
         + f"?static=true&mediaSourceId={media_source['Id']}"
         f"&api_key={client.access_token}&PlaySessionId={play_session_id}"
     ), play_session_id
