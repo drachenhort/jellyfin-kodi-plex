@@ -73,6 +73,7 @@
       <control type="group">
         <width>1760</width>
         <height>175</height>
+        <visible>Integer.IsGreater(Container(200).NumItems,0)</visible>
         <control type="label">
           <posx>0</posx>
           <posy>0</posy>
@@ -135,6 +136,7 @@
       <control type="group">
         <width>1760</width>
         <height>430</height>
+        <visible>Integer.IsGreater(Container(203).NumItems,0)</visible>
         <control type="label">
           <posx>0</posx>
           <posy>0</posy>
@@ -219,6 +221,7 @@
       <control type="group">
         <width>1760</width>
         <height>430</height>
+        <visible>Integer.IsGreater(Container(205).NumItems,0)</visible>
         <control type="label">
           <posx>0</posx>
           <posy>0</posy>
@@ -274,6 +277,7 @@
       <control type="group">
         <width>1760</width>
         <height>480</height>
+        <visible>Integer.IsGreater(Container(202).NumItems,0)</visible>
         <control type="label">
           <posx>0</posx>
           <posy>0</posy>
@@ -374,6 +378,7 @@
       <control type="group">
         <width>1760</width>
         <height>510</height>
+        <visible>Integer.IsGreater(Container(201).NumItems,0)</visible>
         <control type="label">
           <posx>0</posx>
           <posy>0</posy>
