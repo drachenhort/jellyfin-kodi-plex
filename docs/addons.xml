@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<addons>
+  <addon id="script.jellyfin.plex" name="Jellyfin (Plex-style)" version="0.2.53" provider-name="jellyfin-kodi-plex">
+    <requires>
+      <import addon="xbmc.python" version="3.0.0" />
+      <import addon="script.module.requests" version="2.22.0" />
+    </requires>
+    <extension point="xbmc.python.script" library="default.py">
+      <provides>video</provides>
+    </extension>
+    <extension point="xbmc.service" library="service.py" />
+    <extension point="xbmc.addon.metadata">
+      <summary lang="en_GB">Jellyfin client with a Plex-style interface</summary>
+      <description lang="en_GB">
+      Connects to a Jellyfin media server and presents a custom, hub-based
+      home screen, poster-wall browsing, and item detail pages modelled on
+      the Plex Web/App interface, instead of Kodi's default skin listings.
+    </description>
+      <platform>all</platform>
+      <license>MIT</license>
+      <assets>
+        <icon>icon.png</icon>
+      </assets>
+    </extension>
+  </addon>
+  <addon id="repository.jellyfinplex" name="Jellyfin (Plex-style) Repository" version="1.0.0" provider-name="jellyfin-kodi-plex">
+    <extension point="xbmc.addon.repository" name="Jellyfin (Plex-style) Repository">
+      <dir>
+        <info compressed="false">https://drachenhort.github.io/jellyfin-kodi-plex/addons.xml</info>
+        <checksum>https://drachenhort.github.io/jellyfin-kodi-plex/addons.xml.md5</checksum>
+        <datadir zip="true">https://drachenhort.github.io/jellyfin-kodi-plex/</datadir>
+      </dir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+      <summary lang="en_GB">Repository for the Jellyfin (Plex-style) Kodi addon</summary>
+      <description lang="en_GB">
+      Install this once to let Kodi automatically discover and install updates
+      for the Jellyfin (Plex-style) addon.
+    </description>
+      <platform>all</platform>
+      <license>MIT</license>
+      <assets>
+        <icon>icon.png</icon>
+      </assets>
+    </extension>
+  </addon>
+</addons>

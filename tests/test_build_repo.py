@@ -61,6 +61,27 @@ def test_iter_addon_files_with_explicit_includes(tmp_path):
         assert os.path.isfile(full_path)
 
 
+def test_iter_addon_files_excludes_pycache(tmp_path):
+    _write_addon_xml(tmp_path, "example.addon", "1.0.0")
+    (tmp_path / "lib").mkdir()
+    (tmp_path / "lib" / "helper.py").write_text("x = 1\n")
+    pycache_dir = tmp_path / "lib" / "__pycache__"
+    pycache_dir.mkdir()
+    (pycache_dir / "helper.cpython-314.pyc").write_bytes(b"fake-bytecode")
+
+    arcnames = sorted(
+        arcname
+        for _, arcname in iter_addon_files(
+            str(tmp_path), includes=["addon.xml", "lib"], addon_id="example.addon"
+        )
+    )
+
+    assert arcnames == [
+        os.path.join("example.addon", "addon.xml"),
+        os.path.join("example.addon", "lib", "helper.py"),
+    ]
+
+
 def test_iter_addon_files_with_includes_none_takes_everything(tmp_path):
     _write_addon_xml(tmp_path, "example.addon", "1.0.0")
     (tmp_path / "icon.png").write_bytes(b"fake-png")
@@ -157,3 +178,32 @@ def test_write_addons_xml_md5_matches_file_contents(tmp_path):
     assert md5_path == str(addons_xml_path) + ".md5"
     expected = hashlib.md5(addons_xml_path.read_bytes()).hexdigest()
     assert (docs_dir / "addons.xml.md5").read_text() == expected
+
+
+from tools.build_repo import build_repo
+
+
+def test_build_repo_generates_zips_and_addons_xml(tmp_path):
+    addon_a = tmp_path / "addon.a"
+    addon_b = tmp_path / "addon.b"
+    _write_addon_xml(addon_a, "addon.a", "1.0.0")
+    (addon_a / "icon.png").write_bytes(b"fake-png-a")
+    _write_addon_xml(addon_b, "addon.b", "2.0.0")
+
+    docs_dir = tmp_path / "docs"
+    addons = [
+        {"id": "addon.a", "source_dir": str(addon_a), "includes": None},
+        {"id": "addon.b", "source_dir": str(addon_b), "includes": None},
+    ]
+
+    build_repo(addons, str(docs_dir))
+
+    assert (docs_dir / "addon.a" / "addon.a-1.0.0.zip").is_file()
+    assert (docs_dir / "addon.a" / "icon.png").read_bytes() == b"fake-png-a"
+    assert (docs_dir / "addon.b" / "addon.b-2.0.0.zip").is_file()
+    assert (docs_dir / "addons.xml").is_file()
+    assert (docs_dir / "addons.xml.md5").is_file()
+
+    root = ET.parse(str(docs_dir / "addons.xml")).getroot()
+    ids = [child.attrib["id"] for child in root.findall("addon")]
+    assert ids == ["addon.a", "addon.b"]

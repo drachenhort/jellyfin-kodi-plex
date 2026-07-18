@@ -25,7 +25,8 @@ def iter_addon_files(source_dir, includes, addon_id):
     for name in names:
         full_path = os.path.join(source_dir, name)
         if os.path.isdir(full_path):
-            for dirpath, _dirnames, filenames in os.walk(full_path):
+            for dirpath, dirnames, filenames in os.walk(full_path):
+                dirnames[:] = [d for d in dirnames if d != "__pycache__"]
                 for filename in filenames:
                     file_path = os.path.join(dirpath, filename)
                     arcname = os.path.join(addon_id, os.path.relpath(file_path, source_dir))
@@ -72,3 +73,36 @@ def write_addons_xml_md5(addons_xml_path):
     with open(md5_path, "w", encoding="utf-8") as f:
         f.write(digest)
     return md5_path
+
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DOCS_DIR = os.path.join(REPO_ROOT, "docs")
+
+ADDONS = [
+    {
+        "id": "script.jellyfin.plex",
+        "source_dir": REPO_ROOT,
+        "includes": ["addon.xml", "default.py", "service.py", "icon.png", "lib", "resources"],
+    },
+    {
+        "id": "repository.jellyfinplex",
+        "source_dir": os.path.join(REPO_ROOT, "repository.jellyfinplex"),
+        "includes": None,
+    },
+]
+
+
+def build_repo(addons, docs_dir):
+    for addon in addons:
+        version = get_addon_version(addon["source_dir"])
+        output_dir = os.path.join(docs_dir, addon["id"])
+        build_addon_zip(
+            addon["source_dir"], addon["includes"], addon["id"], version, output_dir
+        )
+        copy_icon(addon["source_dir"], output_dir)
+    build_addons_xml([addon["source_dir"] for addon in addons], docs_dir)
+    write_addons_xml_md5(os.path.join(docs_dir, "addons.xml"))
+
+
+if __name__ == "__main__":
+    build_repo(ADDONS, DOCS_DIR)
