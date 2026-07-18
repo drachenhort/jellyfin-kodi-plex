@@ -32,3 +32,43 @@ def iter_addon_files(source_dir, includes, addon_id):
                     yield file_path, arcname
         else:
             yield full_path, os.path.join(addon_id, name)
+
+
+def build_addon_zip(source_dir, includes, addon_id, version, output_dir):
+    zip_path = os.path.join(output_dir, "{}-{}.zip".format(addon_id, version))
+    if os.path.exists(zip_path):
+        return zip_path
+    os.makedirs(output_dir, exist_ok=True)
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for file_path, arcname in iter_addon_files(source_dir, includes, addon_id):
+            zf.write(file_path, arcname)
+    return zip_path
+
+
+def copy_icon(source_dir, output_dir):
+    icon_path = os.path.join(source_dir, "icon.png")
+    if os.path.isfile(icon_path):
+        os.makedirs(output_dir, exist_ok=True)
+        shutil.copyfile(icon_path, os.path.join(output_dir, "icon.png"))
+
+
+def build_addons_xml(source_dirs, docs_dir):
+    root = ET.Element("addons")
+    for source_dir in source_dirs:
+        addon_root = ET.parse(os.path.join(source_dir, "addon.xml")).getroot()
+        root.append(addon_root)
+    os.makedirs(docs_dir, exist_ok=True)
+    addons_xml_path = os.path.join(docs_dir, "addons.xml")
+    tree = ET.ElementTree(root)
+    ET.indent(tree, space="  ")
+    tree.write(addons_xml_path, encoding="UTF-8", xml_declaration=True)
+    return addons_xml_path
+
+
+def write_addons_xml_md5(addons_xml_path):
+    with open(addons_xml_path, "rb") as f:
+        digest = hashlib.md5(f.read()).hexdigest()
+    md5_path = addons_xml_path + ".md5"
+    with open(md5_path, "w", encoding="utf-8") as f:
+        f.write(digest)
+    return md5_path
