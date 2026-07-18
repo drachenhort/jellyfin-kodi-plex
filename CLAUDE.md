@@ -97,3 +97,4 @@ longer risks freezing the UI.
 **`service.py`** is currently a no-op placeholder reserved for M2 work (auto-discovery, session
 keep-alive); M1 playback-progress reporting runs inline in `lib/player.py` while the script addon
 is in the foreground.
+
