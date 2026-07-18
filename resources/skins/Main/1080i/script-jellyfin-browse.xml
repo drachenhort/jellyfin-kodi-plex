@@ -50,18 +50,6 @@
       <onup>303</onup>
     </control>
 
-    <!-- Shown while _load() is still fetching in the background so the
-         screen doesn't read as frozen on a slow/large library; hidden once
-         it finishes (lib/windows/browse.py). -->
-    <control type="label" id="305">
-      <posx>80</posx>
-      <posy>95</posy>
-      <width>1760</width>
-      <height>30</height>
-      <font>font13</font>
-      <label>Loading…</label>
-    </control>
-
     <control type="panel" id="301">
       <posx>80</posx>
       <posy>130</posy>
@@ -359,6 +347,32 @@
       <font>font13</font>
       <label>$INFO[Container(301).ListItem.Plot]$INFO[Container(304).ListItem.Plot]</label>
       <visible>!String.IsEmpty(Container(301).ListItem.Plot) | !String.IsEmpty(Container(304).ListItem.Plot)</visible>
+    </control>
+
+    <!-- Transient loading overlay: shown while _load() is still fetching in
+         the background so the screen doesn't read as frozen on a slow/large
+         library, hidden once it finishes (lib/windows/browse.py). Placed
+         last so it renders on top of everything else, centered on screen
+         rather than docked in the header - the backdrop panel's visibility
+         tracks the label control (305) directly rather than needing its own
+         id/Python wiring. -->
+    <control type="image">
+      <posx>560</posx>
+      <posy>495</posy>
+      <width>800</width>
+      <height>90</height>
+      <texture colordiffuse="D0000000">white.png</texture>
+      <visible>Control.IsVisible(305)</visible>
+    </control>
+    <control type="label" id="305">
+      <posx>560</posx>
+      <posy>495</posy>
+      <width>800</width>
+      <height>90</height>
+      <font>font16</font>
+      <align>center</align>
+      <aligny>center</aligny>
+      <label>Loading…</label>
     </control>
   </controls>
 </window>

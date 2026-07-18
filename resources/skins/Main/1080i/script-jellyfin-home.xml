@@ -62,20 +62,6 @@
       <onup>204</onup>
     </control>
 
-    <!-- Shown while _load() is still fetching in the background so the
-         screen doesn't read as frozen on a slow/large library; hidden once
-         it finishes (lib/windows/home.py). Sits on the header row next to
-         the title rather than below it - there's no clear vertical space
-         between the header (ends ~posy95) and the Libraries row's own
-         "Libraries" heading (starts posy110) for a second line of text. -->
-    <control type="label" id="220">
-      <posx>320</posx>
-      <posy>52</posy>
-      <width>900</width>
-      <height>36</height>
-      <font>font16</font>
-      <label>Loading library…</label>
-    </control>
 
     <!-- Rows are stacked in a grouplist so it scrolls to keep the focused
          row visible instead of every row having to be squeezed to fit a
@@ -722,6 +708,32 @@
           </focusedlayout>
         </control>
       </control>
+    </control>
+
+    <!-- Transient loading overlay: shown while _load() is still fetching in
+         the background so the screen doesn't read as frozen on a slow/large
+         library, hidden once it finishes (lib/windows/home.py). Placed last
+         so it renders on top of everything else, centered on screen rather
+         than docked in the header - the backdrop panel's visibility tracks
+         the label control (220) directly rather than needing its own id/
+         Python wiring. -->
+    <control type="image">
+      <posx>560</posx>
+      <posy>495</posy>
+      <width>800</width>
+      <height>90</height>
+      <texture colordiffuse="D0000000">white.png</texture>
+      <visible>Control.IsVisible(220)</visible>
+    </control>
+    <control type="label" id="220">
+      <posx>560</posx>
+      <posy>495</posy>
+      <width>800</width>
+      <height>90</height>
+      <font>font16</font>
+      <align>center</align>
+      <aligny>center</aligny>
+      <label>Loading library…</label>
     </control>
   </controls>
 </window>
