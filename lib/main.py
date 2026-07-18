@@ -53,6 +53,20 @@ def _get_active_server_id():
 
 def _set_active_server_id(server_id):
     ADDON.setSetting("active_server_id", server_id)
+    server = servers.find(_load_servers(), server_id)
+    info = "{} ({})".format(server["name"], server["server_url"]) if server else ""
+    ADDON.setSetting("active_server_info", info)
+
+
+def _backfill_active_server_info():
+    """One-time self-heal for installs updated from before active_server_info
+    existed: if a server is already active but its info label was never
+    written, populate it now."""
+    if ADDON.getSetting("active_server_info"):
+        return
+    active_id = _get_active_server_id()
+    if active_id:
+        _set_active_server_id(active_id)
 
 
 def _client_from_server(server):
@@ -130,10 +144,11 @@ def _login():
     return client
 
 
-def _manage_servers(client):
-    """Home's "Servers" action. Loops the server-management screen, letting
-    the user add/remove/switch saved servers. Returns a new client to switch
-    to, or None to resume the Home loop unchanged."""
+def _manage_servers():
+    """Loops the server-management screen, letting the user add/remove/
+    switch saved servers. Returns a new client to switch to, or None if
+    there's nothing to resume. Used both by Home's "Servers" action and by
+    the standalone Configure entry point (run_configure)."""
     while True:
         server_list = _load_servers()
         active_id = _get_active_server_id()
@@ -231,7 +246,7 @@ def _home_loop(client):
         elif result["action"] == "search":
             _search_loop(client)
         elif result["action"] == "servers":
-            new_client = _manage_servers(client)
+            new_client = _manage_servers()
             if new_client is not None:
                 return new_client
 
@@ -243,3 +258,11 @@ def run():
         client = _login()
     while client:
         client = _home_loop(client)
+
+
+def run_configure():
+    """Entry point for Kodi's native "Manage servers…" settings action
+    (RunScript(script.jellyfin.plex,configure)). Skips Home entirely."""
+    _migrate_legacy_settings()
+    _backfill_active_server_info()
+    _manage_servers()
