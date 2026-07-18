@@ -27,6 +27,30 @@ pytest tests/test_browse.py::test_name # run a single test
 There is no lint/build step configured. To try the addon in Kodi itself: copy or symlink this
 directory into `~/.kodi/addons/script.jellyfin.plex/` and launch it from the Programs menu.
 
+## Release workflow
+
+After implementing a change: run `pytest` and confirm it passes, commit, push, bump the version in
+`addon.xml`, and note the change in the changelog/news if one exists. Verify each git step (status,
+push result) rather than assuming success. Don't consider a feature done until it's been verified
+against a real Jellyfin server and/or real Kodi install (see Verification below) — passing tests
+alone only proves the pure-Python layer, not the actual UI behavior in Kodi.
+
+## Verification
+
+This addon's real UI behavior can only be confirmed by running it in actual Kodi, not by pytest
+alone (`tests/kodi_stubs/` stand in for `xbmcgui`/`xbmc` but don't render anything). When manual
+verification is needed:
+
+- Never launch or drive Kodi on the user's own dev machine display — that's their live desktop, not
+  a headless/test environment. Ask before touching it.
+- Prefer the dedicated real Kodi/LibreELEC test box and the real Jellyfin test server for end-to-end
+  checks (ask the user for current connection details if unknown — don't guess a device or IP).
+- When pushing an updated addon build to a real Kodi box for reinstall, use a version-suffixed zip
+  filename (or delete the old one first) rather than overwriting the same filename in place — Kodi's
+  zip VFS can fail to install over a stale cached path.
+- A verification pass should confirm the screen actually rendered as expected (e.g. via a real
+  screenshot or JSON-RPC state check), not just that the script didn't crash on launch.
+
 ## Architecture
 
 **Layering and testability.** `lib/jellyfin/*` is a pure-Python Jellyfin API client with no
