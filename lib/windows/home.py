@@ -102,8 +102,8 @@ class HomeWindow(ControlledWindow):
         # case the user has already backed out while it was in flight.
         self.setFocusId(CTRL_LIBRARIES)
         self._update_playlists_toggle_label()
-        self.getControl(CTRL_LOADING).setLabel("Loading library… 0%")
         self._load_started = time.time()
+        self._update_loading_label()
         threading.Thread(target=self._load, daemon=True).start()
         threading.Thread(target=self._tick_progress, daemon=True).start()
 

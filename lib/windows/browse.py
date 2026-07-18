@@ -68,12 +68,12 @@ class BrowseWindow(ControlledWindow):
         self.getControl(CTRL_TITLE).setLabel(self.title)
         self.getControl(CTRL_PLAY_ALL).setVisible(False)
         self.getControl(CTRL_SHUFFLE).setVisible(False)
-        self.getControl(CTRL_LOADING).setLabel(f"Loading {self.title}… 0%")
         active_control = CTRL_EPISODE_LIST if self.is_episode_list else CTRL_GRID
         self.getControl(CTRL_GRID).setVisible(not self.is_episode_list)
         self.getControl(CTRL_EPISODE_LIST).setVisible(self.is_episode_list)
         self.setFocusId(active_control)
         self._load_started = time.time()
+        self._update_loading_label()
         threading.Thread(target=self._load, daemon=True).start()
         threading.Thread(target=self._tick_progress, daemon=True).start()
 
