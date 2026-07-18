@@ -32,6 +32,25 @@ focus moves between seasons.
 A season's episodes get an `ls -l`-style detail list instead of a poster grid: episode code,
 title, duration, rating, and watched state in aligned columns, plus the same synopsis pane below.
 
+## Installation
+
+### Install via repository (recommended — enables auto-updates)
+
+1. Download the repository addon zip:
+   [`repository.jellyfinplex-1.0.0.zip`](https://drachenhort.github.io/jellyfin-kodi-plex/repository.jellyfinplex/repository.jellyfinplex-1.0.0.zip)
+2. In Kodi: **Add-ons → Install from zip file**, select the downloaded file.
+3. Then **Add-ons → Install from repository → Jellyfin (Plex-style) Repository →
+   Program add-ons → Jellyfin (Plex-style)**, and install it from there.
+
+From then on, Kodi checks this repository for new versions and can auto-update the addon like
+any other, so you no longer need to manually reinstall a zip after every release.
+
+### Install from a plain zip (no auto-updates)
+
+Download the addon zip from a [GitHub Release](https://github.com/drachenhort/jellyfin-kodi-plex/releases)
+and use **Add-ons → Install from zip file** in Kodi. You'll need to repeat this manually for every
+future version.
+
 ## Status
 
 Milestone 1 (in progress): login (LAN autodiscovery, Quick Connect + password fallback) → home screen with

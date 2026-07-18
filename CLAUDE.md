@@ -33,7 +33,10 @@ After implementing a change: run `pytest` and confirm it passes, commit, push, b
 `addon.xml`, and note the change in the changelog/news if one exists. Verify each git step (status,
 push result) rather than assuming success. Don't consider a feature done until it's been verified
 against a real Jellyfin server and/or real Kodi install (see Verification below) — passing tests
-alone only proves the pure-Python layer, not the actual UI behavior in Kodi.
+alone only proves the pure-Python layer, not the actual UI behavior in Kodi. Pushing a version bump to `master` also triggers `.github/workflows/build-repo.yml`, which
+regenerates `docs/` (the Kodi repository served via GitHub Pages) — no extra manual step needed,
+but check the Actions tab if a released version doesn't show up as a Kodi update within a few
+minutes.
 
 ## Verification
 
