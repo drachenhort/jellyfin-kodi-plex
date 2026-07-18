@@ -1,5 +1,6 @@
-"""Tests for BrowseWindow's Play All/Shuffle controls: visible only when
-browsing a MusicAlbum's tracks, and building the right track-id queue.
+"""Tests for BrowseWindow: paged loading via library.iter_items_paged(),
+Play All/Shuffle (visible only when browsing a MusicAlbum's tracks), and
+building the right track-id queue.
 
 onInit() only starts _load() on a background thread (so a slow fetch can't
 block the GUI thread) - these tests call _load() directly for a
@@ -15,6 +16,26 @@ def _make_window(client, parent_item_type=None):
     return window
 
 
+def _paged(*pages):
+    """A fake iter_items_paged() that yields exactly the given pages (each
+    a list of items) in order - `_paged(items)` mimics everything fitting
+    in one page, `_paged(page1, page2)` mimics a multi-page fetch."""
+    def fake(*a, **k):
+        for page in pages:
+            yield page
+    return fake
+
+
+def _failing_after(*pages, error):
+    """A fake iter_items_paged() that yields the given pages successfully,
+    then raises `error` as if a later page's request failed."""
+    def fake(*a, **k):
+        for page in pages:
+            yield page
+        raise error
+    return fake
+
+
 ALBUM_TRACKS = [
     {"Id": "track-1", "Name": "One", "Type": "Audio"},
     {"Id": "track-2", "Name": "Two", "Type": "Audio"},
@@ -23,7 +44,7 @@ ALBUM_TRACKS = [
 
 
 def test_play_controls_visible_for_album(client, monkeypatch):
-    monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": ALBUM_TRACKS})
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(ALBUM_TRACKS))
 
     window = _make_window(client, parent_item_type="MusicAlbum")
     window._load()
@@ -33,7 +54,7 @@ def test_play_controls_visible_for_album(client, monkeypatch):
 
 
 def test_play_controls_hidden_for_non_album_container(client, monkeypatch):
-    monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": ALBUM_TRACKS})
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(ALBUM_TRACKS))
 
     window = _make_window(client, parent_item_type="MusicArtist")
     window._load()
@@ -43,7 +64,7 @@ def test_play_controls_hidden_for_non_album_container(client, monkeypatch):
 
 
 def test_play_controls_hidden_for_empty_album(client, monkeypatch):
-    monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": []})
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged())
 
     window = _make_window(client, parent_item_type="MusicAlbum")
     window._load()
@@ -53,7 +74,7 @@ def test_play_controls_hidden_for_empty_album(client, monkeypatch):
 
 
 def test_load_hides_the_loading_indicator_on_success(client, monkeypatch):
-    monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": ALBUM_TRACKS})
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(ALBUM_TRACKS))
 
     window = _make_window(client)
     assert window.getControl(browse_mod.CTRL_LOADING).visible is True
@@ -67,7 +88,7 @@ def test_load_leaves_the_loading_indicator_alone_if_window_already_closed(client
     """If the user backs out while the fetch is still in flight, _load()
     must return without touching any control once the response arrives -
     see the matching test in test_home.py."""
-    monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": ALBUM_TRACKS})
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(ALBUM_TRACKS))
 
     window = _make_window(client)
     window.closed_event.set()  # simulate Back already having fired
@@ -78,8 +99,53 @@ def test_load_leaves_the_loading_indicator_alone_if_window_already_closed(client
     assert window.getControl(browse_mod.CTRL_GRID).items == []
 
 
+def test_load_across_multiple_pages_accumulates_all_items(client, monkeypatch):
+    page1 = [{"Id": "a1", "Name": "A1", "Type": "Audio"}]
+    page2 = [{"Id": "a2", "Name": "A2", "Type": "Audio"}]
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(page1, page2))
+    monkeypatch.setattr(browse_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client, parent_item_type="MusicAlbum")
+    window._load()
+
+    assert [i.getProperty("jellyfin_id") for i in window.getControl(browse_mod.CTRL_GRID).items] == [
+        "a1", "a2",
+    ]
+    assert window.items == page1 + page2
+
+
+def test_load_failure_on_the_first_page_notifies_and_closes(client, monkeypatch):
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _failing_after(error=RuntimeError("boom")))
+
+    window = _make_window(client)
+    window._load()
+
+    assert window.result is None
+    assert window.closed
+
+
+def test_load_failure_after_some_pages_keeps_what_loaded(client, monkeypatch):
+    """A later page failing (e.g. a slow real library timing out mid-walk)
+    shouldn't throw away pages that already loaded fine."""
+    page1 = [{"Id": "a1", "Name": "A1", "Type": "Audio"}]
+    monkeypatch.setattr(
+        browse_mod.library, "iter_items_paged", _failing_after(page1, error=RuntimeError("boom"))
+    )
+    monkeypatch.setattr(browse_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client)
+    window._load()
+
+    assert not window.closed
+    assert window.items == page1
+    assert [i.getProperty("jellyfin_id") for i in window.getControl(browse_mod.CTRL_GRID).items] == ["a1"]
+    assert window.getControl(browse_mod.CTRL_LOADING).visible is False
+
+
 def test_play_all_queues_tracks_in_listing_order(client, monkeypatch):
-    monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": ALBUM_TRACKS})
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(ALBUM_TRACKS))
 
     window = _make_window(client, parent_item_type="MusicAlbum")
     window._load()
@@ -94,7 +160,7 @@ def test_play_all_queues_tracks_in_listing_order(client, monkeypatch):
 
 
 def test_shuffle_queues_all_tracks_in_some_order(client, monkeypatch):
-    monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": ALBUM_TRACKS})
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(ALBUM_TRACKS))
 
     window = _make_window(client, parent_item_type="MusicAlbum")
     window._load()
@@ -107,7 +173,7 @@ def test_shuffle_queues_all_tracks_in_some_order(client, monkeypatch):
 
 
 def test_play_all_no_op_when_no_tracks(client, monkeypatch):
-    monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": []})
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged())
 
     window = _make_window(client, parent_item_type="MusicAlbum")
     window._load()
@@ -126,7 +192,7 @@ EPISODES = [
 
 
 def test_season_children_populate_episode_list_not_grid(client, monkeypatch):
-    monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": EPISODES})
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(EPISODES))
     monkeypatch.setattr(browse_mod.images, "primary_image_url", lambda *a, **k: None)
     monkeypatch.setattr(browse_mod.images, "backdrop_image_url", lambda *a, **k: None)
 
@@ -140,7 +206,7 @@ def test_season_children_populate_episode_list_not_grid(client, monkeypatch):
 
 
 def test_non_season_children_still_populate_grid(client, monkeypatch):
-    monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": ALBUM_TRACKS})
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(ALBUM_TRACKS))
     monkeypatch.setattr(browse_mod.images, "primary_image_url", lambda *a, **k: None)
     monkeypatch.setattr(browse_mod.images, "backdrop_image_url", lambda *a, **k: None)
 
@@ -152,7 +218,7 @@ def test_non_season_children_still_populate_grid(client, monkeypatch):
 
 
 def test_episode_list_click_opens_selected_episode(client, monkeypatch):
-    monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": EPISODES})
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(EPISODES))
     monkeypatch.setattr(browse_mod.images, "primary_image_url", lambda *a, **k: None)
     monkeypatch.setattr(browse_mod.images, "backdrop_image_url", lambda *a, **k: None)
 
@@ -193,7 +259,7 @@ def test_onInit_sets_the_loading_label_to_the_screen_title(client):
 
 
 def test_grid_click_still_opens_selected_item(client, monkeypatch):
-    monkeypatch.setattr(browse_mod.library, "get_items", lambda *a, **k: {"Items": ALBUM_TRACKS})
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(ALBUM_TRACKS))
     monkeypatch.setattr(
         browse_mod.images, "primary_image_url", lambda *a, **k: None
     )

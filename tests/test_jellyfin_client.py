@@ -101,8 +101,8 @@ def test_get_items_builds_params(client, monkeypatch):
 def test_get_items_does_not_request_people_by_default(client, monkeypatch):
     """People (cast) is expensive for Jellyfin to hydrate per item and is
     only ever shown on the single-item Detail page - a multi-item listing
-    call (up to MAX_ITEMS=200 in lib/windows/browse.py) requesting it too
-    was pure overhead, plausibly a real contributor to real, large-library
+    call (lib/windows/browse.py's paged fetch, or a hub row) requesting it
+    too was pure overhead, plausibly a real contributor to real, large-library
     listings timing out."""
     fake = FakeRequests([FakeResponse({"Items": [], "TotalRecordCount": 0})])
     monkeypatch.setattr(client_mod, "requests", fake)

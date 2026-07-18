@@ -4,9 +4,12 @@ top-level items, a series' seasons, a season's episodes, a folder-organized
 music library's artists, an artist's albums, an album's tracks) as well as
 flat libraries (Movies) with no intermediate levels.
 
-M1 loads a single page of up to MAX_ITEMS items up front (sorted by name)
-rather than implementing incremental scroll-paging — a reasonable place to
-cut scope for the first vertical slice; true infinite scroll is M2 work.
+Loads via library.iter_items_paged() (StartIndex/Limit paging, sorted by
+name) rather than one single capped fetch, appending each page to the grid
+as it arrives - this is what lets a library too large for one request (the
+motivating case: a ~100k-track Music library that made a single big-limit
+fetch time out server-side) still browse successfully instead of failing
+outright. See lib/jellyfin/library.py's iter_items_paged docstring.
 
 self.result on close: {"action": "open", "item_id": ..., "item_type": ...,
 "item_name": ...} or {"action": "play_queue", "item_ids": [...], "item_type":
@@ -29,8 +32,6 @@ CTRL_PLAY_ALL = 302
 CTRL_SHUFFLE = 303
 CTRL_EPISODE_LIST = 304
 CTRL_LOADING = 305
-
-MAX_ITEMS = 200
 
 # Only an album's own screen offers Play All/Shuffle - browsing an Artist
 # still just drills down into that artist's Albums.
@@ -71,41 +72,60 @@ class BrowseWindow(ControlledWindow):
 
     def _load(self):
         started = time.time()
+        control = self.getControl(CTRL_EPISODE_LIST if self.is_episode_list else CTRL_GRID)
+        control.reset()
+        self.items = []
+        error = None
         try:
-            response = library.get_items(
-                self.client, parent_id=self.parent_id, start_index=0, limit=MAX_ITEMS,
-                recursive=False,
-            )
+            for page in library.iter_items_paged(
+                self.client, parent_id=self.parent_id, recursive=False,
+                fields=library.LISTING_ITEM_FIELDS,
+            ):
+                if self.closed_event.is_set():
+                    return
+                self.items.extend(page)
+                control.addItems([
+                    list_item(item, images.primary_image_url(self.client, item),
+                              images.backdrop_image_url(self.client, item))
+                    for item in page
+                ])
         except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
+            error = exc
+
+        if self.closed_event.is_set():
+            return
+        elapsed = time.time() - started
+
+        if error and not self.items:
+            # Nothing loaded at all (e.g. the very first page failed) - same
+            # dead end as before pagination: notify and back out.
             xbmc.log(
                 f"{LOG_PREFIX} Browse: fetching children of {self.parent_id!r} ({self.title!r}) "
-                f"failed after {time.time() - started:.1f}s: {exc}",
+                f"failed after {elapsed:.1f}s: {error}",
                 xbmc.LOGWARNING,
             )
-            if self.closed_event.is_set():
-                return
-            xbmcgui.Dialog().notification("Jellyfin", f"Couldn't load {self.title}: {exc}")
+            self.getControl(CTRL_LOADING).setVisible(False)
+            xbmcgui.Dialog().notification("Jellyfin", f"Couldn't load {self.title}: {error}")
             self.result = None
             self.close()
             return
-        self.items = response.get("Items", [])
-        xbmc.log(
-            f"{LOG_PREFIX} Browse: fetched {len(self.items)} children of {self.parent_id!r} "
-            f"({self.title!r}) in {time.time() - started:.1f}s",
-            xbmc.LOGINFO,
-        )
-        if self.closed_event.is_set():
-            return
-        self.getControl(CTRL_LOADING).setVisible(False)
 
-        control = self.getControl(CTRL_EPISODE_LIST if self.is_episode_list else CTRL_GRID)
-        control.reset()
-        list_items = []
-        for item in self.items:
-            primary = images.primary_image_url(self.client, item)
-            backdrop = images.backdrop_image_url(self.client, item)
-            list_items.append(list_item(item, primary, backdrop))
-        control.addItems(list_items)
+        self.getControl(CTRL_LOADING).setVisible(False)
+        if error:
+            # A later page failed after earlier ones already loaded fine -
+            # keep what's shown rather than throwing it all away.
+            xbmc.log(
+                f"{LOG_PREFIX} Browse: fetching children of {self.parent_id!r} ({self.title!r}) "
+                f"stopped early after {elapsed:.1f}s with {len(self.items)} items: {error}",
+                xbmc.LOGWARNING,
+            )
+            xbmcgui.Dialog().notification("Jellyfin", f"Stopped loading {self.title}: {error}")
+        else:
+            xbmc.log(
+                f"{LOG_PREFIX} Browse: fetched {len(self.items)} children of {self.parent_id!r} "
+                f"({self.title!r}) in {elapsed:.1f}s",
+                xbmc.LOGINFO,
+            )
 
         show_queue_controls = self.parent_item_type in QUEUEABLE_PARENT_TYPES and self._track_ids()
         self.getControl(CTRL_PLAY_ALL).setVisible(bool(show_queue_controls))

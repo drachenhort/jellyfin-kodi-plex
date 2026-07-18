@@ -52,9 +52,11 @@ def test_home_window_closes_with_no_result_on_load_failure(client, monkeypatch):
 def test_browse_window_closes_with_no_result_on_load_failure(client, monkeypatch):
     FakeDialog.notifications.clear()
     monkeypatch.setattr(xbmcgui, "Dialog", FakeDialog)
-    monkeypatch.setattr(
-        browse_mod.library, "get_items", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("offline"))
-    )
+    def failing_iter_items_paged(*a, **k):
+        raise RuntimeError("offline")
+        yield  # pragma: no cover - makes this a generator function, never reached
+
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", failing_iter_items_paged)
 
     window = _make_window(browse_mod.BrowseWindow, client=client, parent_id="lib-1", title="Movies")
     window._load()
