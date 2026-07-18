@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="repository.jellyfinplex"
+       name="Jellyfin (Plex-style) Repository"
+       version="1.0.0"
+       provider-name="jellyfin-kodi-plex">
+  <extension point="xbmc.addon.repository" name="Jellyfin (Plex-style) Repository">
+    <dir>
+      <info compressed="false">https://drachenhort.github.io/jellyfin-kodi-plex/addons.xml</info>
+      <checksum>https://drachenhort.github.io/jellyfin-kodi-plex/addons.xml.md5</checksum>
+      <datadir zip="true">https://drachenhort.github.io/jellyfin-kodi-plex/</datadir>
+    </dir>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Repository for the Jellyfin (Plex-style) Kodi addon</summary>
+    <description lang="en_GB">
+      Install this once to let Kodi automatically discover and install updates
+      for the Jellyfin (Plex-style) addon.
+    </description>
+    <platform>all</platform>
+    <license>MIT</license>
+    <assets>
+      <icon>icon.png</icon>
+    </assets>
+  </extension>
+</addon>
