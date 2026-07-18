@@ -50,6 +50,18 @@
       <onup>303</onup>
     </control>
 
+    <!-- Shown while _load() is still fetching in the background so the
+         screen doesn't read as frozen on a slow/large library; hidden once
+         it finishes (lib/windows/browse.py). -->
+    <control type="label" id="305">
+      <posx>80</posx>
+      <posy>95</posy>
+      <width>1760</width>
+      <height>30</height>
+      <font>font13</font>
+      <label>Loading…</label>
+    </control>
+
     <control type="panel" id="301">
       <posx>80</posx>
       <posy>130</posy>

@@ -122,6 +122,31 @@ def test_recently_added_music_empty_when_no_music_library(client, monkeypatch):
     assert window.getControl(home_mod.CTRL_RECENTLY_ADDED_MUSIC).items == []
 
 
+def test_load_hides_the_loading_indicator_once_everything_has_fetched(client, monkeypatch):
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
+
+    window = _make_window(client, monkeypatch)
+    assert window.getControl(home_mod.CTRL_LOADING).visible is True
+
+    window._load()
+
+    assert window.getControl(home_mod.CTRL_LOADING).visible is False
+
+
+def test_load_leaves_the_loading_indicator_alone_if_window_already_closed(client, monkeypatch):
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
+
+    window = _make_window(client, monkeypatch)
+    window.closed_event.set()
+
+    window._load()
+
+    assert window.getControl(home_mod.CTRL_LOADING).visible is True
+
+
 def test_oninit_loads_in_a_background_thread_not_the_caller(client, monkeypatch):
     """The whole point of the fix: onInit() must return immediately even if
     the fetch is slow, rather than blocking Kodi's GUI thread for its

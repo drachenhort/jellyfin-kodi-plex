@@ -37,6 +37,7 @@ CTRL_RECENTLY_ADDED_TV = 205
 CTRL_SERVERS = 206
 CTRL_RECENTLY_ADDED_MUSIC = 207
 CTRL_PLAYLISTS_TOGGLE = 208
+CTRL_LOADING = 220
 
 HUB_CONTROLS = (
     CTRL_CONTINUE_WATCHING, CTRL_NEXT_UP, CTRL_RECENTLY_ADDED_MOVIES, CTRL_RECENTLY_ADDED_TV,
@@ -124,6 +125,8 @@ class HomeWindow(ControlledWindow):
         self._load_hub_row(CTRL_RECENTLY_ADDED_MOVIES, "latest movies", self._latest, views, "movies")
         self._load_hub_row(CTRL_RECENTLY_ADDED_TV, "latest tvshows", self._latest, views, "tvshows")
         self._load_hub_row(CTRL_RECENTLY_ADDED_MUSIC, "latest music", self._latest, views, "music")
+        if not self.closed_event.is_set():
+            self.getControl(CTRL_LOADING).setVisible(False)
 
     def _load_hub_row(self, control_id, label, fetch, *args, episode_aware=False, **kwargs):
         if self.closed_event.is_set():

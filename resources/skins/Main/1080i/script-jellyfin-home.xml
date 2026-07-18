@@ -62,6 +62,18 @@
       <onup>204</onup>
     </control>
 
+    <!-- Shown while _load() is still fetching in the background so the
+         screen doesn't read as frozen on a slow/large library; hidden once
+         it finishes (lib/windows/home.py). -->
+    <control type="label" id="220">
+      <posx>80</posx>
+      <posy>95</posy>
+      <width>1760</width>
+      <height>15</height>
+      <font>font12</font>
+      <label>Loading library…</label>
+    </control>
+
     <!-- Rows are stacked in a grouplist so it scrolls to keep the focused
          row visible instead of every row having to be squeezed to fit a
          fixed 1080px-tall screen.

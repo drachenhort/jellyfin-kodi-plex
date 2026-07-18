@@ -28,6 +28,7 @@ CTRL_GRID = 301
 CTRL_PLAY_ALL = 302
 CTRL_SHUFFLE = 303
 CTRL_EPISODE_LIST = 304
+CTRL_LOADING = 305
 
 MAX_ITEMS = 200
 
@@ -61,6 +62,7 @@ class BrowseWindow(ControlledWindow):
         self.getControl(CTRL_TITLE).setLabel(self.title)
         self.getControl(CTRL_PLAY_ALL).setVisible(False)
         self.getControl(CTRL_SHUFFLE).setVisible(False)
+        self.getControl(CTRL_LOADING).setLabel(f"Loading {self.title}…")
         active_control = CTRL_EPISODE_LIST if self.is_episode_list else CTRL_GRID
         self.getControl(CTRL_GRID).setVisible(not self.is_episode_list)
         self.getControl(CTRL_EPISODE_LIST).setVisible(self.is_episode_list)
@@ -94,6 +96,7 @@ class BrowseWindow(ControlledWindow):
         )
         if self.closed_event.is_set():
             return
+        self.getControl(CTRL_LOADING).setVisible(False)
 
         control = self.getControl(CTRL_EPISODE_LIST if self.is_episode_list else CTRL_GRID)
         control.reset()
