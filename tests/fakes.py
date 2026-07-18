@@ -14,6 +14,16 @@ class FakeResponse:
         return self._json_data
 
 
+class FakeSession:
+    """Fake requests.Session that delegates to FakeRequests."""
+
+    def __init__(self, fake_requests):
+        self._fake_requests = fake_requests
+
+    def request(self, method, url, headers=None, json=None, params=None, timeout=None):
+        return self._fake_requests.request(method, url, headers=headers, json=json, params=params, timeout=timeout)
+
+
 class FakeRequests:
     """Records every call and returns queued responses in order."""
 
@@ -27,3 +37,6 @@ class FakeRequests:
              "timeout": timeout}
         )
         return self.responses.pop(0)
+
+    def Session(self):
+        return FakeSession(self)

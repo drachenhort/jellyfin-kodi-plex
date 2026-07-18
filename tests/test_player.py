@@ -58,6 +58,7 @@ def _make_player(client, isplayingvideo_sequence, isplaying_sequence=None,
 
 def _fake_playback_responses():
     return FakeRequests([
+        FakeResponse({"Name": "Test Item"}),  # get_item
         FakeResponse({"MediaSources": [{"Id": "ms-1", "Container": "mkv"}]}),  # PlaybackInfo
         FakeResponse(None),  # report_playback_start
         FakeResponse(None),  # report_playback_stopped (via _finish())
@@ -262,9 +263,11 @@ def test_play_item_returns_stopped_when_home_becomes_active(client, monkeypatch)
 
 def test_play_queue_advances_through_tracks_that_end_naturally(client, monkeypatch):
     fake_requests = FakeRequests([
+        FakeResponse({"Name": "Track 1"}),  # track 1 get_item
         FakeResponse({"MediaSources": [{"Id": "ms-1", "Container": "mp3"}]}),  # track 1 PlaybackInfo
         FakeResponse(None),  # track 1 start
         FakeResponse(None),  # track 1 stopped
+        FakeResponse({"Name": "Track 2"}),  # track 2 get_item
         FakeResponse({"MediaSources": [{"Id": "ms-2", "Container": "mp3"}]}),  # track 2 PlaybackInfo
         FakeResponse(None),  # track 2 start
         FakeResponse(None),  # track 2 stopped
@@ -294,6 +297,7 @@ def test_play_queue_advances_through_tracks_that_end_naturally(client, monkeypat
 
 def test_play_queue_stops_after_a_track_is_stopped_early(client, monkeypatch):
     fake_requests = FakeRequests([
+        FakeResponse({"Name": "Track 1"}),  # get_item
         FakeResponse({"MediaSources": [{"Id": "ms-1", "Container": "mp3"}]}),
         FakeResponse(None),
         FakeResponse(None),

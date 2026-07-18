@@ -12,7 +12,7 @@ import threading
 import xbmc
 import xbmcgui
 
-from lib.jellyfin import playback
+from lib.jellyfin import playback, library
 from lib.windows.kodigui import LOG_PREFIX
 
 PROGRESS_REPORT_INTERVAL_SECONDS = 10
@@ -37,7 +37,14 @@ class JellyfinPlayer(xbmc.Player):
         out or explicitly stopped early), or "error" (playback never started,
         or Kodi reported a playback error) - lib.player.play_queue() uses
         this to decide whether to auto-advance to the next item."""
+        try:
+            item = library.get_item(self.client, item_id)
+        except Exception:  # noqa: BLE001 - metadata is nice-to-have, not critical
+            item = None
+
         media_info = playback.get_playback_info(self.client, item_id)
+        if not media_info:
+            raise RuntimeError(f"Failed to get playback info for item {item_id}")
         media_sources = media_info.get("MediaSources") or []
         if not media_sources:
             raise RuntimeError(f"No playable media source for item {item_id}")
@@ -49,7 +56,10 @@ class JellyfinPlayer(xbmc.Player):
         self._reported_stop = False
         self._end_reason = "ended"
 
-        list_item = xbmcgui.ListItem(path=url)
+        list_item = xbmcgui.ListItem(label=item.get("Name", "") if item else "", path=url)
+        if item:
+            info_tag = list_item.getVideoInfoTag()
+            info_tag.setTitle(item.get("Name", ""))
         resume_seconds = resume_ticks / 10_000_000 if resume_ticks else 0
         if resume_seconds:
             list_item.setProperty("StartOffset", str(resume_seconds))

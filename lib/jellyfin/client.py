@@ -43,6 +43,7 @@ class JellyfinClient:
         self.client_version = client_version
         self.access_token = None
         self.user_id = None
+        self._session = None
 
     def is_authenticated(self):
         return bool(self.access_token and self.user_id)
@@ -70,14 +71,16 @@ class JellyfinClient:
     def get(self, path, params=None, timeout=None):
         return self._request("GET", path, params=params, timeout=timeout)
 
-    def post(self, path, json=None, params=None):
-        return self._request("POST", path, json=json, params=params)
+    def post(self, path, json=None, params=None, timeout=None):
+        return self._request("POST", path, json=json, params=params, timeout=timeout)
 
-    def delete(self, path, params=None):
-        return self._request("DELETE", path, params=params)
+    def delete(self, path, params=None, timeout=None):
+        return self._request("DELETE", path, params=params, timeout=timeout)
 
     def _request(self, method, path, json=None, params=None, timeout=None):
-        response = requests.request(
+        if self._session is None:
+            self._session = requests.Session()
+        response = self._session.request(
             method,
             self.build_url(path),
             headers=self._headers(),
