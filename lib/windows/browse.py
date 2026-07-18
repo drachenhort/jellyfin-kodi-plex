@@ -54,6 +54,7 @@ class BrowseWindow(ControlledWindow):
         self.parent_item_type = parent_item_type
         self.is_episode_list = parent_item_type in LISTED_PARENT_TYPES
         self.items = []
+        self._track_id_cache = []
         # onInit() overwrites this right before _load() actually starts;
         # set here too so tests that call _load() directly (bypassing
         # onInit(), per this file's existing convention) don't hit an
@@ -161,12 +162,13 @@ class BrowseWindow(ControlledWindow):
                 xbmc.LOGINFO,
             )
 
-        show_queue_controls = self.parent_item_type in QUEUEABLE_PARENT_TYPES and self._track_ids()
+        self._track_id_cache = [item["Id"] for item in self.items if item.get("Type") == "Audio"]
+        show_queue_controls = self.parent_item_type in QUEUEABLE_PARENT_TYPES and self._track_id_cache
         self.getControl(CTRL_PLAY_ALL).setVisible(bool(show_queue_controls))
         self.getControl(CTRL_SHUFFLE).setVisible(bool(show_queue_controls))
 
     def _track_ids(self):
-        return [item["Id"] for item in self.items if item.get("Type") == "Audio"]
+        return self._track_id_cache
 
     def handle_click(self, control_id):
         if control_id in (CTRL_GRID, CTRL_EPISODE_LIST):
