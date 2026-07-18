@@ -43,7 +43,7 @@ dieselbe Kurzbeschreibung darunter.
    [`repository.jellyfinplex-1.0.0.zip`](https://drachenhort.github.io/jellyfin-kodi-plex/repository.jellyfinplex/repository.jellyfinplex-1.0.0.zip)
 2. In Kodi: **Add-ons → Von ZIP-Datei installieren**, die heruntergeladene Datei auswählen.
 3. Danach **Add-ons → Aus Repository installieren → Jellyfin (Plex-style) Repository →
-   Programm-Add-ons → Jellyfin (Plex-style)** und von dort installieren.
+   Video-Add-ons → Jellyfin (Plex-style)** und von dort installieren.
 
 Ab diesem Zeitpunkt prüft Kodi dieses Repository auf neue Versionen und kann das Addon wie jedes
 andere automatisch aktualisieren — ein manuelles Neuinstallieren der ZIP-Datei nach jedem Release
