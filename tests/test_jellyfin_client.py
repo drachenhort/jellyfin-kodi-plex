@@ -155,8 +155,8 @@ def test_search_items_builds_params(client, monkeypatch):
 
 def test_iter_items_paged_yields_each_page_and_stops_on_short_page(client, monkeypatch):
     fake = FakeRequests([
-        FakeResponse({"Items": [{"Id": f"a{i}"} for i in range(1000)]}),
-        FakeResponse({"Items": [{"Id": f"b{i}"} for i in range(1000)]}),
+        FakeResponse({"Items": [{"Id": f"a{i}"} for i in range(50)]}),
+        FakeResponse({"Items": [{"Id": f"b{i}"} for i in range(50)]}),
         FakeResponse({"Items": [{"Id": "c0"}]}),
     ])
     monkeypatch.setattr(client_mod, "requests", fake)
@@ -164,8 +164,8 @@ def test_iter_items_paged_yields_each_page_and_stops_on_short_page(client, monke
     pages = list(library.iter_items_paged(client, parent_id="music-1", fields="RunTimeTicks"))
 
     assert len(pages) == 3
-    assert len(pages[0]) == 1000
-    assert len(pages[1]) == 1000
+    assert len(pages[0]) == 50
+    assert len(pages[1]) == 50
     assert pages[2] == [{"Id": "c0"}]
     # A short (or empty) page ends the walk without an extra trailing request.
     assert len(fake.calls) == 3
@@ -183,7 +183,7 @@ def test_iter_items_paged_stops_immediately_on_empty_first_page(client, monkeypa
 
 def test_iter_items_paged_request_params(client, monkeypatch):
     fake = FakeRequests([
-        FakeResponse({"Items": [{"Id": f"a{i}"} for i in range(1000)]}),
+        FakeResponse({"Items": [{"Id": f"a{i}"} for i in range(50)]}),
         FakeResponse({"Items": [{"Id": "b0"}]}),
     ])
     monkeypatch.setattr(client_mod, "requests", fake)
@@ -194,7 +194,7 @@ def test_iter_items_paged_request_params(client, monkeypatch):
 
     first, second = fake.calls
     assert first["params"]["StartIndex"] == 0
-    assert first["params"]["Limit"] == 1000
+    assert first["params"]["Limit"] == 50
     assert first["params"]["ParentId"] == "music-1"
     assert first["params"]["IncludeItemTypes"] == "Audio"
     assert first["params"]["Fields"] == "RunTimeTicks"
@@ -202,7 +202,7 @@ def test_iter_items_paged_request_params(client, monkeypatch):
     assert first["params"]["Recursive"] == "true"
     assert first["timeout"] == (5, 300)
 
-    assert second["params"]["StartIndex"] == 1000
+    assert second["params"]["StartIndex"] == 50
 
 
 def test_iter_items_paged_only_requests_default_fields_when_unset(client, monkeypatch):

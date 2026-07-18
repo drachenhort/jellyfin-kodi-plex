@@ -96,7 +96,7 @@ def mark_unplayed(client, item_id):
 
 def iter_items_paged(client, parent_id=None, include_item_types=None, fields="",
                       sort_by="SortName", sort_order="Ascending", recursive=True,
-                      page_size=1000, timeout=(5, 300)):
+                      page_size=50, timeout=(5, 300)):
     """GET /Users/{userId}/Items, paged via StartIndex/Limit — for walking a whole
     library too large to hold in memory at once (e.g. a ~100k-track Music library).
 
