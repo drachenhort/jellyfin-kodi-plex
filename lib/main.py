@@ -56,9 +56,9 @@ def _set_active_server_id(server_id):
 
 
 def _client_from_server(server):
-    client = JellyfinClient(server["server_url"], _get_device_id(), client_version=ADDON_VERSION)
-    client.access_token = server["access_token"]
-    client.user_id = server["user_id"]
+    client = JellyfinClient(server.get("server_url", ""), _get_device_id(), client_version=ADDON_VERSION)
+    client.access_token = server.get("access_token")
+    client.user_id = server.get("user_id")
     return client
 
 
@@ -70,7 +70,10 @@ def _load_saved_client():
     if not server:
         server = server_list[0]
         _set_active_server_id(server["id"])
-    return _client_from_server(server)
+    client = _client_from_server(server)
+    if not client.is_authenticated():
+        return None
+    return client
 
 
 def _migrate_legacy_settings():

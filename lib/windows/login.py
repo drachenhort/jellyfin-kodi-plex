@@ -67,6 +67,8 @@ class LoginWindow(ControlledWindow):
         control = self.getControl(CTRL_DISCOVERED_SERVERS)
         control.reset()
         for server in servers:
+            if self._discovery_stop.is_set():
+                return
             li = xbmcgui.ListItem(label=server.get("Name", server.get("Address", "")))
             li.setProperty("server_url", server.get("Address", ""))
             control.addItem(li)

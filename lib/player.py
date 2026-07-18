@@ -38,7 +38,10 @@ class JellyfinPlayer(xbmc.Player):
         or Kodi reported a playback error) - lib.player.play_queue() uses
         this to decide whether to auto-advance to the next item."""
         media_info = playback.get_playback_info(self.client, item_id)
-        media_source = media_info["MediaSources"][0]
+        media_sources = media_info.get("MediaSources") or []
+        if not media_sources:
+            raise RuntimeError(f"No playable media source for item {item_id}")
+        media_source = media_sources[0]
         url, play_session_id = playback.stream_url(self.client, item_id, media_source, item_type=item_type)
 
         self._item_id = item_id
