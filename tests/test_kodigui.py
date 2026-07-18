@@ -3,6 +3,8 @@ text builders used across Home/Browse/Detail, list_item()'s property
 setting, and WindowMixin's Back-action handling.
 """
 
+import time
+
 from lib.windows.kodigui import (
     PLACEHOLDER_ART,
     PLACEHOLDER_ART_MUSIC,
@@ -14,6 +16,7 @@ from lib.windows.kodigui import (
     _unwatched_count_text,
     list_item,
     placeholder_art,
+    progress_percent,
 )
 
 
@@ -250,6 +253,32 @@ def test_list_item_unwatched_count_property_empty_when_fully_watched():
     item = {"Id": "1", "Name": "The Wire", "Type": "Series", "UserData": {"UnplayedItemCount": 0}}
     li = list_item(item)
     assert li.getProperty("unwatched_count") == ""
+
+
+# -- progress_percent ------------------------------------------------------
+
+def test_progress_percent_starts_at_zero():
+    assert progress_percent(time.time()) == 0
+
+
+def test_progress_percent_climbs_toward_but_never_exceeds_the_ceiling():
+    # A "started" far enough in the past that the curve has essentially
+    # flattened out - at the ceiling, never over it.
+    percent = progress_percent(time.time() - 600, ceiling=95, tau=8.0)
+    assert 90 <= percent <= 95
+
+
+def test_progress_percent_never_exceeds_the_ceiling_even_given_bad_input():
+    # A "started" in the future (elapsed < 0) shouldn't wrap into a huge or
+    # negative percentage.
+    assert progress_percent(time.time() + 1000) == 0
+
+
+def test_progress_percent_is_monotonically_non_decreasing_over_time():
+    now = time.time()
+    percent_at_5s = progress_percent(now - 5, tau=8.0)
+    percent_at_20s = progress_percent(now - 20, tau=8.0)
+    assert percent_at_20s >= percent_at_5s
 
 
 # -- WindowMixin Back-action handling --------------------------------------

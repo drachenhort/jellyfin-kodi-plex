@@ -7,6 +7,7 @@ thread - these tests call _load() directly to exercise that logic
 synchronously/deterministically rather than racing a real thread.
 """
 
+import re
 import threading
 
 import xbmcaddon
@@ -134,6 +135,54 @@ def test_load_hides_the_loading_indicator_once_everything_has_fetched(client, mo
     window._load()
 
     assert window.getControl(home_mod.CTRL_LOADING).visible is False
+
+
+def test_load_marks_loading_done_once_everything_has_fetched(client, monkeypatch):
+    """loading_done gates the background progress ticker (_tick_progress) -
+    once set, the ticker stops updating the label on its next wake."""
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
+
+    window = _make_window(client, monkeypatch)
+    assert not window.loading_done.is_set()
+
+    window._load()
+
+    assert window.loading_done.is_set()
+
+
+def test_onInit_sets_the_loading_label_to_zero_percent(client, monkeypatch):
+    # get_views blocks (an Event, not a real sleep) so the background
+    # _load() thread can't race ahead of this assertion and finish all 6
+    # steps before it runs - xbmc.sleep() is a no-op in tests, so without
+    # blocking here, _load() (and the independent _tick_progress ticker)
+    # can complete/advance well before this synchronous assert executes.
+    started = threading.Event()
+
+    def blocking_get_views(c):
+        started.set()
+        threading.Event().wait(2)  # never actually set; just stalls _load()
+        return []
+
+    monkeypatch.setattr(home_mod.library, "get_views", blocking_get_views)
+    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
+
+    window = _make_window(client, monkeypatch)
+    window.onInit()
+
+    # Exact "0%" isn't pinned down - the background progress ticker spins
+    # without a real delay in tests (xbmc.sleep() is a no-op stub), so it
+    # may have ticked the simulated percentage up by the time this runs.
+    # "0 of 6" is deterministic though, since get_views is blocked.
+    label = window.getControl(home_mod.CTRL_LOADING).getLabel()
+    match = re.fullmatch(r"Loading library… (\d+)% \(0 of 6\)", label)
+    assert match, label
+    assert int(match.group(1)) < 10
+    assert started.wait(2), "background thread never called get_views"
 
 
 def test_load_leaves_the_loading_indicator_alone_if_window_already_closed(client, monkeypatch):

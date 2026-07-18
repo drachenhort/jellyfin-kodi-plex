@@ -7,6 +7,8 @@ block the GUI thread) - these tests call _load() directly for a
 deterministic, non-racy assertion instead of onInit().
 """
 
+import re
+
 import lib.windows.browse as browse_mod
 
 
@@ -84,6 +86,28 @@ def test_load_hides_the_loading_indicator_on_success(client, monkeypatch):
     assert window.getControl(browse_mod.CTRL_LOADING).visible is False
 
 
+def test_load_marks_loading_done_on_success(client, monkeypatch):
+    """loading_done gates the background progress ticker (_tick_progress) -
+    once set, the ticker stops updating the label on its next wake."""
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(ALBUM_TRACKS))
+
+    window = _make_window(client)
+    assert not window.loading_done.is_set()
+
+    window._load()
+
+    assert window.loading_done.is_set()
+
+
+def test_load_marks_loading_done_on_first_page_failure(client, monkeypatch):
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _failing_after(error=RuntimeError("boom")))
+
+    window = _make_window(client)
+    window._load()
+
+    assert window.loading_done.is_set()
+
+
 def test_load_leaves_the_loading_indicator_alone_if_window_already_closed(client, monkeypatch):
     """If the user backs out while the fetch is still in flight, _load()
     must return without touching any control once the response arrives -
@@ -113,21 +137,6 @@ def test_load_across_multiple_pages_accumulates_all_items(client, monkeypatch):
         "a1", "a2",
     ]
     assert window.items == page1 + page2
-
-
-def test_load_updates_the_loading_label_with_a_running_count_per_page(client, monkeypatch):
-    page1 = [{"Id": "a1", "Name": "A1", "Type": "Audio"}]
-    page2 = [{"Id": "a2", "Name": "A2", "Type": "Audio"}, {"Id": "a3", "Name": "A3", "Type": "Audio"}]
-    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(page1, page2))
-    monkeypatch.setattr(browse_mod.images, "primary_image_url", lambda *a, **k: None)
-    monkeypatch.setattr(browse_mod.images, "backdrop_image_url", lambda *a, **k: None)
-
-    window = _make_window(client)
-    window._load()
-
-    # ControlStub only keeps the latest label, but that's exactly what
-    # matters here: after the last page it should reflect the final count.
-    assert window.getControl(browse_mod.CTRL_LOADING).getLabel() == "Loading Title… (3 items)"
 
 
 def test_load_failure_on_the_first_page_notifies_and_closes(client, monkeypatch):
@@ -270,7 +279,15 @@ def test_onInit_sets_the_loading_label_to_the_screen_title(client):
     window = _make_window(client, parent_item_type="Series")
     window.onInit()
 
-    assert window.getControl(browse_mod.CTRL_LOADING).getLabel() == "Loading Title…"
+    # Exact "0%" isn't pinned down - the background progress ticker spins
+    # without a real delay in tests (xbmc.sleep() is a no-op stub), so it
+    # may have ticked the simulated percentage up by the time this runs.
+    # "0 items" is deterministic though: iter_items_paged() isn't mocked
+    # here, so no real page can have arrived yet.
+    label = window.getControl(browse_mod.CTRL_LOADING).getLabel()
+    match = re.fullmatch(r"Loading Title… (\d+)% \(0 items\)", label)
+    assert match, label
+    assert int(match.group(1)) < 10
 
 
 def test_grid_click_still_opens_selected_item(client, monkeypatch):

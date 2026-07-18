@@ -13,7 +13,9 @@ caller — this is how lib/main.py's window stack passes data (e.g. a chosen
 library or item id) from one screen to the next.
 """
 
+import math
 import threading
+import time
 
 import xbmcgui
 
@@ -45,6 +47,24 @@ def placeholder_art(item):
     return PLACEHOLDER_ART
 
 
+# The loading overlay's percentage is simulated, not a real fraction of a
+# known total - Home/Browse fetches don't know their total in advance
+# (EnableTotalRecordCount=false). It's deliberately capped below 100 so it
+# never looks "done" while the fetch is still actually running; the window
+# sets the real 100%-equivalent (hides the overlay) once the fetch finishes.
+PROGRESS_CEILING = 95
+PROGRESS_TAU_SECONDS = 8.0
+
+
+def progress_percent(started, ceiling=PROGRESS_CEILING, tau=PROGRESS_TAU_SECONDS):
+    """Simulated loading percentage: climbs from 0 toward `ceiling` (an
+    exponential approach, never reaching it) as time passes since `started`,
+    so a slow fetch still visibly keeps advancing instead of parking on one
+    number for however long it takes."""
+    elapsed = max(0.0, time.time() - started)
+    return min(ceiling, int(ceiling * (1 - math.exp(-elapsed / tau))))
+
+
 class WindowMixin(object):
     xmlFile = None
     theme = "Main"
@@ -54,6 +74,7 @@ class WindowMixin(object):
         """Called once immediately after construction, before doModal()/show()."""
         self.result = None
         self.closed_event = threading.Event()
+        self.loading_done = threading.Event()
         for key, value in kwargs.items():
             setattr(self, key, value)
 

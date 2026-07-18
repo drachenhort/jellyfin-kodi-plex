@@ -23,7 +23,7 @@ import xbmcaddon
 import xbmcgui
 
 from lib.jellyfin import images, library
-from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item, placeholder_art
+from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item, placeholder_art, progress_percent
 
 ADDON = xbmcaddon.Addon()
 HIDE_PLAYLISTS_SETTING = "hide_playlists"
@@ -43,6 +43,12 @@ HUB_CONTROLS = (
     CTRL_CONTINUE_WATCHING, CTRL_NEXT_UP, CTRL_RECENTLY_ADDED_MOVIES, CTRL_RECENTLY_ADDED_TV,
     CTRL_RECENTLY_ADDED_MUSIC,
 )
+
+# Libraries plus every hub row - one "step" each for the loading overlay's
+# "N of TOTAL_LOAD_STEPS loaded" count, whether that step ultimately
+# succeeds or (per _load_hub_row's own failure handling) fails and leaves
+# its row empty; either way that step is done being attempted.
+TOTAL_LOAD_STEPS = 1 + len(HUB_CONTROLS)
 
 
 # Playlists is an auto-created Jellyfin library that isn't a real media
@@ -81,6 +87,12 @@ class HomeWindow(ControlledWindow):
         self.client = client
         self.views = None
         self.hide_playlists = ADDON.getSetting(HIDE_PLAYLISTS_SETTING) != "false"
+        self.loaded_steps = 0
+        # onInit() overwrites this right before _load() actually starts;
+        # set here too so tests that call _load() directly (bypassing
+        # onInit(), per this file's existing convention) don't hit an
+        # AttributeError.
+        self._load_started = time.time()
 
     def onInit(self):
         # The actual fetch runs on a background thread (see _load()) so a
@@ -90,7 +102,34 @@ class HomeWindow(ControlledWindow):
         # case the user has already backed out while it was in flight.
         self.setFocusId(CTRL_LIBRARIES)
         self._update_playlists_toggle_label()
+        self.getControl(CTRL_LOADING).setLabel("Loading library… 0%")
+        self._load_started = time.time()
         threading.Thread(target=self._load, daemon=True).start()
+        threading.Thread(target=self._tick_progress, daemon=True).start()
+
+    def _update_loading_label(self):
+        # Shows both: a simulated percentage that keeps visibly climbing
+        # even during a long stretch with no step completing (the real case
+        # this was built for: a hub-row fetch that can take minutes against
+        # a slow real library), and the actual "N of TOTAL_LOAD_STEPS"
+        # count, which stays honest during that same stretch - a fetch
+        # that's still stuck on step 2 says so, no matter how confidently
+        # the percentage is climbing.
+        percent = progress_percent(self._load_started)
+        self.getControl(CTRL_LOADING).setLabel(
+            f"Loading library… {percent}% ({self.loaded_steps} of {TOTAL_LOAD_STEPS})"
+        )
+
+    def _tick_progress(self):
+        # A separate ticker rather than updating the label only after each
+        # step completes in _load()/_load_hub_row() - a single slow step can
+        # otherwise mean no visible update for a long stretch. This ticks
+        # independently of step completion.
+        while True:
+            xbmc.sleep(300)
+            if self.closed_event.is_set() or self.loading_done.is_set():
+                return
+            self._update_loading_label()
 
     def _load(self):
         # Only the Libraries row is essential - without it there's no Home
@@ -115,6 +154,8 @@ class HomeWindow(ControlledWindow):
         # its "safe to repopulate CTRL_LIBRARIES" guard, and this control
         # must never be mutated from two threads at once.
         self.views = views
+        self.loaded_steps += 1
+        self._update_loading_label()
 
         self._load_hub_row(
             CTRL_CONTINUE_WATCHING, "get_resume", library.get_resume, self.client, episode_aware=True
@@ -125,6 +166,7 @@ class HomeWindow(ControlledWindow):
         self._load_hub_row(CTRL_RECENTLY_ADDED_MOVIES, "latest movies", self._latest, views, "movies")
         self._load_hub_row(CTRL_RECENTLY_ADDED_TV, "latest tvshows", self._latest, views, "tvshows")
         self._load_hub_row(CTRL_RECENTLY_ADDED_MUSIC, "latest music", self._latest, views, "music")
+        self.loading_done.set()
         if not self.closed_event.is_set():
             self.getControl(CTRL_LOADING).setVisible(False)
 
@@ -132,16 +174,25 @@ class HomeWindow(ControlledWindow):
         if self.closed_event.is_set():
             return
         try:
-            items = self._timed(label, fetch, *args, **kwargs)
-        except Exception as exc:  # noqa: BLE001 - one slow/broken row shouldn't blank the rest of Home
-            xbmc.log(f"{LOG_PREFIX} Home: {label} failed, leaving that row empty: {exc}", xbmc.LOGWARNING)
-            return
-        if self.closed_event.is_set():
-            return
-        if episode_aware:
-            self._populate_episode_aware(control_id, items)
-        else:
-            self._populate(control_id, items)
+            try:
+                items = self._timed(label, fetch, *args, **kwargs)
+            except Exception as exc:  # noqa: BLE001 - one slow/broken row shouldn't blank the rest of Home
+                xbmc.log(f"{LOG_PREFIX} Home: {label} failed, leaving that row empty: {exc}", xbmc.LOGWARNING)
+                return
+            if self.closed_event.is_set():
+                return
+            if episode_aware:
+                self._populate_episode_aware(control_id, items)
+            else:
+                self._populate(control_id, items)
+        finally:
+            # Counts as a completed step (for the loading overlay's "N of
+            # TOTAL_LOAD_STEPS" count) whether the fetch succeeded, failed,
+            # or the window closed mid-fetch - either way there's nothing
+            # left to wait on for this row.
+            self.loaded_steps += 1
+            if not self.closed_event.is_set():
+                self._update_loading_label()
 
     def _timed(self, label, fn, *args, **kwargs):
         """Logs how long each Home fetch step took (or how long it ran
