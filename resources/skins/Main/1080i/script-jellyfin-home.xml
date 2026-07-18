@@ -20,7 +20,7 @@
     </control>
 
     <control type="button" id="206">
-      <posx>1580</posx>
+      <posx>1280</posx>
       <posy>45</posy>
       <width>140</width>
       <height>50</height>
@@ -28,13 +28,27 @@
       <label>Servers</label>
       <texturefocus border="10">focus-highlight.png</texturefocus>
       <texturenofocus>button-nofocus.png</texturenofocus>
-      <onright>204</onright>
+      <onright>208</onright>
       <onleft>206</onleft>
       <ondown>200</ondown>
       <onup>206</onup>
     </control>
+    <control type="button" id="208">
+      <posx>1440</posx>
+      <posy>45</posy>
+      <width>260</width>
+      <height>50</height>
+      <font>font16</font>
+      <label>Hide Playlists</label>
+      <texturefocus border="10">focus-highlight.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onright>204</onright>
+      <onleft>206</onleft>
+      <ondown>200</ondown>
+      <onup>208</onup>
+    </control>
     <control type="button" id="204">
-      <posx>1740</posx>
+      <posx>1720</posx>
       <posy>45</posy>
       <width>140</width>
       <height>50</height>
@@ -43,7 +57,7 @@
       <texturefocus border="10">focus-highlight.png</texturefocus>
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onright>204</onright>
-      <onleft>206</onleft>
+      <onleft>208</onleft>
       <ondown>200</ondown>
       <onup>204</onup>
     </control>

@@ -19,3 +19,7 @@ msgstr ""
 msgctxt "#30005"
 msgid "Device ID"
 msgstr ""
+
+msgctxt "#30006"
+msgid "Hide Playlists library on Home"
+msgstr ""

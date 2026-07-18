@@ -8,16 +8,25 @@ self.result on close is one of:
   {"action": "search"}
   {"action": "servers"}
   None (user backed out — lib/main.py treats this as "quit the addon")
+
+The Playlists show/hide toggle next to Search doesn't close the window or
+go through self.result at all - it flips an addon setting and repopulates
+the Libraries row in place, the same "mutate immediately" pattern
+lib/windows/detail.py uses for its watched/unwatched toggle.
 """
 
 import threading
 import time
 
 import xbmc
+import xbmcaddon
 import xbmcgui
 
 from lib.jellyfin import images, library
 from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item, placeholder_art
+
+ADDON = xbmcaddon.Addon()
+HIDE_PLAYLISTS_SETTING = "hide_playlists"
 
 CTRL_LIBRARIES = 200
 CTRL_CONTINUE_WATCHING = 201
@@ -27,11 +36,32 @@ CTRL_SEARCH = 204
 CTRL_RECENTLY_ADDED_TV = 205
 CTRL_SERVERS = 206
 CTRL_RECENTLY_ADDED_MUSIC = 207
+CTRL_PLAYLISTS_TOGGLE = 208
 
 HUB_CONTROLS = (
     CTRL_CONTINUE_WATCHING, CTRL_NEXT_UP, CTRL_RECENTLY_ADDED_MOVIES, CTRL_RECENTLY_ADDED_TV,
     CTRL_RECENTLY_ADDED_MUSIC,
 )
+
+
+# Playlists is an auto-created Jellyfin library that isn't a real media
+# collection to browse here (there's no browse.py support for it either) -
+# hidden from the shortcut row by default rather than showing an empty/
+# broken tile, but the toggle button next to Search lets it back in for
+# anyone who does keep playlists there. The rest are shown in a fixed order
+# (Movies, TV, Music) regardless of whatever order the server returns views
+# in, with any other/unknown library type (including Playlists, when shown)
+# kept after those, in the server's original relative order (Python's sort
+# is stable) since there's nothing more specific to say about them.
+LIBRARY_TYPE_ORDER = {"movies": 0, "tvshows": 1, "music": 2}
+
+
+def _visible_library_views(views, hide_playlists=True):
+    def is_hidden(view):
+        return hide_playlists and view.get("CollectionType") == "playlists"
+
+    visible = [v for v in views if not is_hidden(v)]
+    return sorted(visible, key=lambda v: LIBRARY_TYPE_ORDER.get(v.get("CollectionType"), len(LIBRARY_TYPE_ORDER)))
 
 
 def _library_list_item(client, view):
@@ -48,6 +78,8 @@ class HomeWindow(ControlledWindow):
     def setup(self, client=None, **kwargs):
         super().setup(**kwargs)
         self.client = client
+        self.views = None
+        self.hide_playlists = ADDON.getSetting(HIDE_PLAYLISTS_SETTING) != "false"
 
     def onInit(self):
         # The actual fetch runs on a background thread (see _load()) so a
@@ -56,6 +88,7 @@ class HomeWindow(ControlledWindow):
         # duration; each population step below checks closed_event first in
         # case the user has already backed out while it was in flight.
         self.setFocusId(CTRL_LIBRARIES)
+        self._update_playlists_toggle_label()
         threading.Thread(target=self._load, daemon=True).start()
 
     def _load(self):
@@ -75,7 +108,12 @@ class HomeWindow(ControlledWindow):
             return
         if self.closed_event.is_set():
             return
-        self._populate(CTRL_LIBRARIES, views, is_library=True)
+        self._populate(CTRL_LIBRARIES, _visible_library_views(views, self.hide_playlists), is_library=True)
+        # self.views must only become non-None after the populate above has
+        # returned - _toggle_playlists_visibility() (GUI thread) uses it as
+        # its "safe to repopulate CTRL_LIBRARIES" guard, and this control
+        # must never be mutated from two threads at once.
+        self.views = views
 
         self._load_hub_row(
             CTRL_CONTINUE_WATCHING, "get_resume", library.get_resume, self.client, episode_aware=True
@@ -169,6 +207,19 @@ class HomeWindow(ControlledWindow):
         elif control_id == CTRL_SERVERS:
             self.result = {"action": "servers"}
             self.close()
+        elif control_id == CTRL_PLAYLISTS_TOGGLE:
+            self._toggle_playlists_visibility()
+
+    def _update_playlists_toggle_label(self):
+        self.getControl(CTRL_PLAYLISTS_TOGGLE).setLabel("Show Playlists" if self.hide_playlists else "Hide Playlists")
+
+    def _toggle_playlists_visibility(self):
+        if self.views is None:
+            return
+        self.hide_playlists = not self.hide_playlists
+        ADDON.setSetting(HIDE_PLAYLISTS_SETTING, "true" if self.hide_playlists else "false")
+        self._update_playlists_toggle_label()
+        self._populate(CTRL_LIBRARIES, _visible_library_views(self.views, self.hide_playlists), is_library=True)
 
     def _open_library(self):
         selected = self.getControl(CTRL_LIBRARIES).getSelectedItem()

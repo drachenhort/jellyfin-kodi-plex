@@ -24,6 +24,14 @@
           <default></default>
           <control type="edit" format="string"/>
         </setting>
+        <setting id="hide_playlists" type="bool" label="30006" help="">
+          <level>2</level>
+          <default>true</default>
+          <control type="toggle"/>
+          <constraints>
+            <options>hidden</options>
+          </constraints>
+        </setting>
       </group>
     </category>
   </section>
