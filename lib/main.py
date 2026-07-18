@@ -253,6 +253,7 @@ def _home_loop(client):
 
 def run():
     _migrate_legacy_settings()
+    _backfill_active_server_info()
     client = _load_saved_client()
     if not client:
         client = _login()
