@@ -94,6 +94,45 @@ def mark_unplayed(client, item_id):
     return client.delete(f"/Users/{client.user_id}/PlayedItems/{item_id}")
 
 
+def iter_items_paged(client, parent_id=None, include_item_types=None, fields="",
+                      sort_by="SortName", sort_order="Ascending", recursive=True,
+                      page_size=1000, timeout=(5, 300)):
+    """GET /Users/{userId}/Items, paged via StartIndex/Limit — for walking a whole
+    library too large to hold in memory at once (e.g. a ~100k-track Music library).
+
+    Yields each page's Items list as it arrives rather than collecting every page
+    first, so the caller can process a page (index it, write it out, ...) and let
+    it go before the next one is fetched. EnableTotalRecordCount=false skips
+    Jellyfin computing a total count on every page - the walk already terminates
+    on a short/empty page, so it isn't needed. The default timeout is a (connect,
+    read) tuple: fail fast if the server's unreachable, but allow a slow real
+    query for a big page plenty of room before giving up.
+    """
+    start_index = 0
+    while True:
+        params = {
+            "StartIndex": start_index,
+            "Limit": page_size,
+            "SortBy": sort_by,
+            "SortOrder": sort_order,
+            "Recursive": str(recursive).lower(),
+            "Fields": fields,
+            "EnableTotalRecordCount": "false",
+        }
+        if parent_id:
+            params["ParentId"] = parent_id
+        if include_item_types:
+            params["IncludeItemTypes"] = include_item_types
+        response = client.get(f"/Users/{client.user_id}/Items", params=params, timeout=timeout)
+        items = response.get("Items", [])
+        if not items:
+            return
+        yield items
+        if len(items) < page_size:
+            return
+        start_index += page_size
+
+
 SEARCH_ITEM_TYPES = "Movie,Series,MusicArtist,MusicAlbum,Audio,Episode"
 
 

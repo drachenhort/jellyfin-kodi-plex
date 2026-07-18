@@ -67,8 +67,8 @@ class JellyfinClient:
     def build_url(self, path):
         return f"{self.server_url}{path}"
 
-    def get(self, path, params=None):
-        return self._request("GET", path, params=params)
+    def get(self, path, params=None, timeout=None):
+        return self._request("GET", path, params=params, timeout=timeout)
 
     def post(self, path, json=None, params=None):
         return self._request("POST", path, json=json, params=params)
@@ -76,14 +76,14 @@ class JellyfinClient:
     def delete(self, path, params=None):
         return self._request("DELETE", path, params=params)
 
-    def _request(self, method, path, json=None, params=None):
+    def _request(self, method, path, json=None, params=None, timeout=None):
         response = requests.request(
             method,
             self.build_url(path),
             headers=self._headers(),
             json=json,
             params=params,
-            timeout=REQUEST_TIMEOUT_SECONDS,
+            timeout=timeout if timeout is not None else REQUEST_TIMEOUT_SECONDS,
         )
         if response.status_code >= 400:
             raise JellyfinApiError(response.status_code, response.text)

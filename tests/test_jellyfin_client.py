@@ -25,6 +25,15 @@ def test_requests_use_the_configured_timeout(client, monkeypatch):
     assert fake.calls[0]["timeout"] == client_mod.REQUEST_TIMEOUT_SECONDS
 
 
+def test_get_honors_an_explicit_timeout_override(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"ServerName": "Tower"})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    client.get("/System/Info/Public", timeout=(5, 300))
+
+    assert fake.calls[0]["timeout"] == (5, 300)
+
+
 def test_authenticate_by_name_sets_token_and_user(anon_client, monkeypatch):
     fake = FakeRequests([
         FakeResponse({"AccessToken": "abc123", "User": {"Id": "user-1", "Name": "steve"}})
@@ -142,6 +151,67 @@ def test_search_items_builds_params(client, monkeypatch):
     assert params["Limit"] == 10
     assert params["Recursive"] == "true"
     assert params["IncludeItemTypes"] == library.SEARCH_ITEM_TYPES
+
+
+def test_iter_items_paged_yields_each_page_and_stops_on_short_page(client, monkeypatch):
+    fake = FakeRequests([
+        FakeResponse({"Items": [{"Id": f"a{i}"} for i in range(1000)]}),
+        FakeResponse({"Items": [{"Id": f"b{i}"} for i in range(1000)]}),
+        FakeResponse({"Items": [{"Id": "c0"}]}),
+    ])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    pages = list(library.iter_items_paged(client, parent_id="music-1", fields="RunTimeTicks"))
+
+    assert len(pages) == 3
+    assert len(pages[0]) == 1000
+    assert len(pages[1]) == 1000
+    assert pages[2] == [{"Id": "c0"}]
+    # A short (or empty) page ends the walk without an extra trailing request.
+    assert len(fake.calls) == 3
+
+
+def test_iter_items_paged_stops_immediately_on_empty_first_page(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"Items": []})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    pages = list(library.iter_items_paged(client, parent_id="music-1"))
+
+    assert pages == []
+    assert len(fake.calls) == 1
+
+
+def test_iter_items_paged_request_params(client, monkeypatch):
+    fake = FakeRequests([
+        FakeResponse({"Items": [{"Id": f"a{i}"} for i in range(1000)]}),
+        FakeResponse({"Items": [{"Id": "b0"}]}),
+    ])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    list(library.iter_items_paged(
+        client, parent_id="music-1", include_item_types="Audio", fields="RunTimeTicks",
+    ))
+
+    first, second = fake.calls
+    assert first["params"]["StartIndex"] == 0
+    assert first["params"]["Limit"] == 1000
+    assert first["params"]["ParentId"] == "music-1"
+    assert first["params"]["IncludeItemTypes"] == "Audio"
+    assert first["params"]["Fields"] == "RunTimeTicks"
+    assert first["params"]["EnableTotalRecordCount"] == "false"
+    assert first["params"]["Recursive"] == "true"
+    assert first["timeout"] == (5, 300)
+
+    assert second["params"]["StartIndex"] == 1000
+
+
+def test_iter_items_paged_only_requests_default_fields_when_unset(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"Items": []})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    list(library.iter_items_paged(client, parent_id="music-1"))
+
+    assert fake.calls[0]["params"]["Fields"] == ""
 
 
 def test_get_resume_and_next_up_and_latest(client, monkeypatch):
