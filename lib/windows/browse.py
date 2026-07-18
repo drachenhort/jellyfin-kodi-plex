@@ -89,6 +89,13 @@ class BrowseWindow(ControlledWindow):
                               images.backdrop_image_url(self.client, item))
                     for item in page
                 ])
+                # Update the count after every page so a slow/large fetch
+                # (still going after the first page or two) visibly keeps
+                # counting up instead of leaving the user staring at a
+                # static "Loading…" with no sign anything is happening.
+                self.getControl(CTRL_LOADING).setLabel(
+                    f"Loading {self.title}… ({len(self.items)} items)"
+                )
         except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
             error = exc
 

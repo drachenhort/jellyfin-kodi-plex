@@ -115,6 +115,21 @@ def test_load_across_multiple_pages_accumulates_all_items(client, monkeypatch):
     assert window.items == page1 + page2
 
 
+def test_load_updates_the_loading_label_with_a_running_count_per_page(client, monkeypatch):
+    page1 = [{"Id": "a1", "Name": "A1", "Type": "Audio"}]
+    page2 = [{"Id": "a2", "Name": "A2", "Type": "Audio"}, {"Id": "a3", "Name": "A3", "Type": "Audio"}]
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(page1, page2))
+    monkeypatch.setattr(browse_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client)
+    window._load()
+
+    # ControlStub only keeps the latest label, but that's exactly what
+    # matters here: after the last page it should reflect the final count.
+    assert window.getControl(browse_mod.CTRL_LOADING).getLabel() == "Loading Title… (3 items)"
+
+
 def test_load_failure_on_the_first_page_notifies_and_closes(client, monkeypatch):
     monkeypatch.setattr(browse_mod.library, "iter_items_paged", _failing_after(error=RuntimeError("boom")))
 
