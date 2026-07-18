@@ -32,6 +32,20 @@
             <options>hidden</options>
           </constraints>
         </setting>
+        <setting id="active_server_info" type="string" label="30010" help="">
+          <level>0</level>
+          <default></default>
+          <control type="edit" format="string"/>
+          <constraints>
+            <options>readonly</options>
+          </constraints>
+        </setting>
+        <setting id="manage_servers" type="action" label="30011" help="30012">
+          <level>0</level>
+          <control type="button" format="action">
+            <data>RunScript(script.jellyfin.plex,configure)</data>
+          </control>
+        </setting>
       </group>
     </category>
   </section>

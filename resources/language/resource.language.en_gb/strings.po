@@ -23,3 +23,15 @@ msgstr ""
 msgctxt "#30006"
 msgid "Hide Playlists library on Home"
 msgstr ""
+
+msgctxt "#30010"
+msgid "Active server"
+msgstr ""
+
+msgctxt "#30011"
+msgid "Manage servers…"
+msgstr ""
+
+msgctxt "#30012"
+msgid "Add, switch, or remove saved Jellyfin servers, or log in for the first time."
+msgstr ""
