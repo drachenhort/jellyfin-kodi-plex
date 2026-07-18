@@ -64,13 +64,16 @@
 
     <!-- Shown while _load() is still fetching in the background so the
          screen doesn't read as frozen on a slow/large library; hidden once
-         it finishes (lib/windows/home.py). -->
+         it finishes (lib/windows/home.py). Sits on the header row next to
+         the title rather than below it - there's no clear vertical space
+         between the header (ends ~posy95) and the Libraries row's own
+         "Libraries" heading (starts posy110) for a second line of text. -->
     <control type="label" id="220">
-      <posx>80</posx>
-      <posy>95</posy>
-      <width>1760</width>
-      <height>15</height>
-      <font>font12</font>
+      <posx>320</posx>
+      <posy>52</posy>
+      <width>900</width>
+      <height>36</height>
+      <font>font16</font>
       <label>Loading library…</label>
     </control>
 
