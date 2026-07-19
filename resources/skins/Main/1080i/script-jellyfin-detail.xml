@@ -45,13 +45,13 @@
       <posx>420</posx>
       <posy>260</posy>
       <width>1400</width>
-      <height>260</height>
+      <height>620</height>
       <font>font13</font>
     </control>
     <control type="label" id="405">
       <posx>420</posx>
-      <posy>530</posy>
-      <width>1000</width>
+      <posy>890</posy>
+      <width>1400</width>
       <height>30</height>
       <font>font12</font>
       <label></label>
@@ -59,7 +59,7 @@
 
     <control type="button" id="406">
       <posx>420</posx>
-      <posy>590</posy>
+      <posy>950</posy>
       <width>260</width>
       <height>60</height>
       <font>font16</font>
@@ -71,7 +71,7 @@
     </control>
     <control type="button" id="407">
       <posx>700</posx>
-      <posy>590</posy>
+      <posy>950</posy>
       <width>320</width>
       <height>60</height>
       <font>font16</font>
