@@ -545,3 +545,58 @@ def test_clicking_toggle_before_load_is_a_no_op(client, monkeypatch):
     window.handle_click(home_mod.CTRL_PLAYLISTS_TOGGLE)
 
     assert window.hide_playlists is True
+
+
+# -- Settings button (opens Kodi's native addon settings dialog) ------------
+
+def test_clicking_settings_opens_the_native_settings_dialog(client, monkeypatch):
+    window = _make_window(client, monkeypatch)
+    opened = []
+    monkeypatch.setattr(home_mod.ADDON, "openSettings", lambda: opened.append(True))
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+
+    window.handle_click(home_mod.CTRL_SETTINGS)
+
+    assert opened == [True]
+
+
+def test_settings_dialog_picks_up_a_setting_changed_while_it_was_open(client, monkeypatch):
+    """openSettings() blocks until the user closes the dialog - by the time
+    it returns here, whatever they toggled is already saved, so the
+    in-memory flags must be re-read from ADDON rather than staying stale."""
+    window = _make_window(client, monkeypatch)
+    assert window.show_next_up is True
+
+    def fake_open_settings():
+        home_mod.ADDON.setSetting(home_mod.SHOW_NEXT_UP_SETTING, "false")
+
+    monkeypatch.setattr(home_mod.ADDON, "openSettings", fake_open_settings)
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+
+    window.handle_click(home_mod.CTRL_SETTINGS)
+
+    assert window.show_next_up is False
+
+
+def test_settings_dialog_does_not_touch_controls_if_window_closed_while_open(client, monkeypatch):
+    window = _make_window(client, monkeypatch)
+
+    def fake_open_settings():
+        window.closed_event.set()  # simulate Back firing while the native dialog was up
+
+    monkeypatch.setattr(home_mod.ADDON, "openSettings", fake_open_settings)
+
+    def fail_if_called(*a, **k):
+        raise AssertionError("must not reload after the window was closed")
+
+    monkeypatch.setattr(home_mod.library, "get_views", fail_if_called)
+
+    window.handle_click(home_mod.CTRL_SETTINGS)  # must return quietly, not raise

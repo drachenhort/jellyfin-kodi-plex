@@ -21,3 +21,8 @@ class Addon:
 
     def getAddonInfo(self, key):
         return self._info.get(key, "")
+
+    def openSettings(self):
+        # Real Kodi blocks here until the user closes the native settings
+        # dialog; nothing to simulate in tests beyond the call succeeding.
+        pass

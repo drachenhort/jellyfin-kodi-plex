@@ -42,6 +42,7 @@ CTRL_RECENTLY_ADDED_TV = 205
 CTRL_SERVERS = 206
 CTRL_RECENTLY_ADDED_MUSIC = 207
 CTRL_PLAYLISTS_TOGGLE = 208
+CTRL_SETTINGS = 209
 CTRL_LOADING = 220
 
 HUB_CONTROLS = (
@@ -332,6 +333,8 @@ class HomeWindow(ControlledWindow):
             self.close()
         elif control_id == CTRL_PLAYLISTS_TOGGLE:
             self._toggle_playlists_visibility()
+        elif control_id == CTRL_SETTINGS:
+            self._open_addon_settings()
 
     def _update_playlists_toggle_label(self):
         self.getControl(CTRL_PLAYLISTS_TOGGLE).setLabel("Show Playlists" if self.hide_playlists else "Hide Playlists")
@@ -343,6 +346,37 @@ class HomeWindow(ControlledWindow):
         ADDON.setSetting(HIDE_PLAYLISTS_SETTING, "true" if self.hide_playlists else "false")
         self._update_playlists_toggle_label()
         self._populate(CTRL_LIBRARIES, _visible_library_views(self.views, self.hide_playlists), is_library=True)
+
+    def _open_addon_settings(self):
+        # openSettings() blocks (shows Kodi's native addon settings dialog)
+        # until the user closes it, so this only resumes once whatever they
+        # changed - hub row toggles, hide_playlists, sort order, etc. - is
+        # already saved; refresh Home in place afterwards rather than
+        # requiring a manual Back/re-open to see the effect.
+        ADDON.openSettings()
+        if self.closed_event.is_set():
+            return
+        self._refresh_after_settings_change()
+
+    def _refresh_after_settings_change(self):
+        self.hide_playlists = ADDON.getSetting(HIDE_PLAYLISTS_SETTING) != "false"
+        self.show_continue_watching = ADDON.getSetting(SHOW_CONTINUE_WATCHING_SETTING) != "false"
+        self.show_next_up = ADDON.getSetting(SHOW_NEXT_UP_SETTING) != "false"
+        self.show_recently_added_movies = ADDON.getSetting(SHOW_RECENTLY_ADDED_MOVIES_SETTING) != "false"
+        self.show_recently_added_tv = ADDON.getSetting(SHOW_RECENTLY_ADDED_TV_SETTING) != "false"
+        self.show_recently_added_music = ADDON.getSetting(SHOW_RECENTLY_ADDED_MUSIC_SETTING) != "false"
+        self._update_playlists_toggle_label()
+        # A settings-driven refresh re-fetches every row from scratch (the
+        # simplest way to correctly pick up a newly-enabled row, which was
+        # never fetched the first time around) - same background-thread
+        # pattern onInit() uses so this doesn't freeze the GUI thread.
+        self.loading_done.clear()
+        self.loaded_steps = 0
+        self._load_started = time.time()
+        self._update_loading_label()
+        self.getControl(CTRL_LOADING).setVisible(True)
+        threading.Thread(target=self._load, daemon=True).start()
+        threading.Thread(target=self._tick_progress, daemon=True).start()
 
     def _open_library(self):
         selected = self.getControl(CTRL_LIBRARIES).getSelectedItem()
