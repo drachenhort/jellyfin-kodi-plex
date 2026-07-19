@@ -220,6 +220,15 @@
         </control>
         <control type="label">
           <posx>1120</posx>
+          <width>190</width>
+          <height>84</height>
+          <font>font13</font>
+          <aligny>center</aligny>
+          <label>$INFO[ListItem.Property(ratings_text)]</label>
+          <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
+        </control>
+        <control type="label">
+          <posx>1330</posx>
           <width>100</width>
           <height>84</height>
           <font>font13</font>
@@ -227,15 +236,6 @@
           <aligny>center</aligny>
           <label>$INFO[ListItem.Duration(mins)] min</label>
           <visible>Integer.IsGreater(ListItem.Duration,0)</visible>
-        </control>
-        <control type="label">
-          <posx>1240</posx>
-          <width>190</width>
-          <height>84</height>
-          <font>font13</font>
-          <aligny>center</aligny>
-          <label>$INFO[ListItem.Property(ratings_text)]</label>
-          <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
         </control>
         <control type="label">
           <posx>1440</posx>
@@ -287,6 +287,15 @@
         </control>
         <control type="label">
           <posx>1120</posx>
+          <width>190</width>
+          <height>84</height>
+          <font>font13</font>
+          <aligny>center</aligny>
+          <label>$INFO[ListItem.Property(ratings_text)]</label>
+          <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
+        </control>
+        <control type="label">
+          <posx>1330</posx>
           <width>100</width>
           <height>84</height>
           <font>font13</font>
@@ -294,15 +303,6 @@
           <aligny>center</aligny>
           <label>$INFO[ListItem.Duration(mins)] min</label>
           <visible>Integer.IsGreater(ListItem.Duration,0)</visible>
-        </control>
-        <control type="label">
-          <posx>1240</posx>
-          <width>190</width>
-          <height>84</height>
-          <font>font13</font>
-          <aligny>center</aligny>
-          <label>$INFO[ListItem.Property(ratings_text)]</label>
-          <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
         </control>
         <control type="label">
           <posx>1440</posx>
