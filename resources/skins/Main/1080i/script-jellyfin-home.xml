@@ -279,20 +279,6 @@
               <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
-            <!-- Show logo, letterboxed (not crop-filled like the poster
-                 above it) since Logo art is a wide transparent graphic -
-                 crop-filling this portrait box with it would blow it up
-                 into unrecognizable close-up text. Tiles for a show with
-                 no logo art just show the plain poster underneath. -->
-            <control type="image">
-              <posx>10</posx>
-              <posy>130</posy>
-              <width>240</width>
-              <height>130</height>
-              <aspectratio align="center" aligny="center">keep</aspectratio>
-              <texture>$INFO[ListItem.Art(clearlogo)]</texture>
-              <visible>!String.IsEmpty(ListItem.Art(clearlogo))</visible>
-            </control>
             <control type="image">
               <posy>302</posy>
               <width>260</width>
@@ -372,15 +358,6 @@
               <height>384</height>
               <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
-            </control>
-            <control type="image">
-              <posx>13</posx>
-              <posy>133</posy>
-              <width>234</width>
-              <height>130</height>
-              <aspectratio align="center" aligny="center">keep</aspectratio>
-              <texture>$INFO[ListItem.Art(clearlogo)]</texture>
-              <visible>!String.IsEmpty(ListItem.Art(clearlogo))</visible>
             </control>
             <control type="image">
               <posx>3</posx>

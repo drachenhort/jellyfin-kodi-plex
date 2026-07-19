@@ -146,7 +146,6 @@ def test_recently_added_tv_lists_episodes_individually_not_grouped_by_series(cli
         return []
 
     monkeypatch.setattr(home_mod.library, "get_latest_episodes", fake_get_latest_episodes)
-    monkeypatch.setattr(home_mod.library, "get_items_by_ids", lambda c, ids: [])
 
     window = _make_window(client, monkeypatch)
     window._load()
@@ -155,16 +154,11 @@ def test_recently_added_tv_lists_episodes_individually_not_grouped_by_series(cli
     assert [li.getProperty("jellyfin_id") for li in tv_row.items] == ["ep-1", "ep-2", "ep-3"]
 
 
-def test_recently_added_tv_tiles_overlay_series_logo_on_the_poster(client, monkeypatch):
-    """Tiles keep the poster as the background (thumb/poster art) and add
-    the show's logo as a separate clearlogo art key layered on top - not a
-    replacement for the poster, since a wide transparent logo crop-filled
-    into a portrait tile (an earlier, reverted approach) crops into
-    unrecognizable close-up text. The logo is looked up from each Series
-    item's own ImageTags (via a batched get_items_by_ids call keyed by
-    SeriesId), not from any inherited field on the episode - an earlier
-    attempt using the episode-inlined ParentLogoItemId/ParentLogoImageTag
-    fields was observed showing the wrong series' logo."""
+def test_recently_added_tv_tiles_show_series_poster_not_episode_thumb(client, monkeypatch):
+    """Tiles must show the show's poster, not the episode's own landscape
+    screengrab - images.primary_image_url() would prefer that screengrab
+    when the episode has one of its own (most do), so this row always goes
+    straight to the series poster via series_poster_url() instead."""
     views = [
         {"Id": "lib-tv", "Name": "TV Shows", "CollectionType": "tvshows"},
     ]
@@ -174,38 +168,22 @@ def test_recently_added_tv_tiles_overlay_series_logo_on_the_poster(client, monke
 
     def fake_get_latest_episodes(c, parent_id=None, limit=10):
         if parent_id == "lib-tv":
-            return [
-                {
-                    "Id": "ep-1", "Name": "S01E02", "Type": "Episode", "SeriesId": "series-1",
-                    "SeriesName": "Show A", "SeriesPrimaryImageTag": "poster-tag",
-                },
-                {
-                    "Id": "ep-2", "Name": "S01E01", "Type": "Episode", "SeriesId": "series-2",
-                    "SeriesName": "Show B", "SeriesPrimaryImageTag": "poster-tag-2",
-                },
-            ]
+            return [{
+                "Id": "ep-1", "Name": "S01E02", "Type": "Episode", "SeriesId": "series-1",
+                "SeriesName": "Show A", "SeriesPrimaryImageTag": "poster-tag",
+                "ImageTags": {"Primary": "episode-thumb-tag"},
+            }]
         return []
 
-    def fake_get_items_by_ids(c, ids):
-        series = {
-            "series-1": {"Id": "series-1", "ImageTags": {"Logo": "logo-tag"}},
-            "series-2": {"Id": "series-2", "ImageTags": {}},
-        }
-        return [series[i] for i in ids if i in series]
-
     monkeypatch.setattr(home_mod.library, "get_latest_episodes", fake_get_latest_episodes)
-    monkeypatch.setattr(home_mod.library, "get_items_by_ids", fake_get_items_by_ids)
 
     window = _make_window(client, monkeypatch)
     window._load()
 
     tv_row = window.getControl(home_mod.CTRL_RECENTLY_ADDED_TV)
-    # Show A: poster stays the background, logo is a separate overlay layer.
-    assert "/Images/Primary" in tv_row.items[0].art["thumb"]
-    assert "/Images/Logo" in tv_row.items[0].art["clearlogo"]
-    # Show B has no logo art - poster background only, no clearlogo key.
-    assert "/Images/Primary" in tv_row.items[1].art["thumb"]
-    assert "clearlogo" not in tv_row.items[1].art
+    art_url = tv_row.items[0].art["thumb"]
+    assert "/Items/series-1/Images/Primary" in art_url
+    assert "tag=poster-tag" in art_url
 
 
 def test_load_hides_the_loading_indicator_once_everything_has_fetched(client, monkeypatch):

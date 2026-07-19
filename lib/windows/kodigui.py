@@ -184,15 +184,13 @@ def _ratings_text(item):
     return " · ".join(parts)
 
 
-def list_item(item, primary_art=None, backdrop_art=None, logo_art=None):
+def list_item(item, primary_art=None, backdrop_art=None):
     """Build an xbmcgui.ListItem for a Jellyfin BaseItemDto."""
     li = xbmcgui.ListItem(label=_display_label(item))
     placeholder = placeholder_art(item)
     art = {"thumb": primary_art or placeholder, "poster": primary_art or placeholder}
     if backdrop_art:
         art["fanart"] = backdrop_art
-    if logo_art:
-        art["clearlogo"] = logo_art
     li.setArt(art)
     info_tag = li.getVideoInfoTag()
     info_tag.setTitle(item.get("Name", ""))

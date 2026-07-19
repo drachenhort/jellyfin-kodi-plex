@@ -168,7 +168,7 @@ class HomeWindow(ControlledWindow):
         self._load_hub_row(CTRL_RECENTLY_ADDED_MOVIES, "latest movies", self._latest, views, "movies")
         self._load_hub_row(
             CTRL_RECENTLY_ADDED_TV, "latest tvshows", self._latest_tv_episodes, views,
-            populate=self._populate_tv_logos,
+            populate=self._populate_tv_posters,
         )
         self._load_hub_row(CTRL_RECENTLY_ADDED_MUSIC, "latest music", self._latest, views, "music")
         self.loading_done.set()
@@ -238,29 +238,19 @@ class HomeWindow(ControlledWindow):
                 list_items.append(list_item(item, primary, backdrop))
         control.addItems(list_items)
 
-    def _populate_tv_logos(self, control_id, items):
-        """Recently Added TV: each tile keeps its show's poster as the
-        background image (episodes rarely have art of their own) with the
-        show's logo overlaid on top, so the row reads as "which shows got
-        new episodes" via the logo rather than a strip of random episode
-        stills. Tiles for a show with no logo art just show the poster,
-        same as before this row had logo overlays at all.
-
-        The logo is looked up from each Series item's own ImageTags rather
-        than trusting the episode-inlined ParentLogoItemId/ParentLogoImageTag
-        fields, which were observed pointing at the wrong series' logo."""
-        series_ids = {item["SeriesId"] for item in items if item.get("SeriesId")}
-        series_by_id = {series["Id"]: series for series in library.get_items_by_ids(self.client, list(series_ids))}
-
+    def _populate_tv_posters(self, control_id, items):
+        """Recently Added TV: each tile shows its show's poster rather than
+        the episode's own landscape screengrab - images.primary_image_url()
+        would use that screengrab when the episode has one (which most do),
+        so this always goes straight to the series poster instead, the same
+        art series_poster_url() uses for Next Up/Continue Watching."""
         control = self.getControl(control_id)
         control.reset()
         list_items = []
         for item in items:
-            primary = images.primary_image_url(self.client, item)
+            primary = images.series_poster_url(self.client, item)
             backdrop = images.backdrop_image_url(self.client, item)
-            series = series_by_id.get(item.get("SeriesId"))
-            logo = images.series_logo_url(self.client, series) if series else None
-            list_items.append(list_item(item, primary, backdrop, logo_art=logo))
+            list_items.append(list_item(item, primary, backdrop))
         control.addItems(list_items)
 
     def _populate_episode_aware(self, control_id, items):

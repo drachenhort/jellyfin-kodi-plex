@@ -6,7 +6,6 @@ episodes usually don't carry their own Primary image.
 
 PRIMARY = "Primary"
 BACKDROP = "Backdrop"
-LOGO = "Logo"
 THUMB = "Thumb"
 
 
@@ -59,25 +58,6 @@ def series_poster_url(client, episode, season=None, max_width=None):
     series_tag = episode.get("SeriesPrimaryImageTag")
     if series_id and series_tag:
         return image_url(client, series_id, PRIMARY, tag=series_tag, max_width=max_width)
-    return None
-
-
-def series_logo_url(client, series, max_width=None):
-    """Show title-logo art for a Series item, meant to be overlaid on top of
-    a poster/backdrop background rather than used as the tile's only image -
-    Logo art is a wide transparent graphic, not a portrait-shaped picture, so
-    crop-filling a poster box with it (as with primary/backdrop art) crops it
-    into unrecognizable close-up text.
-
-    Takes the Series item itself (fetched separately by SeriesId, e.g. via
-    get_items_by_ids) rather than reading an inherited tag off an Episode -
-    unlike ParentBackdropItemId/ParentBackdropImageTags, the episode-inlined
-    ParentLogoItemId/ParentLogoImageTag fields were observed pointing at the
-    wrong series' logo in practice, so this reads the series' own ImageTags
-    instead of trusting that inheritance."""
-    tag = series.get("ImageTags", {}).get(LOGO)
-    if tag:
-        return image_url(client, series["Id"], LOGO, tag=tag, max_width=max_width)
     return None
 
 
