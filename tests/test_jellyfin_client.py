@@ -323,15 +323,15 @@ def test_primary_image_url_falls_back_to_album_for_a_track(client):
     assert "tag=atag" in url
 
 
-def test_series_logo_url_uses_inherited_parent_logo(client):
-    episode = {"Id": "ep-1", "ParentLogoItemId": "series-1", "ParentLogoImageTag": "logo-tag"}
-    url = images.series_logo_url(client, episode)
+def test_series_logo_url_uses_the_series_own_image_tag(client):
+    series = {"Id": "series-1", "ImageTags": {"Logo": "logo-tag"}}
+    url = images.series_logo_url(client, series)
     assert url.startswith(client.build_url("/Items/series-1/Images/Logo"))
     assert "tag=logo-tag" in url
 
 
 def test_series_logo_url_none_when_no_logo_art(client):
-    assert images.series_logo_url(client, {"Id": "ep-1", "SeriesId": "series-1"}) is None
+    assert images.series_logo_url(client, {"Id": "series-1", "ImageTags": {}}) is None
 
 
 def test_backdrop_image_url_falls_back_to_parent(client):

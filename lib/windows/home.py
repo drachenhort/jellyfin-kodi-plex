@@ -244,14 +244,22 @@ class HomeWindow(ControlledWindow):
         show's logo overlaid on top, so the row reads as "which shows got
         new episodes" via the logo rather than a strip of random episode
         stills. Tiles for a show with no logo art just show the poster,
-        same as before this row had logo overlays at all."""
+        same as before this row had logo overlays at all.
+
+        The logo is looked up from each Series item's own ImageTags rather
+        than trusting the episode-inlined ParentLogoItemId/ParentLogoImageTag
+        fields, which were observed pointing at the wrong series' logo."""
+        series_ids = {item["SeriesId"] for item in items if item.get("SeriesId")}
+        series_by_id = {series["Id"]: series for series in library.get_items_by_ids(self.client, list(series_ids))}
+
         control = self.getControl(control_id)
         control.reset()
         list_items = []
         for item in items:
             primary = images.primary_image_url(self.client, item)
             backdrop = images.backdrop_image_url(self.client, item)
-            logo = images.series_logo_url(self.client, item)
+            series = series_by_id.get(item.get("SeriesId"))
+            logo = images.series_logo_url(self.client, series) if series else None
             list_items.append(list_item(item, primary, backdrop, logo_art=logo))
         control.addItems(list_items)
 

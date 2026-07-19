@@ -62,20 +62,22 @@ def series_poster_url(client, episode, season=None, max_width=None):
     return None
 
 
-def series_logo_url(client, episode, max_width=None):
-    """Show title-logo art for an Episode item, meant to be overlaid on top
-    of a poster/backdrop background rather than used as the tile's only
-    image - Logo art is a wide transparent graphic, not a portrait-shaped
-    picture, so crop-filling a poster box with it (as with primary/backdrop
-    art) crops it into unrecognizable close-up text. Jellyfin inlines the
-    series' inherited Logo as ParentLogoItemId/ParentLogoImageTag on the
-    episode itself, the same pattern backdrop_image_url() already relies on
-    for ParentBackdropItemId/ParentBackdropImageTags - no extra Fields
-    request needed."""
-    logo_id = episode.get("ParentLogoItemId")
-    logo_tag = episode.get("ParentLogoImageTag")
-    if logo_id and logo_tag:
-        return image_url(client, logo_id, LOGO, tag=logo_tag, max_width=max_width)
+def series_logo_url(client, series, max_width=None):
+    """Show title-logo art for a Series item, meant to be overlaid on top of
+    a poster/backdrop background rather than used as the tile's only image -
+    Logo art is a wide transparent graphic, not a portrait-shaped picture, so
+    crop-filling a poster box with it (as with primary/backdrop art) crops it
+    into unrecognizable close-up text.
+
+    Takes the Series item itself (fetched separately by SeriesId, e.g. via
+    get_items_by_ids) rather than reading an inherited tag off an Episode -
+    unlike ParentBackdropItemId/ParentBackdropImageTags, the episode-inlined
+    ParentLogoItemId/ParentLogoImageTag fields were observed pointing at the
+    wrong series' logo in practice, so this reads the series' own ImageTags
+    instead of trusting that inheritance."""
+    tag = series.get("ImageTags", {}).get(LOGO)
+    if tag:
+        return image_url(client, series["Id"], LOGO, tag=tag, max_width=max_width)
     return None
 
 

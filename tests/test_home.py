@@ -146,6 +146,7 @@ def test_recently_added_tv_lists_episodes_individually_not_grouped_by_series(cli
         return []
 
     monkeypatch.setattr(home_mod.library, "get_latest_episodes", fake_get_latest_episodes)
+    monkeypatch.setattr(home_mod.library, "get_items_by_ids", lambda c, ids: [])
 
     window = _make_window(client, monkeypatch)
     window._load()
@@ -158,8 +159,12 @@ def test_recently_added_tv_tiles_overlay_series_logo_on_the_poster(client, monke
     """Tiles keep the poster as the background (thumb/poster art) and add
     the show's logo as a separate clearlogo art key layered on top - not a
     replacement for the poster, since a wide transparent logo crop-filled
-    into a portrait tile (the earlier, reverted approach) crops into
-    unrecognizable close-up text."""
+    into a portrait tile (an earlier, reverted approach) crops into
+    unrecognizable close-up text. The logo is looked up from each Series
+    item's own ImageTags (via a batched get_items_by_ids call keyed by
+    SeriesId), not from any inherited field on the episode - an earlier
+    attempt using the episode-inlined ParentLogoItemId/ParentLogoImageTag
+    fields was observed showing the wrong series' logo."""
     views = [
         {"Id": "lib-tv", "Name": "TV Shows", "CollectionType": "tvshows"},
     ]
@@ -173,7 +178,6 @@ def test_recently_added_tv_tiles_overlay_series_logo_on_the_poster(client, monke
                 {
                     "Id": "ep-1", "Name": "S01E02", "Type": "Episode", "SeriesId": "series-1",
                     "SeriesName": "Show A", "SeriesPrimaryImageTag": "poster-tag",
-                    "ParentLogoItemId": "series-1", "ParentLogoImageTag": "logo-tag",
                 },
                 {
                     "Id": "ep-2", "Name": "S01E01", "Type": "Episode", "SeriesId": "series-2",
@@ -182,7 +186,15 @@ def test_recently_added_tv_tiles_overlay_series_logo_on_the_poster(client, monke
             ]
         return []
 
+    def fake_get_items_by_ids(c, ids):
+        series = {
+            "series-1": {"Id": "series-1", "ImageTags": {"Logo": "logo-tag"}},
+            "series-2": {"Id": "series-2", "ImageTags": {}},
+        }
+        return [series[i] for i in ids if i in series]
+
     monkeypatch.setattr(home_mod.library, "get_latest_episodes", fake_get_latest_episodes)
+    monkeypatch.setattr(home_mod.library, "get_items_by_ids", fake_get_items_by_ids)
 
     window = _make_window(client, monkeypatch)
     window._load()
