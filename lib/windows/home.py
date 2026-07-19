@@ -158,19 +158,24 @@ class HomeWindow(ControlledWindow):
         self._update_loading_label()
 
         self._load_hub_row(
-            CTRL_CONTINUE_WATCHING, "get_resume", library.get_resume, self.client, episode_aware=True
+            CTRL_CONTINUE_WATCHING, "get_resume", library.get_resume, self.client,
+            populate=self._populate_episode_aware,
         )
         self._load_hub_row(
-            CTRL_NEXT_UP, "get_next_up", library.get_next_up, self.client, episode_aware=True
+            CTRL_NEXT_UP, "get_next_up", library.get_next_up, self.client,
+            populate=self._populate_episode_aware,
         )
         self._load_hub_row(CTRL_RECENTLY_ADDED_MOVIES, "latest movies", self._latest, views, "movies")
-        self._load_hub_row(CTRL_RECENTLY_ADDED_TV, "latest tvshows", self._latest_tv_episodes, views)
+        self._load_hub_row(
+            CTRL_RECENTLY_ADDED_TV, "latest tvshows", self._latest_tv_episodes, views,
+            populate=self._populate_tv_logos,
+        )
         self._load_hub_row(CTRL_RECENTLY_ADDED_MUSIC, "latest music", self._latest, views, "music")
         self.loading_done.set()
         if not self.closed_event.is_set():
             self.getControl(CTRL_LOADING).setVisible(False)
 
-    def _load_hub_row(self, control_id, label, fetch, *args, episode_aware=False, **kwargs):
+    def _load_hub_row(self, control_id, label, fetch, *args, populate=None, **kwargs):
         if self.closed_event.is_set():
             return
         try:
@@ -181,10 +186,7 @@ class HomeWindow(ControlledWindow):
                 return
             if self.closed_event.is_set():
                 return
-            if episode_aware:
-                self._populate_episode_aware(control_id, items)
-            else:
-                self._populate(control_id, items)
+            (populate or self._populate)(control_id, items)
         finally:
             # Counts as a completed step (for the loading overlay's "N of
             # TOTAL_LOAD_STEPS" count) whether the fetch succeeded, failed,
@@ -234,6 +236,23 @@ class HomeWindow(ControlledWindow):
                 primary = images.primary_image_url(self.client, item)
                 backdrop = images.backdrop_image_url(self.client, item)
                 list_items.append(list_item(item, primary, backdrop))
+        control.addItems(list_items)
+
+    def _populate_tv_logos(self, control_id, items):
+        """Recently Added TV: each tile keeps its show's poster as the
+        background image (episodes rarely have art of their own) with the
+        show's logo overlaid on top, so the row reads as "which shows got
+        new episodes" via the logo rather than a strip of random episode
+        stills. Tiles for a show with no logo art just show the poster,
+        same as before this row had logo overlays at all."""
+        control = self.getControl(control_id)
+        control.reset()
+        list_items = []
+        for item in items:
+            primary = images.primary_image_url(self.client, item)
+            backdrop = images.backdrop_image_url(self.client, item)
+            logo = images.series_logo_url(self.client, item)
+            list_items.append(list_item(item, primary, backdrop, logo_art=logo))
         control.addItems(list_items)
 
     def _populate_episode_aware(self, control_id, items):

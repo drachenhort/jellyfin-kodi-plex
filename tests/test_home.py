@@ -154,6 +154,48 @@ def test_recently_added_tv_lists_episodes_individually_not_grouped_by_series(cli
     assert [li.getProperty("jellyfin_id") for li in tv_row.items] == ["ep-1", "ep-2", "ep-3"]
 
 
+def test_recently_added_tv_tiles_overlay_series_logo_on_the_poster(client, monkeypatch):
+    """Tiles keep the poster as the background (thumb/poster art) and add
+    the show's logo as a separate clearlogo art key layered on top - not a
+    replacement for the poster, since a wide transparent logo crop-filled
+    into a portrait tile (the earlier, reverted approach) crops into
+    unrecognizable close-up text."""
+    views = [
+        {"Id": "lib-tv", "Name": "TV Shows", "CollectionType": "tvshows"},
+    ]
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: views)
+    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
+
+    def fake_get_latest_episodes(c, parent_id=None, limit=10):
+        if parent_id == "lib-tv":
+            return [
+                {
+                    "Id": "ep-1", "Name": "S01E02", "Type": "Episode", "SeriesId": "series-1",
+                    "SeriesName": "Show A", "SeriesPrimaryImageTag": "poster-tag",
+                    "ParentLogoItemId": "series-1", "ParentLogoImageTag": "logo-tag",
+                },
+                {
+                    "Id": "ep-2", "Name": "S01E01", "Type": "Episode", "SeriesId": "series-2",
+                    "SeriesName": "Show B", "SeriesPrimaryImageTag": "poster-tag-2",
+                },
+            ]
+        return []
+
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", fake_get_latest_episodes)
+
+    window = _make_window(client, monkeypatch)
+    window._load()
+
+    tv_row = window.getControl(home_mod.CTRL_RECENTLY_ADDED_TV)
+    # Show A: poster stays the background, logo is a separate overlay layer.
+    assert "/Images/Primary" in tv_row.items[0].art["thumb"]
+    assert "/Images/Logo" in tv_row.items[0].art["clearlogo"]
+    # Show B has no logo art - poster background only, no clearlogo key.
+    assert "/Images/Primary" in tv_row.items[1].art["thumb"]
+    assert "clearlogo" not in tv_row.items[1].art
+
+
 def test_load_hides_the_loading_indicator_once_everything_has_fetched(client, monkeypatch):
     monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
