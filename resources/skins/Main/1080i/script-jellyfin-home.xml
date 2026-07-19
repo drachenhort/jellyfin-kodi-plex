@@ -115,6 +115,20 @@
               <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
+            <control type="image">
+              <posy>95</posy>
+              <width>240</width>
+              <height>40</height>
+              <texture>gradient-overlay.png</texture>
+            </control>
+            <control type="label">
+              <posx>10</posx>
+              <posy>105</posy>
+              <width>220</width>
+              <height>30</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Label]</label>
+            </control>
           </itemlayout>
           <focusedlayout width="240" height="135">
             <control type="image">
