@@ -1,7 +1,11 @@
 """Tests for SearchWindow's _start_search()/_search() split: pressing the
 Search button must not block the GUI thread while the query is in flight,
 and a second press while one is still running must not start an
-overlapping second query.
+overlapping second query. Also covers _poll_query_once() (see module
+docstring): search-as-you-type is a polling loop, not a real callback, so
+its decision logic is tested directly rather than by racing onInit()'s
+real background thread against xbmc.sleep() (a no-op in the test stub,
+which would otherwise busy-spin for the rest of the process).
 """
 
 import threading
@@ -34,6 +38,7 @@ def test_start_search_runs_query_in_a_background_thread(client, monkeypatch):
     assert started.wait(2)
     finished.set()
     window._search_thread.join(timeout=2)
+    window.close()
 
 
 def test_start_search_ignores_a_second_click_while_one_is_in_flight(client, monkeypatch):
@@ -55,6 +60,7 @@ def test_start_search_ignores_a_second_click_while_one_is_in_flight(client, monk
     release.set()
     window._search_thread.join(timeout=2)
     assert calls == ["alien"]
+    window.close()
 
 
 def test_search_populates_results_and_focuses_grid(client, monkeypatch):
@@ -72,6 +78,7 @@ def test_search_populates_results_and_focuses_grid(client, monkeypatch):
     assert [li.getLabel() for li in grid.items] == ["Alien"]
     assert window.getFocusId() == search_mod.CTRL_RESULTS_GRID
     assert window.getControl(search_mod.CTRL_STATUS_LABEL).getLabel() == ""
+    window.close()
 
 
 def test_search_shows_no_results_label(client, monkeypatch):
@@ -81,6 +88,7 @@ def test_search_shows_no_results_label(client, monkeypatch):
     window._search("nonexistent")
 
     assert window.getControl(search_mod.CTRL_STATUS_LABEL).getLabel() == "No results"
+    window.close()
 
 
 def test_back_button_closes_with_no_result(client):
@@ -102,3 +110,55 @@ def test_empty_query_clears_status_without_searching(client, monkeypatch):
     window._start_search()
 
     assert window.getControl(search_mod.CTRL_STATUS_LABEL).getLabel() == ""
+    window.close()
+
+
+def test_poll_does_not_search_while_text_is_still_changing(client, monkeypatch):
+    monkeypatch.setattr(
+        search_mod.library, "search_items",
+        lambda c, term, limit=50: (_ for _ in ()).throw(AssertionError("must not search yet")),
+    )
+
+    window = _make_window(client)
+    query = window.getControl(search_mod.CTRL_QUERY)
+    query.setText("a")
+    window._poll_query_once()
+    query.setText("al")
+    window._poll_query_once()  # text changed since the last poll - no search
+
+    assert window._search_thread is None
+    window.close()
+
+
+def test_poll_searches_once_text_holds_steady_for_one_interval(client, monkeypatch):
+    monkeypatch.setattr(
+        search_mod.library, "search_items",
+        lambda c, term, limit=50: {"Items": []},
+    )
+
+    window = _make_window(client)
+    window.getControl(search_mod.CTRL_QUERY).setText("alien")
+    window._poll_query_once()  # first sighting of "alien"
+    window._poll_query_once()  # same text again - now it fires
+
+    window._search_thread.join(timeout=2)
+    assert window._last_submitted_text == "alien"
+    window.close()
+
+
+def test_poll_does_not_resubmit_the_same_text_twice(client, monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        search_mod.library, "search_items",
+        lambda c, term, limit=50: calls.append(term) or {"Items": []},
+    )
+
+    window = _make_window(client)
+    window.getControl(search_mod.CTRL_QUERY).setText("alien")
+    window._poll_query_once()
+    window._poll_query_once()
+    window._search_thread.join(timeout=2)
+    window._poll_query_once()  # still "alien", already submitted - no-op
+
+    assert calls == ["alien"]
+    window.close()
