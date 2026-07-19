@@ -23,6 +23,7 @@ CTRL_QUERY = 500
 CTRL_SEARCH_BUTTON = 501
 CTRL_RESULTS_GRID = 502
 CTRL_STATUS_LABEL = 503
+CTRL_BACK_BUTTON = 504
 
 MAX_RESULTS = 50
 
@@ -43,6 +44,9 @@ class SearchWindow(ControlledWindow):
             self._start_search()
         elif control_id == CTRL_RESULTS_GRID:
             self._open_selected()
+        elif control_id == CTRL_BACK_BUTTON:
+            self.result = None
+            self.close()
 
     def _start_search(self):
         # Runs the actual query on a background thread (_search()) so a slow

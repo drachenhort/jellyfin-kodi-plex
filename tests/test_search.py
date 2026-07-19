@@ -83,6 +83,14 @@ def test_search_shows_no_results_label(client, monkeypatch):
     assert window.getControl(search_mod.CTRL_STATUS_LABEL).getLabel() == "No results"
 
 
+def test_back_button_closes_with_no_result(client):
+    window = _make_window(client)
+    window.handle_click(search_mod.CTRL_BACK_BUTTON)
+
+    assert window.result is None
+    assert window.closed
+
+
 def test_empty_query_clears_status_without_searching(client, monkeypatch):
     def fail_if_called(*a, **k):
         raise AssertionError("must not search on an empty query")

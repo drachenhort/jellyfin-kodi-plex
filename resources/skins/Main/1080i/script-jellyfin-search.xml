@@ -19,13 +19,18 @@
       <label>Search</label>
     </control>
 
+    <!-- No <label> here (unlike most edit controls) - Kodi draws an edit
+         control's label as a static caption to the left of the typed text
+         within the same widget, which visually collided with anything
+         actually typed into this fairly narrow field. The equivalent hint
+         text now lives in its own label at the bottom of the window
+         instead (503 below the results grid). -->
     <control type="edit" id="500">
       <posx>80</posx>
       <posy>110</posy>
       <width>1200</width>
       <height>50</height>
       <font>font16</font>
-      <label>Search for movies, shows, artists...</label>
       <onright>501</onright>
       <ondown>502</ondown>
     </control>
@@ -39,6 +44,23 @@
       <texturefocus>button-focus.png</texturefocus>
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onleft>500</onleft>
+      <onright>504</onright>
+      <ondown>502</ondown>
+    </control>
+    <!-- Explicit escape hatch back to Home - Back/Escape alone can get
+         eaten by Kodi's on-screen keyboard closing itself (the edit
+         control above) instead of reaching the window, which reads as
+         "Back doesn't work" here even though it does everywhere else. -->
+    <control type="button" id="504">
+      <posx>1520</posx>
+      <posy>110</posy>
+      <width>260</width>
+      <height>50</height>
+      <font>font16</font>
+      <label>Back to Home</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onleft>501</onleft>
       <ondown>502</ondown>
     </control>
 
@@ -95,6 +117,15 @@
           <texture>focus-arrow.png</texture>
         </control>
       </focusedlayout>
+    </control>
+
+    <control type="label">
+      <posx>80</posx>
+      <posy>1035</posy>
+      <width>1760</width>
+      <height>30</height>
+      <font>font12</font>
+      <label>Search for movies, shows, artists...</label>
     </control>
   </controls>
 </window>
