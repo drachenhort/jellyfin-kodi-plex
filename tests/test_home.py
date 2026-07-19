@@ -125,8 +125,8 @@ def test_recently_added_music_empty_when_no_music_library(client, monkeypatch):
     assert window.getControl(home_mod.CTRL_RECENTLY_ADDED_MUSIC).items == []
 
 
-def test_recently_added_tv_deduplicates_episodes_by_series(client, monkeypatch):
-    """Only show the most recent episode from each series, episodes only."""
+def test_recently_added_tv_shows_most_recent_episode_per_series(client, monkeypatch):
+    """Show only the most recent episode from each recently added series."""
     views = [
         {"Id": "lib-tv", "Name": "TV Shows", "CollectionType": "tvshows"},
     ]
@@ -134,12 +134,11 @@ def test_recently_added_tv_deduplicates_episodes_by_series(client, monkeypatch):
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
 
-    def fake_get_latest_episodes(c, parent_id=None, limit=20):
+    def fake_get_latest_episodes(c, parent_id=None, limit=10):
         if parent_id == "lib-tv":
-            # Two episodes from the same series (Series-1), one from another series
+            # Returns one episode per series (already deduplicated by the function)
             return [
                 {"Id": "ep-1", "Name": "S01E02", "Type": "Episode", "SeriesId": "series-1", "SeriesName": "Show A"},
-                {"Id": "ep-2", "Name": "S01E01", "Type": "Episode", "SeriesId": "series-1", "SeriesName": "Show A"},
                 {"Id": "ep-3", "Name": "S01E01", "Type": "Episode", "SeriesId": "series-2", "SeriesName": "Show B"},
             ]
         return []
@@ -150,7 +149,7 @@ def test_recently_added_tv_deduplicates_episodes_by_series(client, monkeypatch):
     window._load()
 
     tv_row = window.getControl(home_mod.CTRL_RECENTLY_ADDED_TV)
-    # Should only have 2 items: most recent from series-1 and the one from series-2
+    # Should have 2 episodes, one per series
     assert len(tv_row.items) == 2
     assert tv_row.items[0].getProperty("jellyfin_id") == "ep-1"
     assert tv_row.items[1].getProperty("jellyfin_id") == "ep-3"
