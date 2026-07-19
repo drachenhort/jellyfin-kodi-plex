@@ -102,6 +102,7 @@ class SearchWindow(ControlledWindow):
             "action": "open",
             "item_id": selected.getProperty("jellyfin_id"),
             "item_type": selected.getProperty("jellyfin_type"),
+            "item_overview": selected.getProperty("overview"),
             "item_name": selected.getLabel(),
         }
         self.close()

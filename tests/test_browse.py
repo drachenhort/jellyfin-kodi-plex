@@ -14,7 +14,8 @@ import xbmcaddon
 import lib.windows.browse as browse_mod
 
 
-def _make_window(client, parent_item_type=None, select_item_id=None, monkeypatch=None, default_sort_by=None):
+def _make_window(client, parent_item_type=None, select_item_id=None, monkeypatch=None,
+                  default_sort_by=None, parent_overview=""):
     if monkeypatch is not None and default_sort_by is not None:
         # browse.py's ADDON is a single module-level instance shared across
         # the whole test session - give the test its own fresh stub so a
@@ -25,7 +26,7 @@ def _make_window(client, parent_item_type=None, select_item_id=None, monkeypatch
     window = browse_mod.BrowseWindow(None, "/fake/addon/path", "Main", "1080i")
     window.setup(
         client=client, parent_id="parent-1", title="Title", parent_item_type=parent_item_type,
-        select_item_id=select_item_id,
+        select_item_id=select_item_id, parent_overview=parent_overview,
     )
     return window
 
@@ -356,6 +357,7 @@ def test_episode_list_click_opens_selected_episode(client, monkeypatch):
         "item_id": "ep-1",
         "item_type": "Episode",
         "item_name": "Pilot",
+        "item_overview": "",
     }
     assert window.closed
 
@@ -374,6 +376,31 @@ def test_onInit_shows_grid_and_hides_episode_list_for_non_season(client):
 
     assert window.getControl(browse_mod.CTRL_GRID).visible is True
     assert window.getControl(browse_mod.CTRL_EPISODE_LIST).visible is False
+
+
+def test_onInit_sets_the_parent_overview_property_for_series(client):
+    window = _make_window(client, parent_item_type="Series", parent_overview="A show about things.")
+    window.onInit()
+
+    # The skin's own <visible> conditions (Window.Property(parent_overview)
+    # being empty or not) drive which of the static parent-overview pane and
+    # the per-item plot pane actually renders - see the XML for why this is
+    # a Window property rather than a direct getControl().setVisible() call.
+    assert window.getProperty("parent_overview") == "A show about things."
+
+
+def test_onInit_leaves_the_parent_overview_property_empty_when_series_has_no_overview(client):
+    window = _make_window(client, parent_item_type="Series", parent_overview="")
+    window.onInit()
+
+    assert window.getProperty("parent_overview") == ""
+
+
+def test_onInit_never_sets_parent_overview_for_non_summarized_parent_type(client):
+    window = _make_window(client, parent_item_type="Season", parent_overview="A season overview.")
+    window.onInit()
+
+    assert window.getProperty("parent_overview") == ""
 
 
 def test_onInit_sets_the_loading_label_to_the_screen_title(client):
@@ -409,5 +436,6 @@ def test_grid_click_still_opens_selected_item(client, monkeypatch):
         "item_id": "track-1",
         "item_type": "Audio",
         "item_name": "One",
+        "item_overview": "",
     }
     assert window.closed

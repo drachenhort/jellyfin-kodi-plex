@@ -49,6 +49,13 @@ CTRL_SHUFFLE = 303
 CTRL_EPISODE_LIST = 304
 CTRL_LOADING = 305
 
+# Parent types whose own Overview is worth showing persistently at the
+# bottom while the user is still picking a child (a season's own Overview is
+# almost always blank in Jellyfin, so the per-focused-item plot pane below
+# would otherwise just sit empty here) - the per-item plot pane is hidden in
+# favor of this static one for these parent types.
+SUMMARIZED_PARENT_TYPES = {"Series"}
+
 # Only an album's own screen offers Play All/Shuffle - browsing an Artist
 # still just drills down into that artist's Albums.
 QUEUEABLE_PARENT_TYPES = {"MusicAlbum"}
@@ -63,12 +70,13 @@ class BrowseWindow(ControlledWindow):
     xmlFile = "script-jellyfin-browse.xml"
 
     def setup(self, client=None, parent_id=None, title="", parent_item_type=None,
-              select_item_id=None, **kwargs):
+              select_item_id=None, parent_overview="", **kwargs):
         super().setup(**kwargs)
         self.client = client
         self.parent_id = parent_id
         self.title = title
         self.parent_item_type = parent_item_type
+        self.parent_overview = parent_overview
         self.is_episode_list = parent_item_type in LISTED_PARENT_TYPES
         self.items = []
         self._track_id_cache = []
@@ -97,6 +105,18 @@ class BrowseWindow(ControlledWindow):
         active_control = CTRL_EPISODE_LIST if self.is_episode_list else CTRL_GRID
         self.getControl(CTRL_GRID).setVisible(not self.is_episode_list)
         self.getControl(CTRL_EPISODE_LIST).setVisible(self.is_episode_list)
+        # A Window property rather than a direct getControl().setVisible()/
+        # setText() pair - Kodi's skin engine continuously re-evaluates any
+        # control that has its own <visible> condition in the XML (which 306/
+        # 307 do, to collapse when the focused item has no Plot), silently
+        # overriding a one-off Python setVisible() call on the very next
+        # frame. Routing through a Window property that the skin's <visible>
+        # conditions and $INFO binding reference instead means the skin
+        # engine itself stays the single source of truth.
+        show_parent_overview = (
+            self.parent_item_type in SUMMARIZED_PARENT_TYPES and bool(self.parent_overview)
+        )
+        self.setProperty("parent_overview", self.parent_overview if show_parent_overview else "")
         self.setFocusId(active_control)
         self._load_started = time.time()
         self._update_loading_label()
@@ -240,6 +260,7 @@ class BrowseWindow(ControlledWindow):
             "item_id": selected.getProperty("jellyfin_id"),
             "item_type": selected.getProperty("jellyfin_type"),
             "item_name": selected.getLabel(),
+            "item_overview": selected.getProperty("overview"),
         }
         self.close()
 

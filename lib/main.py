@@ -198,14 +198,15 @@ def _detail_loop(client, item_id):
             # Loop back to the detail page (e.g. to show updated resume state).
 
 
-def _open_item(client, item_id, item_type, item_name):
+def _open_item(client, item_id, item_type, item_name, item_overview=""):
     if item_type in CONTAINER_TYPES:
-        _browse_loop(client, item_id, item_name, parent_item_type=item_type)
+        _browse_loop(client, item_id, item_name, parent_item_type=item_type,
+                     parent_overview=item_overview)
     else:
         _detail_loop(client, item_id)
 
 
-def _browse_loop(client, parent_id, title, parent_item_type=None):
+def _browse_loop(client, parent_id, title, parent_item_type=None, parent_overview=""):
     # Remembers which item was last opened from this screen so that, when
     # BrowseWindow.open() runs again after Back, it re-selects that same
     # item instead of resetting focus to the top of the list.
@@ -214,12 +215,14 @@ def _browse_loop(client, parent_id, title, parent_item_type=None):
         result = BrowseWindow.open(
             ADDON_PATH, client=client, parent_id=parent_id, title=title,
             parent_item_type=parent_item_type, select_item_id=select_item_id,
+            parent_overview=parent_overview,
         )
         if not result:
             return
         if result["action"] == "open":
             select_item_id = result["item_id"]
-            _open_item(client, result["item_id"], result["item_type"], result["item_name"])
+            _open_item(client, result["item_id"], result["item_type"], result["item_name"],
+                       item_overview=result.get("item_overview", ""))
         elif result["action"] == "play_queue":
             try:
                 player.play_queue(client, result["item_ids"], item_type=result.get("item_type"))
@@ -233,7 +236,8 @@ def _search_loop(client):
         if not result:
             return
         if result["action"] == "open":
-            _open_item(client, result["item_id"], result["item_type"], result["item_name"])
+            _open_item(client, result["item_id"], result["item_type"], result["item_name"],
+                       item_overview=result.get("item_overview", ""))
 
 
 def _confirm_quit():
@@ -264,7 +268,8 @@ def _home_loop(client):
         elif result["action"] == "open":
             select_control_id = result["control_id"]
             select_item_id = result["item_id"]
-            _open_item(client, result["item_id"], result["item_type"], result["item_name"])
+            _open_item(client, result["item_id"], result["item_type"], result["item_name"],
+                       item_overview=result.get("item_overview", ""))
         elif result["action"] == "search":
             _search_loop(client)
         elif result["action"] == "servers":

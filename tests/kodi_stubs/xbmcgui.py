@@ -128,6 +128,13 @@ class _WindowBase:
         self._focus_id = None
         self.closed = False
         self.shown = False
+        self._properties = {}
+
+    def setProperty(self, key, value):
+        self._properties[key] = value
+
+    def getProperty(self, key):
+        return self._properties.get(key, "")
 
     def getControl(self, control_id):
         if control_id not in self._controls:

@@ -400,6 +400,7 @@ class HomeWindow(ControlledWindow):
             "item_id": selected.getProperty("jellyfin_id"),
             "item_type": selected.getProperty("jellyfin_type"),
             "item_name": selected.getLabel(),
+            "item_overview": selected.getProperty("overview"),
             "control_id": control_id,
         }
         self.close()

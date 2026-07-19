@@ -329,7 +329,12 @@
          populated per screen instance, so concatenating both container refs
          is safe: the inactive one is always empty. No Python wiring needed
          beyond list_item() already calling setPlot(). Collapses to blank
-         space rather than being hidden outright when there's no Overview. -->
+         space rather than being hidden outright when there's no Overview.
+         Also suppressed outright (via the Window.Property(parent_overview)
+         half of each condition) whenever the static parent-overview pane
+         below is showing instead, e.g. a series' seasons - a season's own
+         Overview is almost always blank anyway, but this guards the rare
+         case where it isn't, to avoid the two panes overlapping. -->
     <control type="label">
       <posx>80</posx>
       <posy>810</posy>
@@ -337,7 +342,7 @@
       <height>30</height>
       <font>font16</font>
       <label>$INFO[Container(301).ListItem.Label]$INFO[Container(304).ListItem.Label]</label>
-      <visible>!String.IsEmpty(Container(301).ListItem.Plot) | !String.IsEmpty(Container(304).ListItem.Plot)</visible>
+      <visible>String.IsEmpty(Window.Property(parent_overview)) + (!String.IsEmpty(Container(301).ListItem.Plot) | !String.IsEmpty(Container(304).ListItem.Plot))</visible>
     </control>
     <control type="textbox">
       <posx>80</posx>
@@ -346,7 +351,22 @@
       <height>185</height>
       <font>font13</font>
       <label>$INFO[Container(301).ListItem.Plot]$INFO[Container(304).ListItem.Plot]</label>
-      <visible>!String.IsEmpty(Container(301).ListItem.Plot) | !String.IsEmpty(Container(304).ListItem.Plot)</visible>
+      <visible>String.IsEmpty(Window.Property(parent_overview)) + (!String.IsEmpty(Container(301).ListItem.Plot) | !String.IsEmpty(Container(304).ListItem.Plot))</visible>
+    </control>
+
+    <!-- Static synopsis of the parent item itself (e.g. the show, while
+         still picking a season) rather than the focused child - a Window
+         property set once in BrowseWindow.onInit() (see SUMMARIZED_PARENT_TYPES)
+         rather than an $INFO container binding, since it doesn't change as
+         focus moves through the grid. -->
+    <control type="textbox">
+      <posx>80</posx>
+      <posy>810</posy>
+      <width>1760</width>
+      <height>220</height>
+      <font>font13</font>
+      <label>$INFO[Window.Property(parent_overview)]</label>
+      <visible>!String.IsEmpty(Window.Property(parent_overview))</visible>
     </control>
 
     <!-- Transient loading overlay: shown while _load() is still fetching in
