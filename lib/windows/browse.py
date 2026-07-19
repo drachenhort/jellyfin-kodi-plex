@@ -104,7 +104,8 @@ class BrowseWindow(ControlledWindow):
 
     def _load(self):
         started = self._load_started
-        control = self.getControl(CTRL_EPISODE_LIST if self.is_episode_list else CTRL_GRID)
+        active_control = CTRL_EPISODE_LIST if self.is_episode_list else CTRL_GRID
+        control = self.getControl(active_control)
         control.reset()
         self.items = []
         error = None
@@ -115,12 +116,20 @@ class BrowseWindow(ControlledWindow):
             ):
                 if self.closed_event.is_set():
                     return
+                was_empty = not self.items
                 self.items.extend(page)
                 control.addItems([
                     list_item(item, images.primary_image_url(self.client, item),
                               images.backdrop_image_url(self.client, item))
                     for item in page
                 ])
+                if was_empty:
+                    # onInit() sets focus to this control before any items
+                    # exist, so Kodi refuses it ("has been asked to focus,
+                    # but it can't") and the control is left unfocusable -
+                    # arrow keys/select land nowhere. Re-request focus now
+                    # that it actually has items.
+                    self.setFocusId(active_control)
                 self._update_loading_label()
         except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
             error = exc

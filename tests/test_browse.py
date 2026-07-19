@@ -241,6 +241,34 @@ def test_non_season_children_still_populate_grid(client, monkeypatch):
     assert window.getControl(browse_mod.CTRL_EPISODE_LIST).items == []
 
 
+def test_load_refocuses_episode_list_once_items_arrive(client, monkeypatch):
+    """onInit() calls setFocusId() before _load() has fetched anything, so
+    Kodi refuses the focus request on the still-empty list (logged as
+    "has been asked to focus, but it can't") and no episode is selectable.
+    _load() must re-request focus once the list actually has items."""
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(EPISODES))
+    monkeypatch.setattr(browse_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client, parent_item_type="Season")
+    window.setFocusId(browse_mod.CTRL_EPISODE_LIST)  # what onInit() does pre-fetch
+    window._load()
+
+    assert window.getFocusId() == browse_mod.CTRL_EPISODE_LIST
+
+
+def test_load_refocuses_grid_once_items_arrive(client, monkeypatch):
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(ALBUM_TRACKS))
+    monkeypatch.setattr(browse_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client, parent_item_type="Series")
+    window.setFocusId(browse_mod.CTRL_GRID)
+    window._load()
+
+    assert window.getFocusId() == browse_mod.CTRL_GRID
+
+
 def test_episode_list_click_opens_selected_episode(client, monkeypatch):
     monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(EPISODES))
     monkeypatch.setattr(browse_mod.images, "primary_image_url", lambda *a, **k: None)
