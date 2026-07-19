@@ -99,8 +99,13 @@ class ControlStub:
 
     def addItems(self, items):
         self.items.extend(items)
-        if self.selected_item is None and items:
-            self.selected_item = items[0]
+        # Mirrors real Kodi's ControlList: each addItems() call resets the
+        # highlighted position back to the top of the whole list, not just
+        # the newly appended items - a selectItem() call from an earlier
+        # page gets silently undone by a later page's addItems() unless the
+        # caller re-selects after every page has landed.
+        if items:
+            self.selected_item = self.items[0]
 
     def getSelectedItem(self):
         return self.selected_item

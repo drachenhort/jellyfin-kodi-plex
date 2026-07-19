@@ -61,7 +61,6 @@ class BrowseWindow(ControlledWindow):
         # they opened from here - lets Back land back on the same item
         # instead of resetting to the top of the list.
         self.select_item_id = select_item_id
-        self._selected_target = False
         # onInit() overwrites this right before _load() actually starts;
         # set here too so tests that call _load() directly (bypassing
         # onInit(), per this file's existing convention) don't hit an
@@ -115,6 +114,7 @@ class BrowseWindow(ControlledWindow):
         control = self.getControl(active_control)
         control.reset()
         self.items = []
+        select_index = None
         error = None
         try:
             for page in library.iter_items_paged(
@@ -138,12 +138,10 @@ class BrowseWindow(ControlledWindow):
                     # arrow keys/select land nowhere. Re-request focus now
                     # that it actually has items.
                     self.setFocusId(active_control)
-                if self.select_item_id and not self._selected_target:
+                if self.select_item_id and select_index is None:
                     for offset, item in enumerate(page):
                         if item.get("Id") == self.select_item_id:
-                            control.selectItem(start_index + offset)
-                            self.setFocusId(active_control)
-                            self._selected_target = True
+                            select_index = start_index + offset
                             break
                 self._update_loading_label()
         except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
@@ -151,6 +149,17 @@ class BrowseWindow(ControlledWindow):
 
         if self.closed_event.is_set():
             return
+
+        if select_index is not None:
+            # Deliberately done once, after every page's addItems() call has
+            # already happened, rather than as soon as the matching page
+            # lands - Kodi's real ControlList resets the highlighted item
+            # back to the top on each addItems() call, so selecting it
+            # mid-load (still the right call for a single-page list) would
+            # just get silently undone by every later page here.
+            control.selectItem(select_index)
+            self.setFocusId(active_control)
+
         elapsed = time.time() - started
 
         if error and not self.items:
