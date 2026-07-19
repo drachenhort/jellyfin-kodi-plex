@@ -15,7 +15,7 @@ import xbmcaddon
 import lib.windows.home as home_mod
 
 
-def _make_window(client, monkeypatch, hide_playlists_setting=None):
+def _make_window(client, monkeypatch, hide_playlists_setting=None, select_control_id=None, select_item_id=None):
     # home.py's ADDON is a single module-level instance shared across the
     # whole test session - give every test its own fresh stub so a
     # setSetting() call in one test can't leak into another's assertions.
@@ -24,7 +24,7 @@ def _make_window(client, monkeypatch, hide_playlists_setting=None):
         addon.setSetting(home_mod.HIDE_PLAYLISTS_SETTING, hide_playlists_setting)
     monkeypatch.setattr(home_mod, "ADDON", addon)
     window = home_mod.HomeWindow(None, "/fake/addon/path", "Main", "1080i")
-    window.setup(client=client)
+    window.setup(client=client, select_control_id=select_control_id, select_item_id=select_item_id)
     return window
 
 
@@ -336,6 +336,75 @@ def test_a_slow_or_broken_hub_row_does_not_blank_the_others(client, monkeypatch)
     assert window.getControl(home_mod.CTRL_RECENTLY_ADDED_MUSIC).items == []
     movies_row = window.getControl(home_mod.CTRL_RECENTLY_ADDED_MOVIES)
     assert [li.getLabel() for li in movies_row.items] == ["Alien"]
+
+
+# -- Restoring selection after Back ------------------------------------------
+
+def test_load_reselects_the_given_hub_row_item_once_it_arrives(client, monkeypatch):
+    """When Home is shown again after Back (e.g. from a detail page opened
+    by clicking a Recently Added Movies tile), select_control_id/
+    select_item_id should land the selection back on that same tile
+    instead of defaulting to the first item in the row."""
+    views = [{"Id": "lib-movies", "Name": "Movies", "CollectionType": "movies"}]
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: views)
+    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
+
+    def fake_get_latest(c, parent_id=None, limit=10):
+        if parent_id == "lib-movies":
+            return [
+                {"Id": "movie-1", "Name": "Alien", "Type": "Movie"},
+                {"Id": "movie-2", "Name": "Aliens", "Type": "Movie"},
+            ]
+        return []
+
+    monkeypatch.setattr(home_mod.library, "get_latest", fake_get_latest)
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+
+    window = _make_window(
+        client, monkeypatch,
+        select_control_id=home_mod.CTRL_RECENTLY_ADDED_MOVIES, select_item_id="movie-2",
+    )
+    window._load()
+
+    movies_row = window.getControl(home_mod.CTRL_RECENTLY_ADDED_MOVIES)
+    assert movies_row.getSelectedItem().getProperty("jellyfin_id") == "movie-2"
+    assert window.getFocusId() == home_mod.CTRL_RECENTLY_ADDED_MOVIES
+
+
+def test_load_reselects_a_library_tile_once_it_arrives(client, monkeypatch):
+    views = [
+        {"Id": "lib-movies", "Name": "Filme", "CollectionType": "movies"},
+        {"Id": "lib-tv", "Name": "Serien", "CollectionType": "tvshows"},
+    ]
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: views)
+    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+
+    window = _make_window(
+        client, monkeypatch,
+        select_control_id=home_mod.CTRL_LIBRARIES, select_item_id="lib-tv",
+    )
+    window._load()
+
+    libraries_row = window.getControl(home_mod.CTRL_LIBRARIES)
+    assert libraries_row.getSelectedItem().getProperty("jellyfin_id") == "lib-tv"
+    assert window.getFocusId() == home_mod.CTRL_LIBRARIES
+
+
+def test_load_leaves_default_focus_when_no_selection_to_restore(client, monkeypatch):
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+
+    window = _make_window(client, monkeypatch)
+    window._load()
+
+    assert window.getFocusId() is None
 
 
 # -- Playlists show/hide toggle ---------------------------------------------

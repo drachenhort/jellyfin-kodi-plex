@@ -105,6 +105,10 @@ class ControlStub:
     def getSelectedItem(self):
         return self.selected_item
 
+    def selectItem(self, index):
+        if 0 <= index < len(self.items):
+            self.selected_item = self.items[index]
+
     def setVisible(self, visible):
         self.visible = visible
 

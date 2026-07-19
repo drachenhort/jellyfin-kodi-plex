@@ -12,9 +12,12 @@ import re
 import lib.windows.browse as browse_mod
 
 
-def _make_window(client, parent_item_type=None):
+def _make_window(client, parent_item_type=None, select_item_id=None):
     window = browse_mod.BrowseWindow(None, "/fake/addon/path", "Main", "1080i")
-    window.setup(client=client, parent_id="parent-1", title="Title", parent_item_type=parent_item_type)
+    window.setup(
+        client=client, parent_id="parent-1", title="Title", parent_item_type=parent_item_type,
+        select_item_id=select_item_id,
+    )
     return window
 
 
@@ -267,6 +270,35 @@ def test_load_refocuses_grid_once_items_arrive(client, monkeypatch):
     window._load()
 
     assert window.getFocusId() == browse_mod.CTRL_GRID
+
+
+def test_load_reselects_the_given_item_once_it_arrives(client, monkeypatch):
+    """When this screen is being shown again after Back (e.g. from a
+    detail page opened by clicking "Redemption"), select_item_id should
+    make _load() land the selection back on that same episode instead of
+    defaulting to the first item in the list."""
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(EPISODES))
+    monkeypatch.setattr(browse_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client, parent_item_type="Season", select_item_id="ep-2")
+    window._load()
+
+    selected = window.getControl(browse_mod.CTRL_EPISODE_LIST).getSelectedItem()
+    assert selected.getProperty("jellyfin_id") == "ep-2"
+    assert window.getFocusId() == browse_mod.CTRL_EPISODE_LIST
+
+
+def test_load_leaves_default_selection_when_no_select_item_id_given(client, monkeypatch):
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(EPISODES))
+    monkeypatch.setattr(browse_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client, parent_item_type="Season")
+    window._load()
+
+    selected = window.getControl(browse_mod.CTRL_EPISODE_LIST).getSelectedItem()
+    assert selected.getProperty("jellyfin_id") == "ep-1"
 
 
 def test_episode_list_click_opens_selected_episode(client, monkeypatch):

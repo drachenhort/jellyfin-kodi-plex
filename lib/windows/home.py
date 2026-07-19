@@ -82,12 +82,19 @@ def _library_list_item(client, view):
 class HomeWindow(ControlledWindow):
     xmlFile = "script-jellyfin-home.xml"
 
-    def setup(self, client=None, **kwargs):
+    def setup(self, client=None, select_control_id=None, select_item_id=None, **kwargs):
         super().setup(**kwargs)
         self.client = client
         self.views = None
         self.hide_playlists = ADDON.getSetting(HIDE_PLAYLISTS_SETTING) != "false"
         self.loaded_steps = 0
+        # Which item (if any) to re-select once its row is loaded, e.g.
+        # because Home is being shown again after the user backed out of
+        # whatever they opened from here - lets Back land back on the same
+        # tile instead of resetting focus to the Libraries row.
+        self.select_control_id = select_control_id
+        self.select_item_id = select_item_id
+        self._selected_target = False
         # onInit() overwrites this right before _load() actually starts;
         # set here too so tests that call _load() directly (bypassing
         # onInit(), per this file's existing convention) don't hit an
@@ -148,7 +155,9 @@ class HomeWindow(ControlledWindow):
             return
         if self.closed_event.is_set():
             return
-        self._populate(CTRL_LIBRARIES, _visible_library_views(views, self.hide_playlists), is_library=True)
+        visible_views = _visible_library_views(views, self.hide_playlists)
+        self._populate(CTRL_LIBRARIES, visible_views, is_library=True)
+        self._maybe_restore_selection(CTRL_LIBRARIES, visible_views)
         # self.views must only become non-None after the populate above has
         # returned - _toggle_playlists_visibility() (GUI thread) uses it as
         # its "safe to repopulate CTRL_LIBRARIES" guard, and this control
@@ -187,6 +196,7 @@ class HomeWindow(ControlledWindow):
             if self.closed_event.is_set():
                 return
             (populate or self._populate)(control_id, items)
+            self._maybe_restore_selection(control_id, items)
         finally:
             # Counts as a completed step (for the loading overlay's "N of
             # TOTAL_LOAD_STEPS" count) whether the fetch succeeded, failed,
@@ -195,6 +205,16 @@ class HomeWindow(ControlledWindow):
             self.loaded_steps += 1
             if not self.closed_event.is_set():
                 self._update_loading_label()
+
+    def _maybe_restore_selection(self, control_id, items):
+        if control_id != self.select_control_id or self._selected_target:
+            return
+        for index, item in enumerate(items):
+            if item.get("Id") == self.select_item_id:
+                self.getControl(control_id).selectItem(index)
+                self.setFocusId(control_id)
+                self._selected_target = True
+                return
 
     def _timed(self, label, fn, *args, **kwargs):
         """Logs how long each Home fetch step took (or how long it ran
@@ -310,6 +330,8 @@ class HomeWindow(ControlledWindow):
             "action": "browse",
             "library_id": selected.getProperty("jellyfin_id"),
             "library_name": selected.getLabel(),
+            "control_id": CTRL_LIBRARIES,
+            "item_id": selected.getProperty("jellyfin_id"),
         }
         self.close()
 
@@ -322,5 +344,6 @@ class HomeWindow(ControlledWindow):
             "item_id": selected.getProperty("jellyfin_id"),
             "item_type": selected.getProperty("jellyfin_type"),
             "item_name": selected.getLabel(),
+            "control_id": control_id,
         }
         self.close()

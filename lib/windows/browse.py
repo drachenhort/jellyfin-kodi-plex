@@ -46,7 +46,8 @@ LISTED_PARENT_TYPES = {"Season"}
 class BrowseWindow(ControlledWindow):
     xmlFile = "script-jellyfin-browse.xml"
 
-    def setup(self, client=None, parent_id=None, title="", parent_item_type=None, **kwargs):
+    def setup(self, client=None, parent_id=None, title="", parent_item_type=None,
+              select_item_id=None, **kwargs):
         super().setup(**kwargs)
         self.client = client
         self.parent_id = parent_id
@@ -55,6 +56,12 @@ class BrowseWindow(ControlledWindow):
         self.is_episode_list = parent_item_type in LISTED_PARENT_TYPES
         self.items = []
         self._track_id_cache = []
+        # The item (if any) to re-select once loaded, e.g. because this
+        # screen is being shown again after the user backed out of whatever
+        # they opened from here - lets Back land back on the same item
+        # instead of resetting to the top of the list.
+        self.select_item_id = select_item_id
+        self._selected_target = False
         # onInit() overwrites this right before _load() actually starts;
         # set here too so tests that call _load() directly (bypassing
         # onInit(), per this file's existing convention) don't hit an
@@ -117,6 +124,7 @@ class BrowseWindow(ControlledWindow):
                 if self.closed_event.is_set():
                     return
                 was_empty = not self.items
+                start_index = len(self.items)
                 self.items.extend(page)
                 control.addItems([
                     list_item(item, images.primary_image_url(self.client, item),
@@ -130,6 +138,13 @@ class BrowseWindow(ControlledWindow):
                     # arrow keys/select land nowhere. Re-request focus now
                     # that it actually has items.
                     self.setFocusId(active_control)
+                if self.select_item_id and not self._selected_target:
+                    for offset, item in enumerate(page):
+                        if item.get("Id") == self.select_item_id:
+                            control.selectItem(start_index + offset)
+                            self.setFocusId(active_control)
+                            self._selected_target = True
+                            break
                 self._update_loading_label()
         except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
             error = exc

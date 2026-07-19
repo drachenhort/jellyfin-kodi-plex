@@ -189,14 +189,19 @@ def _open_item(client, item_id, item_type, item_name):
 
 
 def _browse_loop(client, parent_id, title, parent_item_type=None):
+    # Remembers which item was last opened from this screen so that, when
+    # BrowseWindow.open() runs again after Back, it re-selects that same
+    # item instead of resetting focus to the top of the list.
+    select_item_id = None
     while True:
         result = BrowseWindow.open(
             ADDON_PATH, client=client, parent_id=parent_id, title=title,
-            parent_item_type=parent_item_type,
+            parent_item_type=parent_item_type, select_item_id=select_item_id,
         )
         if not result:
             return
         if result["action"] == "open":
+            select_item_id = result["item_id"]
             _open_item(client, result["item_id"], result["item_type"], result["item_name"])
         elif result["action"] == "play_queue":
             try:
@@ -221,15 +226,27 @@ def _confirm_quit():
 def _home_loop(client):
     """Runs Home for one server session. Returns a new client to switch the
     active server to, or None once the user backs all the way out."""
+    # Remembers which hub-row tile was last opened so that, when
+    # HomeWindow.open() runs again after Back, it re-selects that same tile
+    # instead of resetting focus to the Libraries row.
+    select_control_id = None
+    select_item_id = None
     while True:
-        result = HomeWindow.open(ADDON_PATH, client=client)
+        result = HomeWindow.open(
+            ADDON_PATH, client=client,
+            select_control_id=select_control_id, select_item_id=select_item_id,
+        )
         if not result:
             if _confirm_quit():
                 return None
             continue
         if result["action"] == "browse":
+            select_control_id = result["control_id"]
+            select_item_id = result["item_id"]
             _browse_loop(client, result["library_id"], result["library_name"])
         elif result["action"] == "open":
+            select_control_id = result["control_id"]
+            select_item_id = result["item_id"]
             _open_item(client, result["item_id"], result["item_type"], result["item_name"])
         elif result["action"] == "search":
             _search_loop(client)
