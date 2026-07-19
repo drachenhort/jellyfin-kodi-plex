@@ -15,13 +15,16 @@ import xbmcaddon
 import lib.windows.home as home_mod
 
 
-def _make_window(client, monkeypatch, hide_playlists_setting=None, select_control_id=None, select_item_id=None):
+def _make_window(client, monkeypatch, hide_playlists_setting=None, select_control_id=None, select_item_id=None,
+                  extra_settings=None):
     # home.py's ADDON is a single module-level instance shared across the
     # whole test session - give every test its own fresh stub so a
     # setSetting() call in one test can't leak into another's assertions.
     addon = xbmcaddon.Addon()
     if hide_playlists_setting is not None:
         addon.setSetting(home_mod.HIDE_PLAYLISTS_SETTING, hide_playlists_setting)
+    for key, value in (extra_settings or {}).items():
+        addon.setSetting(key, value)
     monkeypatch.setattr(home_mod, "ADDON", addon)
     window = home_mod.HomeWindow(None, "/fake/addon/path", "Main", "1080i")
     window.setup(client=client, select_control_id=select_control_id, select_item_id=select_item_id)
@@ -405,6 +408,68 @@ def test_load_leaves_default_focus_when_no_selection_to_restore(client, monkeypa
     window._load()
 
     assert window.getFocusId() is None
+
+
+# -- Per-row Home visibility toggles (addon settings) ------------------------
+
+def test_hub_row_toggles_default_to_shown_when_settings_unset(client, monkeypatch):
+    window = _make_window(client, monkeypatch)
+    assert window.show_continue_watching is True
+    assert window.show_next_up is True
+    assert window.show_recently_added_movies is True
+    assert window.show_recently_added_tv is True
+    assert window.show_recently_added_music is True
+
+
+def test_disabled_hub_row_is_never_fetched_or_populated(client, monkeypatch):
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
+
+    def fail_if_called(*a, **k):
+        raise AssertionError("a disabled hub row must not be fetched")
+
+    monkeypatch.setattr(home_mod.library, "get_next_up", fail_if_called)
+    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+
+    window = _make_window(client, monkeypatch, extra_settings={home_mod.SHOW_NEXT_UP_SETTING: "false"})
+    window._load()
+
+    assert window.getControl(home_mod.CTRL_NEXT_UP).items == []
+
+
+def test_disabled_hub_row_still_counts_as_a_completed_loading_step(client, monkeypatch):
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+
+    window = _make_window(client, monkeypatch, extra_settings={home_mod.SHOW_NEXT_UP_SETTING: "false"})
+    window._load()
+
+    assert window.loaded_steps == home_mod.TOTAL_LOAD_STEPS
+
+
+def test_enabled_hub_rows_still_populate_when_a_sibling_row_is_disabled(client, monkeypatch):
+    views = [{"Id": "lib-movies", "Name": "Movies", "CollectionType": "movies"}]
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: views)
+    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+
+    def fake_get_latest(c, parent_id=None, limit=10):
+        if parent_id == "lib-movies":
+            return [{"Id": "movie-1", "Name": "Alien", "Type": "Movie"}]
+        return []
+
+    monkeypatch.setattr(home_mod.library, "get_latest", fake_get_latest)
+
+    window = _make_window(client, monkeypatch, extra_settings={home_mod.SHOW_NEXT_UP_SETTING: "false"})
+    window._load()
+
+    movies_row = window.getControl(home_mod.CTRL_RECENTLY_ADDED_MOVIES)
+    assert [li.getLabel() for li in movies_row.items] == ["Alien"]
 
 
 # -- Playlists show/hide toggle ---------------------------------------------

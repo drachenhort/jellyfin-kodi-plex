@@ -9,10 +9,19 @@ deterministic, non-racy assertion instead of onInit().
 
 import re
 
+import xbmcaddon
+
 import lib.windows.browse as browse_mod
 
 
-def _make_window(client, parent_item_type=None, select_item_id=None):
+def _make_window(client, parent_item_type=None, select_item_id=None, monkeypatch=None, default_sort_by=None):
+    if monkeypatch is not None and default_sort_by is not None:
+        # browse.py's ADDON is a single module-level instance shared across
+        # the whole test session - give the test its own fresh stub so a
+        # setSetting() call here can't leak into another test's assertions.
+        addon = xbmcaddon.Addon()
+        addon.setSetting(browse_mod.DEFAULT_SORT_SETTING, default_sort_by)
+        monkeypatch.setattr(browse_mod, "ADDON", addon)
     window = browse_mod.BrowseWindow(None, "/fake/addon/path", "Main", "1080i")
     window.setup(
         client=client, parent_id="parent-1", title="Title", parent_item_type=parent_item_type,
@@ -140,6 +149,38 @@ def test_load_across_multiple_pages_accumulates_all_items(client, monkeypatch):
         "a1", "a2",
     ]
     assert window.items == page1 + page2
+
+
+def test_load_sorts_by_name_ascending_when_no_setting_configured(client, monkeypatch):
+    calls = []
+
+    def fake_iter(c, **kwargs):
+        calls.append(kwargs)
+        return iter([])
+
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", fake_iter)
+
+    window = _make_window(client)
+    window._load()
+
+    assert calls[0]["sort_by"] == "SortName"
+    assert calls[0]["sort_order"] == "Ascending"
+
+
+def test_load_honors_the_default_sort_order_addon_setting(client, monkeypatch):
+    calls = []
+
+    def fake_iter(c, **kwargs):
+        calls.append(kwargs)
+        return iter([])
+
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", fake_iter)
+
+    window = _make_window(client, monkeypatch=monkeypatch, default_sort_by="date_added")
+    window._load()
+
+    assert calls[0]["sort_by"] == "DateCreated"
+    assert calls[0]["sort_order"] == "Descending"
 
 
 def test_load_failure_on_the_first_page_notifies_and_closes(client, monkeypatch):

@@ -34,6 +34,20 @@ def test_get_honors_an_explicit_timeout_override(client, monkeypatch):
     assert fake.calls[0]["timeout"] == (5, 300)
 
 
+def test_requests_use_a_constructor_provided_timeout(monkeypatch):
+    """lib/main.py passes the addon's "Server request timeout" setting in
+    here - it must actually take effect for calls that don't override it."""
+    custom_client = client_mod.JellyfinClient(
+        "http://jellyfin.example:8096", device_id="test-device-id", request_timeout=15,
+    )
+    fake = FakeRequests([FakeResponse({"ServerName": "Tower"})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    custom_client.get("/System/Info/Public")
+
+    assert fake.calls[0]["timeout"] == 15
+
+
 def test_authenticate_by_name_sets_token_and_user(anon_client, monkeypatch):
     fake = FakeRequests([
         FakeResponse({"AccessToken": "abc123", "User": {"Id": "user-1", "Name": "steve"}})
@@ -341,6 +355,31 @@ def test_get_playback_info_posts_device_profile(client, monkeypatch):
     assert call["json"]["DeviceProfile"] == playback.DEFAULT_DEVICE_PROFILE
     assert call["params"] == {"UserId": client.user_id}
     assert result["MediaSources"][0]["Id"] == "ms-1"
+
+
+def test_get_playback_info_overrides_max_streaming_bitrate(client, monkeypatch):
+    """lib/player.py passes the addon's "Max streaming bitrate" setting in
+    here - it must land in the profile without mutating the shared
+    DEFAULT_DEVICE_PROFILE dict other calls also use."""
+    fake = FakeRequests([FakeResponse({"MediaSources": []})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    playback.get_playback_info(client, "item-1", max_streaming_bitrate=8_000_000)
+
+    call = fake.calls[0]
+    assert call["json"]["DeviceProfile"]["MaxStreamingBitrate"] == 8_000_000
+    assert playback.DEFAULT_DEVICE_PROFILE["MaxStreamingBitrate"] == 120_000_000
+
+
+def test_get_playback_info_ignores_bitrate_override_when_device_profile_given(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"MediaSources": []})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+    custom_profile = {"MaxStreamingBitrate": 1_000_000}
+
+    playback.get_playback_info(client, "item-1", device_profile=custom_profile, max_streaming_bitrate=8_000_000)
+
+    call = fake.calls[0]
+    assert call["json"]["DeviceProfile"] == custom_profile
 
 
 def test_stream_url_builds_expected_query(client):

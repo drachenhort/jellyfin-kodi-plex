@@ -10,13 +10,25 @@ input (see git history for lib/windows/seekdialog.py if reviving the idea).
 import threading
 
 import xbmc
+import xbmcaddon
 import xbmcgui
 
 from lib.jellyfin import playback, library
 from lib.windows.kodigui import LOG_PREFIX
 
+ADDON = xbmcaddon.Addon()
 PROGRESS_REPORT_INTERVAL_SECONDS = 10
 STARTUP_TIMEOUT_SECONDS = 30
+
+
+def _max_streaming_bitrate():
+    """The addon's "Max streaming bitrate" setting, in bits/sec - falls
+    back to None (DEFAULT_DEVICE_PROFILE's own default) if unset or not a
+    valid int."""
+    try:
+        return int(ADDON.getSetting("max_streaming_bitrate_mbps")) * 1_000_000
+    except (TypeError, ValueError):
+        return None
 
 
 class JellyfinPlayer(xbmc.Player):
@@ -42,7 +54,9 @@ class JellyfinPlayer(xbmc.Player):
         except Exception:  # noqa: BLE001 - metadata is nice-to-have, not critical
             item = None
 
-        media_info = playback.get_playback_info(self.client, item_id)
+        media_info = playback.get_playback_info(
+            self.client, item_id, max_streaming_bitrate=_max_streaming_bitrate()
+        )
         if not media_info:
             raise RuntimeError(f"Failed to get playback info for item {item_id}")
         media_sources = media_info.get("MediaSources") or []

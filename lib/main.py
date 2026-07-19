@@ -16,6 +16,7 @@ import xbmcgui
 
 from lib import player, servers
 from lib.jellyfin import JellyfinClient, auth, system
+from lib.jellyfin import client as client_mod
 from lib.windows.browse import BrowseWindow
 from lib.windows.detail import DetailWindow
 from lib.windows.home import HomeWindow
@@ -39,6 +40,16 @@ def _get_device_id():
     return device_id
 
 
+def _get_request_timeout():
+    """The addon's "Server request timeout" setting, in seconds - falls
+    back to JellyfinClient's own default if unset or not a valid int (e.g.
+    on first run before the setting has ever been saved)."""
+    try:
+        return int(ADDON.getSetting("request_timeout_seconds"))
+    except (TypeError, ValueError):
+        return client_mod.REQUEST_TIMEOUT_SECONDS
+
+
 def _load_servers():
     return servers.deserialize(ADDON.getSetting("servers"))
 
@@ -56,7 +67,10 @@ def _set_active_server_id(server_id):
 
 
 def _client_from_server(server):
-    client = JellyfinClient(server.get("server_url", ""), _get_device_id(), client_version=ADDON_VERSION)
+    client = JellyfinClient(
+        server.get("server_url", ""), _get_device_id(), client_version=ADDON_VERSION,
+        request_timeout=_get_request_timeout(),
+    )
     client.access_token = server.get("access_token")
     client.user_id = server.get("user_id")
     return client
@@ -118,7 +132,10 @@ def _login():
     )
     if not result:
         return None
-    client = JellyfinClient(result["server_url"], result["device_id"], client_version=ADDON_VERSION)
+    client = JellyfinClient(
+        result["server_url"], result["device_id"], client_version=ADDON_VERSION,
+        request_timeout=_get_request_timeout(),
+    )
     client.access_token = result["access_token"]
     client.user_id = result["user_id"]
 

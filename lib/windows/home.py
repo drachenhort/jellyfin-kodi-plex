@@ -27,6 +27,11 @@ from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item, placeho
 
 ADDON = xbmcaddon.Addon()
 HIDE_PLAYLISTS_SETTING = "hide_playlists"
+SHOW_CONTINUE_WATCHING_SETTING = "show_continue_watching"
+SHOW_NEXT_UP_SETTING = "show_next_up"
+SHOW_RECENTLY_ADDED_MOVIES_SETTING = "show_recently_added_movies"
+SHOW_RECENTLY_ADDED_TV_SETTING = "show_recently_added_tv"
+SHOW_RECENTLY_ADDED_MUSIC_SETTING = "show_recently_added_music"
 
 CTRL_LIBRARIES = 200
 CTRL_CONTINUE_WATCHING = 201
@@ -87,6 +92,15 @@ class HomeWindow(ControlledWindow):
         self.client = client
         self.views = None
         self.hide_playlists = ADDON.getSetting(HIDE_PLAYLISTS_SETTING) != "false"
+        # Per-row visibility toggles, addon settings > Home - each row is
+        # simply never fetched/populated when off, so the group's own
+        # Container(x).NumItems>0 visibility condition in the skin XML
+        # keeps it collapsed without any XML changes needed here.
+        self.show_continue_watching = ADDON.getSetting(SHOW_CONTINUE_WATCHING_SETTING) != "false"
+        self.show_next_up = ADDON.getSetting(SHOW_NEXT_UP_SETTING) != "false"
+        self.show_recently_added_movies = ADDON.getSetting(SHOW_RECENTLY_ADDED_MOVIES_SETTING) != "false"
+        self.show_recently_added_tv = ADDON.getSetting(SHOW_RECENTLY_ADDED_TV_SETTING) != "false"
+        self.show_recently_added_music = ADDON.getSetting(SHOW_RECENTLY_ADDED_MUSIC_SETTING) != "false"
         self.loaded_steps = 0
         # Which item (if any) to re-select once its row is loaded, e.g.
         # because Home is being shown again after the user backed out of
@@ -168,26 +182,34 @@ class HomeWindow(ControlledWindow):
 
         self._load_hub_row(
             CTRL_CONTINUE_WATCHING, "get_resume", library.get_resume, self.client,
-            populate=self._populate_episode_aware,
+            populate=self._populate_episode_aware, enabled=self.show_continue_watching,
         )
         self._load_hub_row(
             CTRL_NEXT_UP, "get_next_up", library.get_next_up, self.client,
-            populate=self._populate_episode_aware,
+            populate=self._populate_episode_aware, enabled=self.show_next_up,
         )
-        self._load_hub_row(CTRL_RECENTLY_ADDED_MOVIES, "latest movies", self._latest, views, "movies")
+        self._load_hub_row(
+            CTRL_RECENTLY_ADDED_MOVIES, "latest movies", self._latest, views, "movies",
+            enabled=self.show_recently_added_movies,
+        )
         self._load_hub_row(
             CTRL_RECENTLY_ADDED_TV, "latest tvshows", self._latest_tv_episodes, views,
-            populate=self._populate_tv_posters,
+            populate=self._populate_tv_posters, enabled=self.show_recently_added_tv,
         )
-        self._load_hub_row(CTRL_RECENTLY_ADDED_MUSIC, "latest music", self._latest, views, "music")
+        self._load_hub_row(
+            CTRL_RECENTLY_ADDED_MUSIC, "latest music", self._latest, views, "music",
+            enabled=self.show_recently_added_music,
+        )
         self.loading_done.set()
         if not self.closed_event.is_set():
             self.getControl(CTRL_LOADING).setVisible(False)
 
-    def _load_hub_row(self, control_id, label, fetch, *args, populate=None, **kwargs):
+    def _load_hub_row(self, control_id, label, fetch, *args, populate=None, enabled=True, **kwargs):
         if self.closed_event.is_set():
             return
         try:
+            if not enabled:
+                return
             try:
                 items = self._timed(label, fetch, *args, **kwargs)
             except Exception as exc:  # noqa: BLE001 - one slow/broken row shouldn't blank the rest of Home

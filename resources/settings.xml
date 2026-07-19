@@ -24,13 +24,84 @@
           <default></default>
           <control type="edit" format="string"/>
         </setting>
-        <setting id="hide_playlists" type="boolean" label="30006" help="">
-          <level>2</level>
+      </group>
+    </category>
+    <category id="home" label="30010">
+      <group id="1">
+        <setting id="hide_playlists" type="boolean" label="30006" help="30016">
+          <level>0</level>
           <default>true</default>
           <control type="toggle"/>
+        </setting>
+        <setting id="show_continue_watching" type="boolean" label="30011" help="">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="show_next_up" type="boolean" label="30012" help="">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="show_recently_added_movies" type="boolean" label="30013" help="">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="show_recently_added_tv" type="boolean" label="30014" help="">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="show_recently_added_music" type="boolean" label="30015" help="">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
+      </group>
+    </category>
+    <category id="library" label="30020">
+      <group id="1">
+        <setting id="default_sort_by" type="string" label="30021" help="30026">
+          <level>0</level>
+          <default>name</default>
           <constraints>
-            <options>hidden</options>
+            <options>
+              <option label="30022">name</option>
+              <option label="30023">date_added</option>
+              <option label="30024">rating</option>
+              <option label="30025">release_date</option>
+            </options>
           </constraints>
+          <control type="list" format="string"/>
+        </setting>
+      </group>
+    </category>
+    <category id="playback" label="30030">
+      <group id="1">
+        <setting id="request_timeout_seconds" type="integer" label="30031" help="30033">
+          <level>0</level>
+          <default>60</default>
+          <constraints>
+            <minimum>10</minimum>
+            <maximum>300</maximum>
+            <step>10</step>
+          </constraints>
+          <control type="slider" format="integer">
+            <popup>true</popup>
+          </control>
+        </setting>
+        <setting id="max_streaming_bitrate_mbps" type="integer" label="30032" help="30034">
+          <level>0</level>
+          <default>120</default>
+          <constraints>
+            <minimum>2</minimum>
+            <maximum>200</maximum>
+            <step>2</step>
+          </constraints>
+          <control type="slider" format="integer">
+            <popup>true</popup>
+          </control>
         </setting>
       </group>
     </category>

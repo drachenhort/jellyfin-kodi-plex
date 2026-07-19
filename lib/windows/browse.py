@@ -4,8 +4,10 @@ top-level items, a series' seasons, a season's episodes, a folder-organized
 music library's artists, an artist's albums, an album's tracks) as well as
 flat libraries (Movies) with no intermediate levels.
 
-Loads via library.iter_items_paged() (StartIndex/Limit paging, sorted by
-name) rather than one single capped fetch, appending each page to the grid
+Loads via library.iter_items_paged() (StartIndex/Limit paging, sorted per
+the "Default sort order" addon setting - name/date added/rating/release
+date, see SORT_OPTIONS) rather than one single capped fetch, appending
+each page to the grid
 as it arrives - this is what lets a library too large for one request (the
 motivating case: a ~100k-track Music library that made a single big-limit
 fetch time out server-side) still browse successfully instead of failing
@@ -21,10 +23,24 @@ import threading
 import time
 
 import xbmc
+import xbmcaddon
 import xbmcgui
 
 from lib.jellyfin import images, library
 from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item, progress_percent
+
+ADDON = xbmcaddon.Addon()
+DEFAULT_SORT_SETTING = "default_sort_by"
+
+# Maps the addon settings "Default sort order" option to a (SortBy, SortOrder)
+# pair for the Jellyfin Items API - falls back to name/Ascending for an
+# unrecognized or unset value.
+SORT_OPTIONS = {
+    "name": ("SortName", "Ascending"),
+    "date_added": ("DateCreated", "Descending"),
+    "rating": ("CommunityRating", "Descending"),
+    "release_date": ("PremiereDate", "Descending"),
+}
 
 CTRL_TITLE = 300
 CTRL_GRID = 301
@@ -56,6 +72,9 @@ class BrowseWindow(ControlledWindow):
         self.is_episode_list = parent_item_type in LISTED_PARENT_TYPES
         self.items = []
         self._track_id_cache = []
+        self.sort_by, self.sort_order = SORT_OPTIONS.get(
+            ADDON.getSetting(DEFAULT_SORT_SETTING), SORT_OPTIONS["name"]
+        )
         # The item (if any) to re-select once loaded, e.g. because this
         # screen is being shown again after the user backed out of whatever
         # they opened from here - lets Back land back on the same item
@@ -120,6 +139,7 @@ class BrowseWindow(ControlledWindow):
             for page in library.iter_items_paged(
                 self.client, parent_id=self.parent_id, recursive=False,
                 fields=library.LISTING_ITEM_FIELDS,
+                sort_by=self.sort_by, sort_order=self.sort_order,
             ):
                 if self.closed_event.is_set():
                     return

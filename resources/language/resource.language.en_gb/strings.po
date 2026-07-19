@@ -23,3 +23,79 @@ msgstr ""
 msgctxt "#30006"
 msgid "Hide Playlists library on Home"
 msgstr ""
+
+msgctxt "#30010"
+msgid "Home"
+msgstr ""
+
+msgctxt "#30011"
+msgid "Show Continue Watching"
+msgstr ""
+
+msgctxt "#30012"
+msgid "Show Next Up"
+msgstr ""
+
+msgctxt "#30013"
+msgid "Show Recently Added Movies"
+msgstr ""
+
+msgctxt "#30014"
+msgid "Show Recently Added TV"
+msgstr ""
+
+msgctxt "#30015"
+msgid "Show Recently Added Music"
+msgstr ""
+
+msgctxt "#30016"
+msgid "The Playlists library is auto-created by Jellyfin and isn't a real media collection to browse - hidden by default. This can also be toggled from the Home screen itself, next to Search."
+msgstr ""
+
+msgctxt "#30020"
+msgid "Library"
+msgstr ""
+
+msgctxt "#30021"
+msgid "Default sort order"
+msgstr ""
+
+msgctxt "#30022"
+msgid "Name"
+msgstr ""
+
+msgctxt "#30023"
+msgid "Date added"
+msgstr ""
+
+msgctxt "#30024"
+msgid "Rating"
+msgstr ""
+
+msgctxt "#30025"
+msgid "Release date"
+msgstr ""
+
+msgctxt "#30026"
+msgid "How library browse screens (a library's top-level items, a series' seasons, an album's tracks, ...) are sorted."
+msgstr ""
+
+msgctxt "#30030"
+msgid "Playback"
+msgstr ""
+
+msgctxt "#30031"
+msgid "Server request timeout (seconds)"
+msgstr ""
+
+msgctxt "#30032"
+msgid "Max streaming bitrate (Mbps)"
+msgstr ""
+
+msgctxt "#30033"
+msgid "How long to wait for the Jellyfin server to respond before giving up. Raise this if browsing a large library times out on a slow server or network."
+msgstr ""
+
+msgctxt "#30034"
+msgid "The highest bitrate to request from the server for direct-play/direct-stream. Lower this on a constrained network to encourage transcoding to a smaller stream instead of stalling."
+msgstr ""

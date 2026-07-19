@@ -36,11 +36,16 @@ class JellyfinClient:
     unset and get filled in by lib.jellyfin.auth once login succeeds.
     """
 
-    def __init__(self, server_url, device_id, device_name="Kodi", client_version=CLIENT_VERSION):
+    def __init__(self, server_url, device_id, device_name="Kodi", client_version=CLIENT_VERSION,
+                 request_timeout=REQUEST_TIMEOUT_SECONDS):
         self.server_url = server_url.rstrip("/")
         self.device_id = device_id
         self.device_name = device_name
         self.client_version = client_version
+        # Overridable via the addon's "Server request timeout" setting
+        # (lib/main.py passes it in) - the module constant above remains the
+        # fallback for any caller (e.g. a test) that doesn't pass one.
+        self.request_timeout = request_timeout
         self.access_token = None
         self.user_id = None
         self._session = None
@@ -86,7 +91,7 @@ class JellyfinClient:
             headers=self._headers(),
             json=json,
             params=params,
-            timeout=timeout if timeout is not None else REQUEST_TIMEOUT_SECONDS,
+            timeout=timeout if timeout is not None else self.request_timeout,
         )
         if response.status_code >= 400:
             raise JellyfinApiError(response.status_code, response.text)

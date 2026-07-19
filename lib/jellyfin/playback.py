@@ -23,11 +23,19 @@ DEFAULT_DEVICE_PROFILE = {
 }
 
 
-def get_playback_info(client, item_id, device_profile=None):
-    """POST /Items/{itemId}/PlaybackInfo. Returns the raw PlaybackInfoResponse."""
+def get_playback_info(client, item_id, device_profile=None, max_streaming_bitrate=None):
+    """POST /Items/{itemId}/PlaybackInfo. Returns the raw PlaybackInfoResponse.
+
+    max_streaming_bitrate overrides DEFAULT_DEVICE_PROFILE's MaxStreamingBitrate
+    (the addon's "Max streaming bitrate" setting, lib/player.py passes it in)
+    without mutating the shared default dict; ignored if device_profile is
+    given explicitly."""
+    profile = device_profile or DEFAULT_DEVICE_PROFILE
+    if device_profile is None and max_streaming_bitrate is not None:
+        profile = {**DEFAULT_DEVICE_PROFILE, "MaxStreamingBitrate": max_streaming_bitrate}
     return client.post(
         f"/Items/{item_id}/PlaybackInfo",
-        json={"DeviceProfile": device_profile or DEFAULT_DEVICE_PROFILE},
+        json={"DeviceProfile": profile},
         params={"UserId": client.user_id},
     )
 
