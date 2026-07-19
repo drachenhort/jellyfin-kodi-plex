@@ -84,6 +84,15 @@ def get_latest(client, parent_id=None, limit=20):
     return result or []
 
 
+def get_latest_episodes(client, parent_id=None, limit=20):
+    """GET /Users/{userId}/Items/Latest — Recently Added episodes only (TV libraries)."""
+    params = {"Limit": limit, "Fields": LISTING_ITEM_FIELDS, "IncludeItemTypes": "Episode"}
+    if parent_id:
+        params["ParentId"] = parent_id
+    result = client.get(f"/Users/{client.user_id}/Items/Latest", params=params)
+    return result.get("Items", []) if result else []
+
+
 def mark_played(client, item_id):
     """POST /Users/{userId}/PlayedItems/{itemId} — mark an item watched."""
     return client.post(f"/Users/{client.user_id}/PlayedItems/{item_id}")

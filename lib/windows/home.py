@@ -214,18 +214,22 @@ class HomeWindow(ControlledWindow):
         return latest
 
     def _latest_tv_deduplicated(self, views):
-        """Recently added TV: for each series, only return the most recent episode."""
-        all_items = self._latest(views, "tvshows")
+        """Recently added TV: episodes only, deduplicated by series."""
+        latest = []
+        for view in views:
+            if view.get("CollectionType") != "tvshows":
+                continue
+            # Request only Episode items, not Series
+            latest.extend(library.get_latest_episodes(self.client, parent_id=view.get("Id"), limit=20))
         # Deduplicate by series: keep only the first (most recent) episode per series
         seen_series = set()
         deduplicated = []
-        for item in all_items:
+        for item in latest:
             series_id = item.get("SeriesId")
             if series_id and series_id not in seen_series:
                 seen_series.add(series_id)
                 deduplicated.append(item)
             elif not series_id:
-                # If no series ID, include it (shouldn't happen for episodes, but be safe)
                 deduplicated.append(item)
         return deduplicated
 
