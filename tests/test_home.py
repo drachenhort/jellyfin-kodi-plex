@@ -125,8 +125,10 @@ def test_recently_added_music_empty_when_no_music_library(client, monkeypatch):
     assert window.getControl(home_mod.CTRL_RECENTLY_ADDED_MUSIC).items == []
 
 
-def test_recently_added_tv_shows_most_recent_episode_per_series(client, monkeypatch):
-    """Show only the most recent episode from each recently added series."""
+def test_recently_added_tv_lists_episodes_individually_not_grouped_by_series(client, monkeypatch):
+    """Two episodes of the same show added recently must both show up as
+    separate items, in newest-added order - not merged/deduplicated down to
+    one tile per series."""
     views = [
         {"Id": "lib-tv", "Name": "TV Shows", "CollectionType": "tvshows"},
     ]
@@ -136,9 +138,9 @@ def test_recently_added_tv_shows_most_recent_episode_per_series(client, monkeypa
 
     def fake_get_latest_episodes(c, parent_id=None, limit=10):
         if parent_id == "lib-tv":
-            # Returns one episode per series (already deduplicated by the function)
             return [
                 {"Id": "ep-1", "Name": "S01E02", "Type": "Episode", "SeriesId": "series-1", "SeriesName": "Show A"},
+                {"Id": "ep-2", "Name": "S01E01", "Type": "Episode", "SeriesId": "series-1", "SeriesName": "Show A"},
                 {"Id": "ep-3", "Name": "S01E01", "Type": "Episode", "SeriesId": "series-2", "SeriesName": "Show B"},
             ]
         return []
@@ -149,10 +151,7 @@ def test_recently_added_tv_shows_most_recent_episode_per_series(client, monkeypa
     window._load()
 
     tv_row = window.getControl(home_mod.CTRL_RECENTLY_ADDED_TV)
-    # Should have 2 episodes, one per series
-    assert len(tv_row.items) == 2
-    assert tv_row.items[0].getProperty("jellyfin_id") == "ep-1"
-    assert tv_row.items[1].getProperty("jellyfin_id") == "ep-3"
+    assert [li.getProperty("jellyfin_id") for li in tv_row.items] == ["ep-1", "ep-2", "ep-3"]
 
 
 def test_load_hides_the_loading_indicator_once_everything_has_fetched(client, monkeypatch):

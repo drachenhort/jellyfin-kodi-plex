@@ -85,28 +85,15 @@ def get_latest(client, parent_id=None, limit=20):
 
 
 def get_latest_episodes(client, parent_id=None, limit=20):
-    """Get the most recent episode from each recently added series (TV libraries)."""
-    # Get recently added series
-    latest_series = get_latest(client, parent_id=parent_id, limit=limit)
-    if not latest_series:
-        return []
-
-    # For each series, get its most recent episode
-    episodes = []
-    for series in latest_series:
-        series_id = series.get("Id")
-        if not series_id:
-            continue
-        # Get the most recent episode in this series (sort by AirDate descending, then by episode number)
-        series_episodes = get_items(
-            client, parent_id=series_id, limit=1, sort_by="AirDate",
-            sort_order="Descending", include_item_types="Episode", recursive=False,
-            fields=LISTING_ITEM_FIELDS
-        )
-        if series_episodes.get("Items"):
-            episodes.append(series_episodes["Items"][0])
-
-    return episodes
+    """Recently added episodes (TV libraries), newest-added first, listed
+    individually rather than grouped/deduplicated by series - two episodes
+    of the same show added recently both show up as separate items."""
+    result = get_items(
+        client, parent_id=parent_id, limit=limit, sort_by="DateCreated",
+        sort_order="Descending", include_item_types="Episode", recursive=True,
+        fields=LISTING_ITEM_FIELDS,
+    )
+    return result.get("Items", [])
 
 
 def mark_played(client, item_id):

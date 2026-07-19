@@ -164,7 +164,7 @@ class HomeWindow(ControlledWindow):
             CTRL_NEXT_UP, "get_next_up", library.get_next_up, self.client, episode_aware=True
         )
         self._load_hub_row(CTRL_RECENTLY_ADDED_MOVIES, "latest movies", self._latest, views, "movies")
-        self._load_hub_row(CTRL_RECENTLY_ADDED_TV, "latest tvshows", self._latest_tv_deduplicated, views)
+        self._load_hub_row(CTRL_RECENTLY_ADDED_TV, "latest tvshows", self._latest_tv_episodes, views)
         self._load_hub_row(CTRL_RECENTLY_ADDED_MUSIC, "latest music", self._latest, views, "music")
         self.loading_done.set()
         if not self.closed_event.is_set():
@@ -213,13 +213,13 @@ class HomeWindow(ControlledWindow):
             latest.extend(library.get_latest(self.client, parent_id=view.get("Id"), limit=10))
         return latest
 
-    def _latest_tv_deduplicated(self, views):
-        """Recently added TV: most recent episode from each recently added series."""
+    def _latest_tv_episodes(self, views):
+        """Recently added TV: individual episodes, newest-added first, not
+        grouped/deduplicated by series."""
         latest = []
         for view in views:
             if view.get("CollectionType") != "tvshows":
                 continue
-            # Get most recent episode from each recently added series
             latest.extend(library.get_latest_episodes(self.client, parent_id=view.get("Id"), limit=10))
         return latest
 
