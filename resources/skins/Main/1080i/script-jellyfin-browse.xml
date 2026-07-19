@@ -342,7 +342,7 @@
       <height>30</height>
       <font>font16</font>
       <label>$INFO[Container(301).ListItem.Label]$INFO[Container(304).ListItem.Label]</label>
-      <visible>String.IsEmpty(Window.Property(parent_overview)) + (!String.IsEmpty(Container(301).ListItem.Plot) | !String.IsEmpty(Container(304).ListItem.Plot))</visible>
+      <visible>String.IsEmpty(Window.Property(parent_overview)) + [!String.IsEmpty(Container(301).ListItem.Plot) | !String.IsEmpty(Container(304).ListItem.Plot)]</visible>
     </control>
     <control type="textbox">
       <posx>80</posx>
@@ -351,7 +351,7 @@
       <height>185</height>
       <font>font13</font>
       <label>$INFO[Container(301).ListItem.Plot]$INFO[Container(304).ListItem.Plot]</label>
-      <visible>String.IsEmpty(Window.Property(parent_overview)) + (!String.IsEmpty(Container(301).ListItem.Plot) | !String.IsEmpty(Container(304).ListItem.Plot))</visible>
+      <visible>String.IsEmpty(Window.Property(parent_overview)) + [!String.IsEmpty(Container(301).ListItem.Plot) | !String.IsEmpty(Container(304).ListItem.Plot)]</visible>
     </control>
 
     <!-- Static synopsis of the parent item itself (e.g. the show, while

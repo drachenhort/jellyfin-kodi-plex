@@ -396,8 +396,15 @@ def test_onInit_leaves_the_parent_overview_property_empty_when_series_has_no_ove
     assert window.getProperty("parent_overview") == ""
 
 
-def test_onInit_never_sets_parent_overview_for_non_summarized_parent_type(client):
+def test_onInit_sets_the_parent_overview_property_for_season(client):
     window = _make_window(client, parent_item_type="Season", parent_overview="A season overview.")
+    window.onInit()
+
+    assert window.getProperty("parent_overview") == "A season overview."
+
+
+def test_onInit_never_sets_parent_overview_for_non_summarized_parent_type(client):
+    window = _make_window(client, parent_item_type="MusicAlbum", parent_overview="Liner notes.")
     window.onInit()
 
     assert window.getProperty("parent_overview") == ""

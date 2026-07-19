@@ -50,11 +50,14 @@ CTRL_EPISODE_LIST = 304
 CTRL_LOADING = 305
 
 # Parent types whose own Overview is worth showing persistently at the
-# bottom while the user is still picking a child (a season's own Overview is
-# almost always blank in Jellyfin, so the per-focused-item plot pane below
-# would otherwise just sit empty here) - the per-item plot pane is hidden in
-# favor of this static one for these parent types.
-SUMMARIZED_PARENT_TYPES = {"Series"}
+# bottom while the user is still picking a child - a Series' seasons rarely
+# have their own Overview in Jellyfin, so the per-focused-item plot pane
+# below would otherwise just sit empty there; a Season's own Overview is
+# less consistently blank, so showing it while browsing its episodes takes
+# priority over the per-focused-episode plot the same way, even though an
+# episode's own Overview is usually populated - the per-item plot pane is
+# hidden in favor of this static one for these parent types.
+SUMMARIZED_PARENT_TYPES = {"Series", "Season"}
 
 # Only an album's own screen offers Play All/Shuffle - browsing an Artist
 # still just drills down into that artist's Albums.
