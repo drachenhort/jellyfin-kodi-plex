@@ -62,21 +62,6 @@ def series_poster_url(client, episode, season=None, max_width=None):
     return None
 
 
-def series_logo_url(client, episode, max_width=None):
-    """Show title-logo art for an Episode item (e.g. Recently Added TV, where
-    a poster-shaped tile should read as "this show" via its logo rather than
-    the episode's own landscape screengrab). Jellyfin inlines the series'
-    inherited Logo as ParentLogoItemId/ParentLogoImageTag on the episode
-    itself, the same pattern backdrop_image_url() already relies on for
-    ParentBackdropItemId/ParentBackdropImageTags - no extra Fields request
-    needed."""
-    logo_id = episode.get("ParentLogoItemId")
-    logo_tag = episode.get("ParentLogoImageTag")
-    if logo_id and logo_tag:
-        return image_url(client, logo_id, LOGO, tag=logo_tag, max_width=max_width)
-    return None
-
-
 def backdrop_image_url(client, item, max_width=None, index=0):
     """Fanart/backdrop for `item`, falling back to its parent's backdrop."""
     tags = item.get("BackdropImageTags") or []
