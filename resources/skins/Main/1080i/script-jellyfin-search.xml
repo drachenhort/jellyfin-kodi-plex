@@ -86,7 +86,7 @@
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onup>500</onup>
       <onright>506</onright>
-      <ondown>502</ondown>
+      <ondown>508</ondown>
     </control>
     <control type="button" id="506">
       <posx>300</posx>
@@ -100,7 +100,7 @@
       <onup>500</onup>
       <onleft>505</onleft>
       <onright>507</onright>
-      <ondown>502</ondown>
+      <ondown>508</ondown>
     </control>
     <control type="button" id="507">
       <posx>520</posx>
@@ -113,7 +113,7 @@
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onup>500</onup>
       <onleft>506</onleft>
-      <ondown>502</ondown>
+      <ondown>508</ondown>
     </control>
 
     <control type="label" id="503">
@@ -125,50 +125,272 @@
       <label></label>
     </control>
 
-    <control type="panel" id="502">
+    <!-- Results grouped one row per category (Movies/TV Shows/Music) rather
+         than one flat mixed grid - a broad term returning results across
+         every category used to read as an undifferentiated wall of posters
+         with no way to tell what's what at a glance. Each row is its own
+         horizontal list (SearchWindow._search() sorts items into the
+         matching one by type) and collapses via NumItems when that
+         category came back empty, same pattern as the Home screen's hub
+         rows. -->
+    <control type="grouplist" id="511">
       <posx>80</posx>
       <posy>290</posy>
       <width>1760</width>
       <height>740</height>
-      <itemgap>20</itemgap>
+      <orientation>vertical</orientation>
+      <itemgap>15</itemgap>
+      <scrolltime tween="sine" easing="out">200</scrolltime>
       <onup>505</onup>
-      <itemlayout width="220" height="330">
-        <control type="image">
-          <width>220</width>
-          <height>330</height>
-          <aspectratio>scale</aspectratio>
-          <texture>$INFO[ListItem.Art(thumb)]</texture>
-        </control>
-      </itemlayout>
-      <focusedlayout width="220" height="330">
-        <control type="image">
-          <width>220</width>
-          <height>330</height>
-          <texture border="10">focus-highlight.png</texture>
-        </control>
-        <control type="image">
-          <posx>3</posx>
-          <posy>3</posy>
-          <width>214</width>
-          <height>324</height>
-          <aspectratio>scale</aspectratio>
-          <texture>$INFO[ListItem.Art(thumb)]</texture>
-        </control>
+
+      <control type="group">
+        <width>1760</width>
+        <height>240</height>
+        <visible>Integer.IsGreater(Container(508).NumItems,0)</visible>
         <control type="label">
-          <posy>300</posy>
-          <width>220</width>
-          <height>30</height>
-          <font>font12</font>
-          <label>$INFO[ListItem.Label]</label>
-        </control>
-        <control type="image">
-          <posx>92</posx>
+          <posx>0</posx>
           <posy>0</posy>
-          <width>36</width>
-          <height>22</height>
-          <texture>focus-arrow.png</texture>
+          <width>1760</width>
+          <height>30</height>
+          <font>font16</font>
+          <label>Movies</label>
         </control>
-      </focusedlayout>
+        <control type="list" id="508">
+          <posx>0</posx>
+          <posy>40</posy>
+          <width>1760</width>
+          <height>200</height>
+          <orientation>horizontal</orientation>
+          <itemgap>15</itemgap>
+          <onup>505</onup>
+          <ondown>509</ondown>
+          <itemlayout width="133" height="200">
+            <control type="image">
+              <width>133</width>
+              <height>200</height>
+              <aspectratio>scale</aspectratio>
+              <texture>$INFO[ListItem.Art(thumb)]</texture>
+            </control>
+            <control type="image">
+              <posy>160</posy>
+              <width>133</width>
+              <height>40</height>
+              <texture>gradient-overlay.png</texture>
+            </control>
+            <control type="label">
+              <posx>6</posx>
+              <posy>166</posy>
+              <width>121</width>
+              <height>28</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Label]</label>
+            </control>
+          </itemlayout>
+          <focusedlayout width="133" height="200">
+            <control type="image">
+              <width>133</width>
+              <height>200</height>
+              <texture border="10">focus-highlight.png</texture>
+            </control>
+            <control type="image">
+              <posx>3</posx>
+              <posy>3</posy>
+              <width>127</width>
+              <height>194</height>
+              <aspectratio>scale</aspectratio>
+              <texture>$INFO[ListItem.Art(thumb)]</texture>
+            </control>
+            <control type="image">
+              <posx>55</posx>
+              <posy>0</posy>
+              <width>36</width>
+              <height>22</height>
+              <texture>focus-arrow.png</texture>
+            </control>
+            <control type="image">
+              <posx>3</posx>
+              <posy>157</posy>
+              <width>127</width>
+              <height>40</height>
+              <texture>focus-turquoise.png</texture>
+            </control>
+            <control type="label">
+              <posx>9</posx>
+              <posy>163</posy>
+              <width>115</width>
+              <height>28</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Label]</label>
+            </control>
+          </focusedlayout>
+        </control>
+      </control>
+
+      <control type="group">
+        <width>1760</width>
+        <height>240</height>
+        <visible>Integer.IsGreater(Container(509).NumItems,0)</visible>
+        <control type="label">
+          <posx>0</posx>
+          <posy>0</posy>
+          <width>1760</width>
+          <height>30</height>
+          <font>font16</font>
+          <label>TV Shows</label>
+        </control>
+        <control type="list" id="509">
+          <posx>0</posx>
+          <posy>40</posy>
+          <width>1760</width>
+          <height>200</height>
+          <orientation>horizontal</orientation>
+          <itemgap>15</itemgap>
+          <onup>508</onup>
+          <ondown>510</ondown>
+          <itemlayout width="133" height="200">
+            <control type="image">
+              <width>133</width>
+              <height>200</height>
+              <aspectratio>scale</aspectratio>
+              <texture>$INFO[ListItem.Art(thumb)]</texture>
+            </control>
+            <control type="image">
+              <posy>160</posy>
+              <width>133</width>
+              <height>40</height>
+              <texture>gradient-overlay.png</texture>
+            </control>
+            <control type="label">
+              <posx>6</posx>
+              <posy>166</posy>
+              <width>121</width>
+              <height>28</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Label]</label>
+            </control>
+          </itemlayout>
+          <focusedlayout width="133" height="200">
+            <control type="image">
+              <width>133</width>
+              <height>200</height>
+              <texture border="10">focus-highlight.png</texture>
+            </control>
+            <control type="image">
+              <posx>3</posx>
+              <posy>3</posy>
+              <width>127</width>
+              <height>194</height>
+              <aspectratio>scale</aspectratio>
+              <texture>$INFO[ListItem.Art(thumb)]</texture>
+            </control>
+            <control type="image">
+              <posx>55</posx>
+              <posy>0</posy>
+              <width>36</width>
+              <height>22</height>
+              <texture>focus-arrow.png</texture>
+            </control>
+            <control type="image">
+              <posx>3</posx>
+              <posy>157</posy>
+              <width>127</width>
+              <height>40</height>
+              <texture>focus-turquoise.png</texture>
+            </control>
+            <control type="label">
+              <posx>9</posx>
+              <posy>163</posy>
+              <width>115</width>
+              <height>28</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Label]</label>
+            </control>
+          </focusedlayout>
+        </control>
+      </control>
+
+      <control type="group">
+        <width>1760</width>
+        <height>240</height>
+        <visible>Integer.IsGreater(Container(510).NumItems,0)</visible>
+        <control type="label">
+          <posx>0</posx>
+          <posy>0</posy>
+          <width>1760</width>
+          <height>30</height>
+          <font>font16</font>
+          <label>Music</label>
+        </control>
+        <control type="list" id="510">
+          <posx>0</posx>
+          <posy>40</posy>
+          <width>1760</width>
+          <height>200</height>
+          <orientation>horizontal</orientation>
+          <itemgap>15</itemgap>
+          <onup>509</onup>
+          <ondown>510</ondown>
+          <itemlayout width="133" height="200">
+            <control type="image">
+              <width>133</width>
+              <height>200</height>
+              <aspectratio>scale</aspectratio>
+              <texture>$INFO[ListItem.Art(thumb)]</texture>
+            </control>
+            <control type="image">
+              <posy>160</posy>
+              <width>133</width>
+              <height>40</height>
+              <texture>gradient-overlay.png</texture>
+            </control>
+            <control type="label">
+              <posx>6</posx>
+              <posy>166</posy>
+              <width>121</width>
+              <height>28</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Label]</label>
+            </control>
+          </itemlayout>
+          <focusedlayout width="133" height="200">
+            <control type="image">
+              <width>133</width>
+              <height>200</height>
+              <texture border="10">focus-highlight.png</texture>
+            </control>
+            <control type="image">
+              <posx>3</posx>
+              <posy>3</posy>
+              <width>127</width>
+              <height>194</height>
+              <aspectratio>scale</aspectratio>
+              <texture>$INFO[ListItem.Art(thumb)]</texture>
+            </control>
+            <control type="image">
+              <posx>55</posx>
+              <posy>0</posy>
+              <width>36</width>
+              <height>22</height>
+              <texture>focus-arrow.png</texture>
+            </control>
+            <control type="image">
+              <posx>3</posx>
+              <posy>157</posy>
+              <width>127</width>
+              <height>40</height>
+              <texture>focus-turquoise.png</texture>
+            </control>
+            <control type="label">
+              <posx>9</posx>
+              <posy>163</posy>
+              <width>115</width>
+              <height>28</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Label]</label>
+            </control>
+          </focusedlayout>
+        </control>
+      </control>
     </control>
   </controls>
 </window>

@@ -63,7 +63,7 @@ def test_start_search_ignores_a_second_click_while_one_is_in_flight(client, monk
     window.close()
 
 
-def test_search_populates_results_and_focuses_grid(client, monkeypatch):
+def test_search_populates_the_matching_category_row_and_focuses_it(client, monkeypatch):
     monkeypatch.setattr(
         search_mod.library, "search_items",
         lambda c, term, limit=50, include_item_types=None: {"Items": [{"Id": "m1", "Name": "Alien", "Type": "Movie"}]},
@@ -74,10 +74,36 @@ def test_search_populates_results_and_focuses_grid(client, monkeypatch):
     window = _make_window(client)
     window._search("alien", search_mod.library.SEARCH_ITEM_TYPES)
 
-    grid = window.getControl(search_mod.CTRL_RESULTS_GRID)
-    assert [li.getLabel() for li in grid.items] == ["Alien"]
-    assert window.getFocusId() == search_mod.CTRL_RESULTS_GRID
+    movies_row = window.getControl(search_mod.CTRL_RESULTS_MOVIES)
+    assert [li.getLabel() for li in movies_row.items] == ["Alien"]
+    assert window.getControl(search_mod.CTRL_RESULTS_TV).items == []
+    assert window.getControl(search_mod.CTRL_RESULTS_MUSIC).items == []
+    assert window.getFocusId() == search_mod.CTRL_RESULTS_MOVIES
     assert window.getControl(search_mod.CTRL_STATUS_LABEL).getLabel() == ""
+    window.close()
+
+
+def test_search_groups_results_into_their_matching_category_rows(client, monkeypatch):
+    monkeypatch.setattr(
+        search_mod.library, "search_items",
+        lambda c, term, limit=50, include_item_types=None: {"Items": [
+            {"Id": "m1", "Name": "Alien", "Type": "Movie"},
+            {"Id": "s1", "Name": "Alien Nation", "Type": "Series"},
+            {"Id": "e1", "Name": "Alien Autopsy", "Type": "Episode"},
+            {"Id": "a1", "Name": "Alien Ant Farm", "Type": "MusicArtist"},
+        ]},
+    )
+    monkeypatch.setattr(search_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(search_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client)
+    window._search("alien", search_mod.library.SEARCH_ITEM_TYPES)
+
+    assert [li.getLabel() for li in window.getControl(search_mod.CTRL_RESULTS_MOVIES).items] == ["Alien"]
+    assert [li.getLabel() for li in window.getControl(search_mod.CTRL_RESULTS_TV).items] == [
+        "Alien Nation", "Alien Autopsy",
+    ]
+    assert [li.getLabel() for li in window.getControl(search_mod.CTRL_RESULTS_MUSIC).items] == ["Alien Ant Farm"]
     window.close()
 
 

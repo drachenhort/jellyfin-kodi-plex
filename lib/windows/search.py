@@ -25,12 +25,14 @@ from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item
 
 CTRL_QUERY = 500
 CTRL_SEARCH_BUTTON = 501
-CTRL_RESULTS_GRID = 502
 CTRL_STATUS_LABEL = 503
 CTRL_BACK_BUTTON = 504
 CTRL_FILTER_MOVIES = 505
 CTRL_FILTER_TV = 506
 CTRL_FILTER_MUSIC = 507
+CTRL_RESULTS_MOVIES = 508
+CTRL_RESULTS_TV = 509
+CTRL_RESULTS_MUSIC = 510
 
 MAX_RESULTS = 50
 QUERY_POLL_INTERVAL_MS = 300
@@ -50,6 +52,22 @@ FILTER_LABELS = {
     CTRL_FILTER_TV: "TV Shows",
     CTRL_FILTER_MUSIC: "Music",
 }
+
+# Which results row (see script-jellyfin-search.xml's grouplist) each result
+# item type lands in - results are grouped under one heading per category
+# (Movies/TV Shows/Music) instead of one flat mixed grid, since a broad term
+# (e.g. a show with tie-in soundtrack albums and a same-named movie) could
+# otherwise return a wall of results with no way to tell them apart at a
+# glance.
+RESULT_ROW_FOR_TYPE = {
+    "Movie": CTRL_RESULTS_MOVIES,
+    "Series": CTRL_RESULTS_TV,
+    "Episode": CTRL_RESULTS_TV,
+    "MusicArtist": CTRL_RESULTS_MUSIC,
+    "MusicAlbum": CTRL_RESULTS_MUSIC,
+    "Audio": CTRL_RESULTS_MUSIC,
+}
+RESULT_ROWS = (CTRL_RESULTS_MOVIES, CTRL_RESULTS_TV, CTRL_RESULTS_MUSIC)
 
 
 class SearchWindow(ControlledWindow):
@@ -111,8 +129,8 @@ class SearchWindow(ControlledWindow):
     def handle_click(self, control_id):
         if control_id == CTRL_SEARCH_BUTTON:
             self._start_search()
-        elif control_id == CTRL_RESULTS_GRID:
-            self._open_selected()
+        elif control_id in RESULT_ROWS:
+            self._open_selected(control_id)
         elif control_id == CTRL_BACK_BUTTON:
             self.result = None
             self.close()
@@ -141,7 +159,8 @@ class SearchWindow(ControlledWindow):
             return
         term = self.getControl(CTRL_QUERY).getText().strip()
         self._last_submitted_text = term
-        self.getControl(CTRL_RESULTS_GRID).reset()
+        for row_id in RESULT_ROWS:
+            self.getControl(row_id).reset()
         if not term:
             self.getControl(CTRL_STATUS_LABEL).setLabel("")
             return
@@ -183,20 +202,28 @@ class SearchWindow(ControlledWindow):
         if self.closed_event.is_set():
             return
 
-        control = self.getControl(CTRL_RESULTS_GRID)
-        list_items = []
+        list_items_by_row = {row_id: [] for row_id in RESULT_ROWS}
         for item in items:
+            row_id = RESULT_ROW_FOR_TYPE.get(item.get("Type"))
+            if row_id is None:
+                continue
             primary = images.primary_image_url(self.client, item)
             backdrop = images.backdrop_image_url(self.client, item)
-            list_items.append(list_item(item, primary, backdrop))
-        control.addItems(list_items)
+            list_items_by_row[row_id].append(list_item(item, primary, backdrop))
+        first_nonempty_row = None
+        for row_id in RESULT_ROWS:
+            row_items = list_items_by_row[row_id]
+            if row_items:
+                self.getControl(row_id).addItems(row_items)
+                if first_nonempty_row is None:
+                    first_nonempty_row = row_id
 
         self.getControl(CTRL_STATUS_LABEL).setLabel("" if items else "No results")
-        if items:
-            self.setFocusId(CTRL_RESULTS_GRID)
+        if first_nonempty_row is not None:
+            self.setFocusId(first_nonempty_row)
 
-    def _open_selected(self):
-        selected = self.getControl(CTRL_RESULTS_GRID).getSelectedItem()
+    def _open_selected(self, control_id):
+        selected = self.getControl(control_id).getSelectedItem()
         if not selected:
             return
         self.result = {
