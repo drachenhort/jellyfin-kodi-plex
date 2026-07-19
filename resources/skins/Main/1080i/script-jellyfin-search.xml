@@ -24,13 +24,19 @@
          within the same widget, which visually collided with anything
          actually typed into this fairly narrow field. The equivalent hint
          text now lives in its own label at the bottom of the window
-         instead (503 below the results grid). -->
+         instead (503 below the results grid). texturenofocus/texturefocus
+         reuse the same button textures used elsewhere in this skin so the
+         field reads as a distinct entry box (with a visible edge) even
+         before it's focused, rather than relying on Kodi's undefined
+         default edit-control rendering. -->
     <control type="edit" id="500">
       <posx>80</posx>
       <posy>110</posy>
       <width>1200</width>
       <height>50</height>
       <font>font16</font>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
       <onright>501</onright>
       <ondown>502</ondown>
     </control>
