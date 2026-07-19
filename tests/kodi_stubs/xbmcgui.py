@@ -136,6 +136,9 @@ class _WindowBase:
     def getProperty(self, key):
         return self._properties.get(key, "")
 
+    def clearProperty(self, key):
+        self._properties.pop(key, None)
+
     def getControl(self, control_id):
         if control_id not in self._controls:
             self._controls[control_id] = ControlStub()
@@ -166,8 +169,21 @@ class _WindowBase:
         pass
 
 
+# Real Kodi's numbered system windows (e.g. 10000, the Home window) are
+# singletons whose properties persist across every xbmcgui.Window(10000)
+# instantiation for the life of the Kodi process - used as a cross-script
+# lock (see lib/main.py's singleton guard). Mirrored here with a
+# module-level registry keyed by window id so two separate Window(10000)
+# calls in a test see the same property dict, the way two script instances
+# would in real Kodi.
+_SYSTEM_WINDOW_PROPERTIES = {}
+
+
 class Window(_WindowBase):
-    pass
+    def __init__(self, window_id=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if window_id is not None:
+            self._properties = _SYSTEM_WINDOW_PROPERTIES.setdefault(window_id, {})
 
 
 class WindowXML(_WindowBase):

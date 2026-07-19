@@ -20,6 +20,7 @@ from lib.jellyfin import client as client_mod
 from lib.windows.browse import BrowseWindow
 from lib.windows.detail import DetailWindow
 from lib.windows.home import HomeWindow
+from lib.windows.kodigui import LOG_PREFIX
 from lib.windows.login import LoginWindow
 from lib.windows.search import SearchWindow
 from lib.windows.servers import ServerListWindow
@@ -27,6 +28,19 @@ from lib.windows.servers import ServerListWindow
 ADDON = xbmcaddon.Addon()
 ADDON_PATH = ADDON.getAddonInfo("path")
 ADDON_VERSION = ADDON.getAddonInfo("version")
+
+# Window 10000 (Home) is one of Kodi's numbered system windows, whose
+# properties persist for the life of the Kodi process regardless of which
+# script or skin set them - used here purely as a cross-instance lock, not
+# for anything about the Home *window* itself. Kodi doesn't stop a script
+# addon from being launched again (e.g. re-selecting it from the Programs
+# menu, or a stray remote keypress) while a previous run is still on
+# screen; without this guard, a second instance starts a second independent
+# window/navigation stack, and quitting one leaves the other running
+# underneath, which reads as "quitting doesn't work" - Back closes what's
+# on screen but the addon is still there.
+RUNNING_PROPERTY = "script.jellyfin.plex.running"
+HOME_WINDOW_ID = 10000
 
 # Item types that are containers to drill down into rather than play.
 CONTAINER_TYPES = {"Series", "Season", "MusicArtist", "MusicAlbum", "BoxSet", "Folder"}
@@ -279,9 +293,24 @@ def _home_loop(client):
 
 
 def run():
-    _migrate_legacy_settings()
-    client = _load_saved_client()
-    if not client:
-        client = _login()
-    while client:
-        client = _home_loop(client)
+    home_window = xbmcgui.Window(HOME_WINDOW_ID)
+    if home_window.getProperty(RUNNING_PROPERTY) == "true":
+        xbmc.log(
+            f"{LOG_PREFIX} Already running in another instance - refusing to start a second one",
+            xbmc.LOGWARNING,
+        )
+        xbmcgui.Dialog().notification("Jellyfin", "Already running")
+        return
+    home_window.setProperty(RUNNING_PROPERTY, "true")
+    try:
+        _migrate_legacy_settings()
+        client = _load_saved_client()
+        if not client:
+            client = _login()
+        while client:
+            client = _home_loop(client)
+    finally:
+        # Always clears, even on an unhandled exception - a permanent
+        # lockout after a crash would be worse than the bug this guards
+        # against.
+        home_window.clearProperty(RUNNING_PROPERTY)
