@@ -164,7 +164,7 @@ class HomeWindow(ControlledWindow):
             CTRL_NEXT_UP, "get_next_up", library.get_next_up, self.client, episode_aware=True
         )
         self._load_hub_row(CTRL_RECENTLY_ADDED_MOVIES, "latest movies", self._latest, views, "movies")
-        self._load_hub_row(CTRL_RECENTLY_ADDED_TV, "latest tvshows", self._latest, views, "tvshows")
+        self._load_hub_row(CTRL_RECENTLY_ADDED_TV, "latest tvshows", self._latest_tv_deduplicated, views)
         self._load_hub_row(CTRL_RECENTLY_ADDED_MUSIC, "latest music", self._latest, views, "music")
         self.loading_done.set()
         if not self.closed_event.is_set():
@@ -212,6 +212,22 @@ class HomeWindow(ControlledWindow):
                 continue
             latest.extend(library.get_latest(self.client, parent_id=view.get("Id"), limit=10))
         return latest
+
+    def _latest_tv_deduplicated(self, views):
+        """Recently added TV: for each series, only return the most recent episode."""
+        all_items = self._latest(views, "tvshows")
+        # Deduplicate by series: keep only the first (most recent) episode per series
+        seen_series = set()
+        deduplicated = []
+        for item in all_items:
+            series_id = item.get("SeriesId")
+            if series_id and series_id not in seen_series:
+                seen_series.add(series_id)
+                deduplicated.append(item)
+            elif not series_id:
+                # If no series ID, include it (shouldn't happen for episodes, but be safe)
+                deduplicated.append(item)
+        return deduplicated
 
     def _populate(self, control_id, items, is_library=False):
         control = self.getControl(control_id)
