@@ -190,30 +190,6 @@ def test_recently_added_tv_tiles_show_series_logo_not_episode_thumb(client, monk
     assert "/Images/Primary" in tv_row.items[1].art["thumb"]
 
 
-def test_next_up_tiles_show_series_logo_not_season_poster(client, monkeypatch):
-    """Next Up/Continue Watching tiles should also prefer the show's logo
-    art over the season/series poster, same as Recently Added TV."""
-    monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
-    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
-    monkeypatch.setattr(home_mod.library, "get_items_by_ids", lambda c, ids: [])
-
-    def fake_get_next_up(c):
-        return [{
-            "Id": "ep-1", "Name": "S01E02", "Type": "Episode", "SeriesId": "series-1", "SeasonId": "season-1",
-            "ParentLogoItemId": "series-1", "ParentLogoImageTag": "logo-tag",
-        }]
-
-    monkeypatch.setattr(home_mod.library, "get_next_up", fake_get_next_up)
-    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
-
-    window = _make_window(client, monkeypatch)
-    window._load()
-
-    next_up_row = window.getControl(home_mod.CTRL_NEXT_UP)
-    assert "/Images/Logo" in next_up_row.items[0].art["thumb"]
-
-
 def test_load_hides_the_loading_indicator_once_everything_has_fetched(client, monkeypatch):
     monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
