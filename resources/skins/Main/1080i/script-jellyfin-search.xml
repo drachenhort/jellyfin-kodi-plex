@@ -54,10 +54,10 @@
     <control type="button" id="504">
       <posx>1520</posx>
       <posy>110</posy>
-      <width>260</width>
+      <width>200</width>
       <height>50</height>
       <font>font16</font>
-      <label>Back to Home</label>
+      <label>Home</label>
       <texturefocus>button-focus.png</texturefocus>
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onleft>501</onleft>
