@@ -323,6 +323,17 @@ def test_primary_image_url_falls_back_to_album_for_a_track(client):
     assert "tag=atag" in url
 
 
+def test_series_logo_url_uses_inherited_parent_logo(client):
+    episode = {"Id": "ep-1", "ParentLogoItemId": "series-1", "ParentLogoImageTag": "logo-tag"}
+    url = images.series_logo_url(client, episode)
+    assert url.startswith(client.build_url("/Items/series-1/Images/Logo"))
+    assert "tag=logo-tag" in url
+
+
+def test_series_logo_url_none_when_no_logo_art(client):
+    assert images.series_logo_url(client, {"Id": "ep-1", "SeriesId": "series-1"}) is None
+
+
 def test_backdrop_image_url_falls_back_to_parent(client):
     item = {"Id": "ep-1", "ParentBackdropItemId": "series-1", "ParentBackdropImageTags": ["ptag"]}
     url = images.backdrop_image_url(client, item)
