@@ -9,11 +9,15 @@ media server and renders its own Plex-style `WindowXML`/`WindowXMLDialog` UI, in
 active Kodi skin. Architecture is modelled on the open-source
 [Plex for Kodi](https://github.com/plexinc/plex-for-kodi) addon.
 
-Milestone 1 (in progress): login (LAN autodiscovery, Quick Connect + password fallback) → home
+Milestone 1 (complete): login (LAN autodiscovery, Quick Connect + password fallback) → home
 screen with hub rows (Continue Watching / Next Up / Recently Added) → library poster-wall browsing
 with drill-down through TV (Series → Season → Episode) and Music (Artist → Album → Track) → Search
 → item detail → playback via Kodi's native OSD, with progress reported back to the server → a
 Servers screen for saving/switching between multiple Jellyfin server logins.
+
+Milestone 2 (TBD): scope not yet defined. `service.py` is a reserved no-op placeholder for it
+(see the Architecture section below) — likely candidates are background auto-discovery and
+session keep-alive while the script addon isn't in the foreground.
 
 ## Commands
 
