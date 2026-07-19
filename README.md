@@ -32,6 +32,18 @@ focus moves between seasons.
 A season's episodes get an `ls -l`-style detail list instead of a poster grid: episode code,
 title, rating, duration, and watched state in aligned columns, plus the same synopsis pane below.
 
+![Search screen with a query box, Movies/TV Shows/Music filter toggles, and a Home button](screenshots/search-empty.png)
+
+Search: results-as-you-type, three category filter toggles, and an explicit Home button since
+Back can get eaten by Kodi's on-screen keyboard closing itself instead of reaching the window.
+
+![Search results for "Supernatural" grouped into a TV Shows row and a Music row](screenshots/search-supernatural-grouped.png)
+
+Results are grouped one row per category instead of a single flat grid — searching "Supernatural"
+here returns the show and its episodes under TV Shows, and several unrelated albums/artists
+sharing the word under Music, each clearly separated instead of one undifferentiated wall of
+posters.
+
 ## Installation
 
 ### Install via repository (recommended — enables auto-updates)

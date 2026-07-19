@@ -35,6 +35,19 @@ Die Episoden einer Staffel bekommen statt eines Posterrasters eine detaillierte 
 `ls -l`-Stil: Episodencode, Titel, Bewertung, Länge und Sehstatus in ausgerichteten Spalten, dazu
 dieselbe Kurzbeschreibung darunter.
 
+![Suchbildschirm mit Eingabefeld, den Filter-Kippschaltern Filme/Serien/Musik und einem Home-Button](screenshots/search-empty.png)
+
+Suche: Ergebnisse während der Eingabe, drei Kategorie-Filter zum Ein-/Ausblenden und ein
+expliziter Home-Button, da Zurück von Kodis Bildschirmtastatur abgefangen werden kann, statt das
+Fenster zu erreichen.
+
+![Suchergebnisse für "Supernatural", gruppiert in eine Serien-Zeile und eine Musik-Zeile](screenshots/search-supernatural-grouped.png)
+
+Ergebnisse werden pro Kategorie in einer eigenen Zeile gruppiert statt in einem einzigen flachen
+Raster — die Suche nach "Supernatural" liefert hier die Serie und ihre Episoden unter Serien sowie
+mehrere unabhängige Alben/Künstler mit demselben Wort im Namen unter Musik, klar getrennt statt
+als eine undurchschaubare Posterwand.
+
 ## Installation
 
 ### Installation über das Repository (empfohlen — ermöglicht automatische Updates)
