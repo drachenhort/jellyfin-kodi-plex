@@ -254,11 +254,12 @@ class HomeWindow(ControlledWindow):
 
     def _populate_episode_aware(self, control_id, items):
         """Shared by Next Up and Continue Watching. Episode items show their
-        show's poster (current season's own poster if it has one, else the
-        series poster) instead of their own landscape screengrab, so the row
-        reads as "here's what's next/in progress for each show" rather than
-        a strip of random stills. Continue Watching also mixes in movies,
-        which keep their own poster art since they have no season/series."""
+        show's logo art (falling back to the current season's own poster if
+        it has one, else the series poster) instead of their own landscape
+        screengrab, so the row reads as "here's what's next/in progress for
+        each show" rather than a strip of random stills. Continue Watching
+        also mixes in movies, which keep their own poster art since they
+        have no season/series."""
         season_ids = {item["SeasonId"] for item in items if item.get("SeasonId")}
         seasons = library.get_items_by_ids(self.client, list(season_ids))
         season_by_id = {season["Id"]: season for season in seasons}
@@ -269,7 +270,10 @@ class HomeWindow(ControlledWindow):
         for item in items:
             season_id = item.get("SeasonId")
             if season_id:
-                primary = images.series_poster_url(self.client, item, season=season_by_id.get(season_id))
+                primary = (
+                    images.series_logo_url(self.client, item)
+                    or images.series_poster_url(self.client, item, season=season_by_id.get(season_id))
+                )
             else:
                 primary = images.primary_image_url(self.client, item)
             backdrop = images.backdrop_image_url(self.client, item)
