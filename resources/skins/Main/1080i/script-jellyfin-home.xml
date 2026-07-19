@@ -10,13 +10,13 @@
       <texture>background.png</texture>
     </control>
 
-    <control type="label">
-      <posx>80</posx>
-      <posy>40</posy>
-      <width>800</width>
-      <height>50</height>
-      <font>font32</font>
-      <label>Jellyfin</label>
+    <control type="image">
+      <posx>60</posx>
+      <posy>15</posy>
+      <width>150</width>
+      <height>88</height>
+      <aspectratio align="left" aligny="center">keep</aspectratio>
+      <texture>jellyfin-logo.png</texture>
     </control>
 
     <control type="button" id="206">
