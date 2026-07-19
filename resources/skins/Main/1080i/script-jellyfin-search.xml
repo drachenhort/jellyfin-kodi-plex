@@ -15,8 +15,8 @@
       <posy>40</posy>
       <width>800</width>
       <height>50</height>
-      <font>font32</font>
-      <label>Search</label>
+      <font>font13</font>
+      <label>Search for movies, shows, artists...</label>
     </control>
 
     <!-- No <label> here (unlike most edit controls) - Kodi draws an edit
@@ -123,15 +123,6 @@
           <texture>focus-arrow.png</texture>
         </control>
       </focusedlayout>
-    </control>
-
-    <control type="label">
-      <posx>80</posx>
-      <posy>1035</posy>
-      <width>1760</width>
-      <height>30</height>
-      <font>font12</font>
-      <label>Search for movies, shows, artists...</label>
     </control>
   </controls>
 </window>
