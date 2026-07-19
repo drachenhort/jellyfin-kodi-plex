@@ -24,7 +24,7 @@ def test_start_search_runs_query_in_a_background_thread(client, monkeypatch):
     started = threading.Event()
     finished = threading.Event()
 
-    def slow_search_items(c, term, limit=50):
+    def slow_search_items(c, term, limit=50, include_item_types=None):
         started.set()
         assert finished.wait(2), "background thread never called search_items"
         return {"Items": []}
@@ -45,7 +45,7 @@ def test_start_search_ignores_a_second_click_while_one_is_in_flight(client, monk
     calls = []
     release = threading.Event()
 
-    def slow_search_items(c, term, limit=50):
+    def slow_search_items(c, term, limit=50, include_item_types=None):
         calls.append(term)
         release.wait(2)
         return {"Items": []}
@@ -66,13 +66,13 @@ def test_start_search_ignores_a_second_click_while_one_is_in_flight(client, monk
 def test_search_populates_results_and_focuses_grid(client, monkeypatch):
     monkeypatch.setattr(
         search_mod.library, "search_items",
-        lambda c, term, limit=50: {"Items": [{"Id": "m1", "Name": "Alien", "Type": "Movie"}]},
+        lambda c, term, limit=50, include_item_types=None: {"Items": [{"Id": "m1", "Name": "Alien", "Type": "Movie"}]},
     )
     monkeypatch.setattr(search_mod.images, "primary_image_url", lambda *a, **k: None)
     monkeypatch.setattr(search_mod.images, "backdrop_image_url", lambda *a, **k: None)
 
     window = _make_window(client)
-    window._search("alien")
+    window._search("alien", search_mod.library.SEARCH_ITEM_TYPES)
 
     grid = window.getControl(search_mod.CTRL_RESULTS_GRID)
     assert [li.getLabel() for li in grid.items] == ["Alien"]
@@ -82,10 +82,10 @@ def test_search_populates_results_and_focuses_grid(client, monkeypatch):
 
 
 def test_search_shows_no_results_label(client, monkeypatch):
-    monkeypatch.setattr(search_mod.library, "search_items", lambda c, term, limit=50: {"Items": []})
+    monkeypatch.setattr(search_mod.library, "search_items", lambda c, term, limit=50, include_item_types=None: {"Items": []})
 
     window = _make_window(client)
-    window._search("nonexistent")
+    window._search("nonexistent", search_mod.library.SEARCH_ITEM_TYPES)
 
     assert window.getControl(search_mod.CTRL_STATUS_LABEL).getLabel() == "No results"
     window.close()
@@ -116,7 +116,7 @@ def test_empty_query_clears_status_without_searching(client, monkeypatch):
 def test_poll_does_not_search_while_text_is_still_changing(client, monkeypatch):
     monkeypatch.setattr(
         search_mod.library, "search_items",
-        lambda c, term, limit=50: (_ for _ in ()).throw(AssertionError("must not search yet")),
+        lambda c, term, limit=50, include_item_types=None: (_ for _ in ()).throw(AssertionError("must not search yet")),
     )
 
     window = _make_window(client)
@@ -133,7 +133,7 @@ def test_poll_does_not_search_while_text_is_still_changing(client, monkeypatch):
 def test_poll_searches_once_text_holds_steady_for_one_interval(client, monkeypatch):
     monkeypatch.setattr(
         search_mod.library, "search_items",
-        lambda c, term, limit=50: {"Items": []},
+        lambda c, term, limit=50, include_item_types=None: {"Items": []},
     )
 
     window = _make_window(client)
@@ -146,11 +146,74 @@ def test_poll_searches_once_text_holds_steady_for_one_interval(client, monkeypat
     window.close()
 
 
+def test_filters_all_start_checked(client):
+    window = _make_window(client)
+
+    for control_id in search_mod.FILTER_ITEM_TYPES:
+        assert window.getControl(control_id).getLabel().startswith("[x]")
+    window.close()
+
+
+def test_toggling_a_filter_updates_its_label_and_narrows_the_next_search(client, monkeypatch):
+    seen_item_types = []
+    monkeypatch.setattr(
+        search_mod.library, "search_items",
+        lambda c, term, limit=50, include_item_types=None: seen_item_types.append(include_item_types)
+        or {"Items": []},
+    )
+
+    window = _make_window(client)
+    window.getControl(search_mod.CTRL_QUERY).setText("alien")
+    window.handle_click(search_mod.CTRL_FILTER_MUSIC)
+    window._search_thread.join(timeout=2)
+
+    assert window.getControl(search_mod.CTRL_FILTER_MUSIC).getLabel() == "[ ] Music"
+    assert "MusicArtist" not in seen_item_types[-1]
+    assert "Movie" in seen_item_types[-1] and "Series" in seen_item_types[-1]
+    window.close()
+
+
+def test_toggling_a_filter_back_on_restores_its_types(client, monkeypatch):
+    seen_item_types = []
+    monkeypatch.setattr(
+        search_mod.library, "search_items",
+        lambda c, term, limit=50, include_item_types=None: seen_item_types.append(include_item_types)
+        or {"Items": []},
+    )
+
+    window = _make_window(client)
+    window.getControl(search_mod.CTRL_QUERY).setText("alien")
+    window.handle_click(search_mod.CTRL_FILTER_MUSIC)
+    window._search_thread.join(timeout=2)
+    window.handle_click(search_mod.CTRL_FILTER_MUSIC)
+    window._search_thread.join(timeout=2)
+
+    assert window.getControl(search_mod.CTRL_FILTER_MUSIC).getLabel() == "[x] Music"
+    assert "MusicArtist" in seen_item_types[-1]
+    window.close()
+
+
+def test_unchecking_every_filter_shows_a_message_without_searching(client, monkeypatch):
+    def fail_if_called(*a, **k):
+        raise AssertionError("must not search with no categories selected")
+
+    monkeypatch.setattr(search_mod.library, "search_items", fail_if_called)
+
+    window = _make_window(client)
+    window.getControl(search_mod.CTRL_QUERY).setText("alien")
+    window.handle_click(search_mod.CTRL_FILTER_MOVIES)
+    window.handle_click(search_mod.CTRL_FILTER_TV)
+    window.handle_click(search_mod.CTRL_FILTER_MUSIC)
+
+    assert window.getControl(search_mod.CTRL_STATUS_LABEL).getLabel() == "No categories selected"
+    window.close()
+
+
 def test_poll_does_not_resubmit_the_same_text_twice(client, monkeypatch):
     calls = []
     monkeypatch.setattr(
         search_mod.library, "search_items",
-        lambda c, term, limit=50: calls.append(term) or {"Items": []},
+        lambda c, term, limit=50, include_item_types=None: calls.append(term) or {"Items": []},
     )
 
     window = _make_window(client)

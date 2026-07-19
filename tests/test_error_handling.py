@@ -92,7 +92,7 @@ def test_search_window_shows_inline_error_and_stays_open(client, monkeypatch):
 
     window = _make_window(search_mod.SearchWindow, client=client)
     window.onInit()
-    window._search("alien")
+    window._search("alien", search_mod.library.SEARCH_ITEM_TYPES)
 
     assert window.result is None
     assert not window.closed

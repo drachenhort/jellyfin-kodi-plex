@@ -28,9 +28,28 @@ CTRL_SEARCH_BUTTON = 501
 CTRL_RESULTS_GRID = 502
 CTRL_STATUS_LABEL = 503
 CTRL_BACK_BUTTON = 504
+CTRL_FILTER_MOVIES = 505
+CTRL_FILTER_TV = 506
+CTRL_FILTER_MUSIC = 507
 
 MAX_RESULTS = 50
 QUERY_POLL_INTERVAL_MS = 300
+
+# Each filter toggle's control id -> the Jellyfin item types it contributes
+# to the search's IncludeItemTypes. TV covers both Series and Episode (a
+# matching episode is still "a TV show" from the user's point of view, even
+# though the item itself isn't a Series) - same idea for Music covering all
+# three of Jellyfin's music item types in one toggle.
+FILTER_ITEM_TYPES = {
+    CTRL_FILTER_MOVIES: ("Movie",),
+    CTRL_FILTER_TV: ("Series", "Episode"),
+    CTRL_FILTER_MUSIC: ("MusicArtist", "MusicAlbum", "Audio"),
+}
+FILTER_LABELS = {
+    CTRL_FILTER_MOVIES: "Movies",
+    CTRL_FILTER_TV: "TV Shows",
+    CTRL_FILTER_MUSIC: "Music",
+}
 
 
 class SearchWindow(ControlledWindow):
@@ -42,10 +61,25 @@ class SearchWindow(ControlledWindow):
         self._search_thread = None
         self._last_polled_text = None
         self._last_submitted_text = None
+        # All three filters start enabled - unchecking one narrows the next
+        # search's IncludeItemTypes rather than just hiding results that
+        # already came back, so an excluded category doesn't even cost a
+        # server-side lookup.
+        self._active_filters = set(FILTER_ITEM_TYPES)
 
     def onInit(self):
         self.setFocusId(CTRL_QUERY)
+        for control_id in FILTER_ITEM_TYPES:
+            self._update_filter_label(control_id)
         threading.Thread(target=self._poll_query, daemon=True).start()
+
+    def _update_filter_label(self, control_id):
+        checked = "x" if control_id in self._active_filters else " "
+        self.getControl(control_id).setLabel(f"[{checked}] {FILTER_LABELS[control_id]}")
+
+    def _active_item_types(self):
+        types = [t for control_id in self._active_filters for t in FILTER_ITEM_TYPES[control_id]]
+        return ",".join(types)
 
     def _poll_query(self):
         # threading.Event.wait() rather than the xbmc.sleep()-then-check
@@ -82,6 +116,21 @@ class SearchWindow(ControlledWindow):
         elif control_id == CTRL_BACK_BUTTON:
             self.result = None
             self.close()
+        elif control_id in FILTER_ITEM_TYPES:
+            self._toggle_filter(control_id)
+
+    def _toggle_filter(self, control_id):
+        if control_id in self._active_filters:
+            self._active_filters.remove(control_id)
+        else:
+            self._active_filters.add(control_id)
+        self._update_filter_label(control_id)
+        # Force a re-submit even though the query text itself hasn't
+        # changed - _start_search() only skips a search that's already in
+        # flight, not one whose term matches the last one sent, so this is
+        # enough to make a filter toggle actually re-query.
+        self._last_submitted_text = None
+        self._start_search()
 
     def _start_search(self):
         # Runs the actual query on a background thread (_search()) so a slow
@@ -96,14 +145,26 @@ class SearchWindow(ControlledWindow):
         if not term:
             self.getControl(CTRL_STATUS_LABEL).setLabel("")
             return
+        item_types = self._active_item_types()
+        if not item_types:
+            # All three filters unchecked - nothing to search for, and an
+            # empty IncludeItemTypes would mean "every type" to Jellyfin's
+            # API rather than "none", so this has to be handled here instead
+            # of just falling through to _search().
+            self.getControl(CTRL_STATUS_LABEL).setLabel("No categories selected")
+            return
         self.getControl(CTRL_STATUS_LABEL).setLabel("Searching…")
-        self._search_thread = threading.Thread(target=self._search, args=(term,), daemon=True)
+        self._search_thread = threading.Thread(
+            target=self._search, args=(term, item_types), daemon=True
+        )
         self._search_thread.start()
 
-    def _search(self, term):
+    def _search(self, term, item_types):
         started = time.time()
         try:
-            response = library.search_items(self.client, term, limit=MAX_RESULTS)
+            response = library.search_items(
+                self.client, term, limit=MAX_RESULTS, include_item_types=item_types
+            )
         except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
             xbmc.log(
                 f"{LOG_PREFIX} Search: {term!r} failed after {time.time() - started:.1f}s: {exc}",

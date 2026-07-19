@@ -38,7 +38,7 @@
       <texturefocus>button-focus.png</texturefocus>
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onright>501</onright>
-      <ondown>502</ondown>
+      <ondown>505</ondown>
     </control>
     <control type="button" id="501">
       <posx>1300</posx>
@@ -51,7 +51,7 @@
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onleft>500</onleft>
       <onright>504</onright>
-      <ondown>502</ondown>
+      <ondown>505</ondown>
     </control>
     <!-- Explicit escape hatch back to Home - Back/Escape alone can get
          eaten by Kodi's on-screen keyboard closing itself (the edit
@@ -67,12 +67,58 @@
       <texturefocus>button-focus.png</texturefocus>
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onleft>501</onleft>
+      <ondown>505</ondown>
+    </control>
+
+    <!-- Category filter toggles - each click narrows/widens the next
+         search's server-side IncludeItemTypes rather than just hiding
+         results client-side (see SearchWindow._toggle_filter()). Label text
+         ("[x] Movies") carries the checked state since this skin has no
+         radiobutton on/off textures of its own to reuse. -->
+    <control type="button" id="505">
+      <posx>80</posx>
+      <posy>180</posy>
+      <width>200</width>
+      <height>50</height>
+      <font>font16</font>
+      <label>[x] Movies</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onup>500</onup>
+      <onright>506</onright>
+      <ondown>502</ondown>
+    </control>
+    <control type="button" id="506">
+      <posx>300</posx>
+      <posy>180</posy>
+      <width>200</width>
+      <height>50</height>
+      <font>font16</font>
+      <label>[x] TV Shows</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onup>500</onup>
+      <onleft>505</onleft>
+      <onright>507</onright>
+      <ondown>502</ondown>
+    </control>
+    <control type="button" id="507">
+      <posx>520</posx>
+      <posy>180</posy>
+      <width>200</width>
+      <height>50</height>
+      <font>font16</font>
+      <label>[x] Music</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onup>500</onup>
+      <onleft>506</onleft>
       <ondown>502</ondown>
     </control>
 
     <control type="label" id="503">
       <posx>80</posx>
-      <posy>180</posy>
+      <posy>240</posy>
       <width>1200</width>
       <height>30</height>
       <font>font13</font>
@@ -81,11 +127,11 @@
 
     <control type="panel" id="502">
       <posx>80</posx>
-      <posy>230</posy>
+      <posy>290</posy>
       <width>1760</width>
-      <height>800</height>
+      <height>740</height>
       <itemgap>20</itemgap>
-      <onup>500</onup>
+      <onup>505</onup>
       <itemlayout width="220" height="330">
         <control type="image">
           <width>220</width>

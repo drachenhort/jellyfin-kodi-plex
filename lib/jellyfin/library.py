@@ -148,9 +148,16 @@ def iter_items_paged(client, parent_id=None, include_item_types=None, fields="",
 SEARCH_ITEM_TYPES = "Movie,Series,MusicArtist,MusicAlbum,Audio,Episode"
 
 
-def search_items(client, term, limit=50, fields=LISTING_ITEM_FIELDS):
-    """GET /Users/{userId}/Items with SearchTerm — used by the Search screen."""
+def search_items(client, term, limit=50, fields=LISTING_ITEM_FIELDS,
+                  include_item_types=SEARCH_ITEM_TYPES):
+    """GET /Users/{userId}/Items with SearchTerm — used by the Search screen.
+
+    `include_item_types` defaults to every searchable type but accepts a
+    narrower comma-separated subset, e.g. to let the Search screen's
+    Movies/TV/Music filter toggles exclude a category from the query
+    entirely rather than just hiding results client-side.
+    """
     return get_items(
         client, limit=limit, recursive=True, search_term=term,
-        include_item_types=SEARCH_ITEM_TYPES, fields=fields,
+        include_item_types=include_item_types, fields=fields,
     )
