@@ -95,7 +95,6 @@
       <onright>410</onright>
       <onleft>407</onleft>
       <ondown>408</ondown>
-      <visible>false</visible>
     </control>
     <control type="button" id="410">
       <posx>1400</posx>
@@ -109,7 +108,6 @@
       <onright>410</onright>
       <onleft>409</onleft>
       <ondown>408</ondown>
-      <visible>false</visible>
     </control>
 
     <control type="group">
