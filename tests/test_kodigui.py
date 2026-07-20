@@ -323,6 +323,22 @@ def test_non_back_action_delegates_to_handle_action():
     assert not window.closed
 
 
+# -- WindowMixin.open(): Kodi refusing new windows during shutdown ---------
+
+def test_open_returns_none_when_kodi_refuses_a_new_window():
+    """Reproduces a real-device crash: even with callers checking
+    xbmc.Monitor().abortRequested() before calling open() again, Kodi can
+    flip into "tearing down for shutdown, refusing new windows" in the gap
+    between that check and window construction, raising RuntimeError
+    ("maximum number of windows reached") - open() must absorb this rather
+    than let it crash the script."""
+    class ExhaustedWindow(ControlledWindow):
+        def __init__(self, *a, **k):
+            raise RuntimeError("maximum number of windows reached")
+
+    assert ExhaustedWindow.open("/fake/addon/path") is None
+
+
 # -- WindowMixin._watch_abort: close() on Kodi shutdown --------------------
 
 class _AbortingMonitor:

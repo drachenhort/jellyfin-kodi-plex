@@ -82,7 +82,19 @@ class WindowMixin(object):
     @classmethod
     def open(cls, addon_path, **kwargs):
         """Modal: blocks until the window sets `self.result` and closes."""
-        window = cls(cls.xmlFile, addon_path, cls.theme, cls.res)
+        try:
+            window = cls(cls.xmlFile, addon_path, cls.theme, cls.res)
+        except RuntimeError:
+            # Kodi refuses to construct any new window once it's begun
+            # tearing down for shutdown ("maximum number of windows
+            # reached") - callers already check xbmc.Monitor().abortRequested()
+            # before calling open() again, but that only narrows this race,
+            # it can't close it: Kodi can flip its abort/teardown state in
+            # the gap between that check and this constructor call.
+            # Observed on a real device even with the pre-check in place -
+            # treat it the same as an immediate abort-driven close (no
+            # result) rather than letting it crash the script.
+            return None
         window.setup(**kwargs)
         # Kodi doesn't force-close a script addon's own WindowXML/Dialog on
         # shutdown the way it does its native skin windows (see this
