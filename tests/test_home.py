@@ -600,3 +600,54 @@ def test_settings_dialog_does_not_touch_controls_if_window_closed_while_open(cli
     monkeypatch.setattr(home_mod.library, "get_views", fail_if_called)
 
     window.handle_click(home_mod.CTRL_SETTINGS)  # must return quietly, not raise
+
+
+# -- Hide watched Recently Added Movies/TV (addon settings) -----------------
+
+def test_hide_watched_recently_added_defaults_to_off(client, monkeypatch):
+    window = _make_window(client, monkeypatch)
+    assert window.hide_watched_recently_added_movies is False
+    assert window.hide_watched_recently_added_tv is False
+
+
+def test_hide_watched_recently_added_movies_filters_played_items(client, monkeypatch):
+    views = [{"Id": "lib-movies", "Name": "Filme", "CollectionType": "movies"}]
+    unwatched = {"Id": "m1", "Name": "Unwatched", "UserData": {"Played": False}}
+    watched = {"Id": "m2", "Name": "Watched", "UserData": {"Played": True}}
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: views)
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [unwatched, watched])
+
+    window = _make_window(
+        client, monkeypatch,
+        extra_settings={home_mod.HIDE_WATCHED_RECENTLY_ADDED_MOVIES_SETTING: "true"},
+    )
+    result = window._latest(views, "movies")
+
+    assert result == [unwatched]
+
+
+def test_hide_watched_recently_added_tv_filters_played_episodes(client, monkeypatch):
+    views = [{"Id": "lib-tv", "Name": "Serien", "CollectionType": "tvshows"}]
+    unwatched = {"Id": "e1", "Name": "Unwatched", "UserData": {"Played": False}}
+    watched = {"Id": "e2", "Name": "Watched", "UserData": {"Played": True}}
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=10: [unwatched, watched])
+
+    window = _make_window(
+        client, monkeypatch,
+        extra_settings={home_mod.HIDE_WATCHED_RECENTLY_ADDED_TV_SETTING: "true"},
+    )
+    result = window._latest_tv_episodes(views)
+
+    assert result == [unwatched]
+
+
+def test_hide_watched_setting_off_keeps_watched_items(client, monkeypatch):
+    views = [{"Id": "lib-movies", "Name": "Filme", "CollectionType": "movies"}]
+    watched = {"Id": "m2", "Name": "Watched", "UserData": {"Played": True}}
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: views)
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [watched])
+
+    window = _make_window(client, monkeypatch)
+    result = window._latest(views, "movies")
+
+    assert result == [watched]

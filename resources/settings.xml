@@ -48,9 +48,19 @@
           <default>true</default>
           <control type="toggle"/>
         </setting>
+        <setting id="hide_watched_recently_added_movies" type="boolean" label="30035" help="">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle"/>
+        </setting>
         <setting id="show_recently_added_tv" type="boolean" label="30014" help="">
           <level>0</level>
           <default>true</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="hide_watched_recently_added_tv" type="boolean" label="30036" help="">
+          <level>0</level>
+          <default>false</default>
           <control type="toggle"/>
         </setting>
         <setting id="show_recently_added_music" type="boolean" label="30015" help="">

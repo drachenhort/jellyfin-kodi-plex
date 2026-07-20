@@ -99,3 +99,11 @@ msgstr ""
 msgctxt "#30034"
 msgid "The highest bitrate to request from the server for direct-play/direct-stream. Lower this on a constrained network to encourage transcoding to a smaller stream instead of stalling."
 msgstr ""
+
+msgctxt "#30035"
+msgid "Hide watched Recently Added Movies"
+msgstr ""
+
+msgctxt "#30036"
+msgid "Hide watched Recently Added TV"
+msgstr ""
