@@ -5,6 +5,8 @@ setting, and WindowMixin's Back-action handling.
 
 import time
 
+import xbmc
+
 from lib.windows.kodigui import (
     PLACEHOLDER_ART,
     PLACEHOLDER_ART_MUSIC,
@@ -318,6 +320,52 @@ def test_non_back_action_delegates_to_handle_action():
     window.onAction(FakeAction(999))
 
     assert seen == [999]
+    assert not window.closed
+
+
+# -- WindowMixin._watch_abort: close() on Kodi shutdown --------------------
+
+class _AbortingMonitor:
+    """waitForAbort() reports abort on its first call, unlike the real
+    stub (which always reports no abort) - simulates Kodi's shutdown
+    signal firing while the window is still open."""
+
+    def waitForAbort(self, timeout=None):
+        return True
+
+
+class _NeverAbortingMonitor:
+    def __init__(self):
+        self.calls = 0
+
+    def waitForAbort(self, timeout=None):
+        self.calls += 1
+        return False
+
+
+def test_watch_abort_closes_window_with_no_result_on_abort(monkeypatch):
+    monkeypatch.setattr(xbmc, "Monitor", _AbortingMonitor)
+    window = ControlledWindow(None, "/fake/addon/path", "Main", "1080i")
+    window.setup()
+    window.result = {"action": "something"}
+
+    window._watch_abort()
+
+    assert window.result is None
+    assert window.closed
+    assert window.closed_event.is_set()
+
+
+def test_watch_abort_stops_polling_once_window_already_closed(monkeypatch):
+    monitor = _NeverAbortingMonitor()
+    monkeypatch.setattr(xbmc, "Monitor", lambda: monitor)
+    window = ControlledWindow(None, "/fake/addon/path", "Main", "1080i")
+    window.setup()
+    window.closed_event.set()  # simulate a normal Back-driven close
+
+    window._watch_abort()
+
+    assert monitor.calls == 0
     assert not window.closed
 
 

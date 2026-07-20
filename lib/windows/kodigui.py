@@ -17,6 +17,7 @@ import math
 import threading
 import time
 
+import xbmc
 import xbmcgui
 
 # Shared xbmc.log() prefix so log lines from any window or the player are
@@ -83,10 +84,28 @@ class WindowMixin(object):
         """Modal: blocks until the window sets `self.result` and closes."""
         window = cls(cls.xmlFile, addon_path, cls.theme, cls.res)
         window.setup(**kwargs)
+        # Kodi doesn't force-close a script addon's own WindowXML/Dialog on
+        # shutdown the way it does its native skin windows (see this
+        # module's docstring) - doModal() only returns once Python code
+        # calls close(), which otherwise only happens from Back-action
+        # handling. Without this watcher, doModal() blocks forever once
+        # Kodi sets its abort flag, and the whole script gets force-killed
+        # after Kodi's 5-second shutdown grace period instead of exiting
+        # cleanly (observed on a real device).
+        abort_watcher = threading.Thread(target=window._watch_abort, daemon=True)
+        abort_watcher.start()
         window.doModal()
         result = window.result
         del window
         return result
+
+    def _watch_abort(self):
+        monitor = xbmc.Monitor()
+        while not self.closed_event.is_set():
+            if monitor.waitForAbort(1):
+                self.result = None
+                self.close()
+                return
 
     def onAction(self, action):
         if action.getId() in BACK_ACTIONS:
