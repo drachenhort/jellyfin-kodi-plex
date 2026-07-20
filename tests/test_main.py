@@ -4,9 +4,36 @@ second independent instance meant quitting one left the other running
 underneath - see RUNNING_PROPERTY's docstring in lib/main.py.
 """
 
+import xbmc
 import xbmcgui
 
 import lib.main as main_mod
+
+
+class _AbortMonitor:
+    def abortRequested(self):
+        return True
+
+
+# -- _home_loop: skip the quit confirmation dialog on Kodi shutdown ---------
+
+def test_home_loop_returns_without_confirm_dialog_on_abort(monkeypatch):
+    monkeypatch.setattr(main_mod.HomeWindow, "open", staticmethod(lambda *a, **k: None))
+    monkeypatch.setattr(xbmc, "Monitor", _AbortMonitor)
+
+    def fail_if_called():
+        raise AssertionError("must not prompt for confirmation during shutdown")
+
+    monkeypatch.setattr(main_mod, "_confirm_quit", fail_if_called)
+
+    assert main_mod._home_loop(client=object()) is None
+
+
+def test_home_loop_still_confirms_quit_when_not_aborting(monkeypatch):
+    monkeypatch.setattr(main_mod.HomeWindow, "open", staticmethod(lambda *a, **k: None))
+    monkeypatch.setattr(main_mod, "_confirm_quit", lambda: True)
+
+    assert main_mod._home_loop(client=object()) is None
 
 
 def test_run_refuses_to_start_a_second_instance(monkeypatch):

@@ -272,6 +272,14 @@ def _home_loop(client):
             select_control_id=select_control_id, select_item_id=select_item_id,
         )
         if not result:
+            # Kodi force-closes any open window and expects the script to
+            # exit promptly on shutdown - popping a confirmation dialog here
+            # would sit forever waiting for a click that will never come
+            # (no one's driving the UI during shutdown), which is exactly
+            # what made this loop miss Kodi's 5-second "stop the script"
+            # grace period and get killed instead of exiting cleanly.
+            if xbmc.Monitor().abortRequested():
+                return None
             if _confirm_quit():
                 return None
             continue
