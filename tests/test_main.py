@@ -36,6 +36,52 @@ def test_home_loop_still_confirms_quit_when_not_aborting(monkeypatch):
     assert main_mod._home_loop(client=object()) is None
 
 
+def test_home_loop_still_loops_when_quit_declined_and_not_aborting(monkeypatch):
+    opens = []
+
+    def fake_open(*a, **k):
+        opens.append(1)
+        return None if len(opens) == 1 else {"action": "servers"}
+
+    monkeypatch.setattr(main_mod.HomeWindow, "open", staticmethod(fake_open))
+    monkeypatch.setattr(main_mod, "_confirm_quit", lambda: False)
+    monkeypatch.setattr(main_mod, "_manage_servers", lambda client: "new-client")
+
+    assert main_mod._home_loop(client=object()) == "new-client"
+    assert len(opens) == 2
+
+
+def test_home_loop_does_not_reopen_home_if_abort_fires_during_confirm_dialog(monkeypatch):
+    """Reproduces a real-device crash: Kodi can force the quit-confirmation
+    dialog closed mid-shutdown, handing back a falsy "No" just as abort
+    becomes true - looping back into HomeWindow.open() at that exact moment
+    crashed with "maximum number of windows reached" (Kodi already
+    mid-teardown, refusing to construct a new window)."""
+    opens = []
+
+    def fail_if_reopened(*a, **k):
+        opens.append(1)
+        if len(opens) > 1:
+            raise AssertionError("must not reopen Home once abort has fired")
+        return None
+
+    monkeypatch.setattr(main_mod.HomeWindow, "open", staticmethod(fail_if_reopened))
+
+    class _AbortAfterDialogMonitor:
+        checks = 0
+
+        def abortRequested(self):
+            _AbortAfterDialogMonitor.checks += 1
+            # False for the pre-open() and post-close() checks, True only
+            # once _confirm_quit() itself has been (attempted to be) shown.
+            return _AbortAfterDialogMonitor.checks > 2
+
+    monkeypatch.setattr(xbmc, "Monitor", _AbortAfterDialogMonitor)
+    monkeypatch.setattr(main_mod, "_confirm_quit", lambda: False)
+
+    assert main_mod._home_loop(client=object()) is None
+
+
 def test_run_refuses_to_start_a_second_instance(monkeypatch):
     calls = []
     monkeypatch.setattr(main_mod, "_migrate_legacy_settings", lambda: calls.append("migrate"))

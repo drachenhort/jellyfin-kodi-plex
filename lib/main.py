@@ -267,6 +267,13 @@ def _home_loop(client):
     select_control_id = None
     select_item_id = None
     while True:
+        # Belt-and-suspenders: also bail before even trying to (re)open
+        # Home, not just after - Kodi refuses to construct any new window
+        # once it's begun tearing down for shutdown ("maximum number of
+        # windows reached"), so re-entering the loop with abort already
+        # signalled must never reach HomeWindow.open() again.
+        if xbmc.Monitor().abortRequested():
+            return None
         result = HomeWindow.open(
             ADDON_PATH, client=client,
             select_control_id=select_control_id, select_item_id=select_item_id,
@@ -280,7 +287,14 @@ def _home_loop(client):
             # grace period and get killed instead of exiting cleanly.
             if xbmc.Monitor().abortRequested():
                 return None
-            if _confirm_quit():
+            confirmed = _confirm_quit()
+            # Re-check after the dialog, not just before it: Kodi can force
+            # the yesno() dialog closed mid-shutdown and hand back a falsy
+            # result (as if the user picked "No") with abort now signalled -
+            # looping back into HomeWindow.open() at that point is exactly
+            # what crashed with "maximum number of windows reached" on a
+            # real device (Kodi already mid-teardown, refusing new windows).
+            if confirmed or xbmc.Monitor().abortRequested():
                 return None
             continue
         if result["action"] == "browse":
