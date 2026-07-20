@@ -65,15 +65,29 @@ def get_item(client, item_id, fields=DEFAULT_ITEM_FIELDS):
     )
 
 
+# Session-scoped, same reasoning/invalidation as _browse_cache below (these
+# items carry watched-state too) - keyed by (client, item_id) rather than
+# by browse level, since each Detail page only ever asks for one item's own
+# Similar list.
+_similar_cache = {}  # (client, item_id) -> items list
+
+
 def get_similar(client, item_id, limit=12):
     """GET /Items/{itemId}/Similar — items similar to this one (genre, cast,
     etc. per Jellyfin's own recommendation logic), for the Detail screen's
-    "More Like This" row."""
+    "More Like This" row. Cached per (client, item_id) for the rest of the
+    session - see _similar_cache and clear_browse_cache()."""
+    cache_key = (client, item_id)
+    cached = _similar_cache.get(cache_key)
+    if cached is not None:
+        return cached
     result = client.get(
         f"/Items/{item_id}/Similar",
         params={"UserId": client.user_id, "Limit": limit, "Fields": LISTING_ITEM_FIELDS},
     )
-    return result.get("Items", [])
+    items = result.get("Items", [])
+    _similar_cache[cache_key] = items
+    return items
 
 
 def get_resume(client, limit=20):
@@ -151,7 +165,8 @@ def mark_unplayed(client, item_id):
 # go stale in a much more visible way (a just-finished episode still shown
 # unwatched) - clear_browse_cache() is called instead from the one place
 # watched-state actually changes (lib/player.py after playback, and here
-# after a manual watched/unwatched toggle).
+# after a manual watched/unwatched toggle). Also clears get_similar()'s
+# _similar_cache above, for the same reason.
 _browse_cache = {}  # (client, parent_id, sort_by, sort_order) -> items list
 
 
@@ -171,6 +186,7 @@ def cache_children(client, parent_id, sort_by, sort_order, items):
 
 def clear_browse_cache():
     _browse_cache.clear()
+    _similar_cache.clear()
 
 
 def iter_items_paged(client, parent_id=None, include_item_types=None, fields="",

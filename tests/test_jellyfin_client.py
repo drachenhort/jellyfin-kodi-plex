@@ -303,6 +303,7 @@ def test_get_resume_and_next_up_and_latest(client, monkeypatch):
 
 
 def test_get_similar(client, monkeypatch):
+    library.clear_browse_cache()
     fake = FakeRequests([FakeResponse({"Items": [{"Id": "s1", "Name": "Similar Movie"}]})])
     monkeypatch.setattr(client_mod, "requests", fake)
 
@@ -313,6 +314,66 @@ def test_get_similar(client, monkeypatch):
     assert call["url"].endswith("/Items/item-1/Similar")
     assert call["params"]["UserId"] == client.user_id
     assert call["params"]["Limit"] == 12
+
+
+def test_get_similar_is_cached_within_the_session(client, monkeypatch):
+    library.clear_browse_cache()
+    fake = FakeRequests([FakeResponse({"Items": [{"Id": "s1", "Name": "Similar Movie"}]})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    first = library.get_similar(client, "item-1")
+    second = library.get_similar(client, "item-1")
+
+    assert first == second == [{"Id": "s1", "Name": "Similar Movie"}]
+    assert len(fake.calls) == 1  # second call served from cache
+
+
+def test_get_similar_cached_separately_per_item(client, monkeypatch):
+    library.clear_browse_cache()
+    fake = FakeRequests([
+        FakeResponse({"Items": [{"Id": "s1", "Name": "Similar to item-1"}]}),
+        FakeResponse({"Items": [{"Id": "s2", "Name": "Similar to item-2"}]}),
+    ])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    result_1 = library.get_similar(client, "item-1")
+    result_2 = library.get_similar(client, "item-2")
+
+    assert result_1 == [{"Id": "s1", "Name": "Similar to item-1"}]
+    assert result_2 == [{"Id": "s2", "Name": "Similar to item-2"}]
+    assert len(fake.calls) == 2
+
+
+def test_clear_browse_cache_also_clears_similar_cache(client, monkeypatch):
+    fake = FakeRequests([
+        FakeResponse({"Items": [{"Id": "s1"}]}),
+        FakeResponse({"Items": [{"Id": "s1-refetched"}]}),
+    ])
+    monkeypatch.setattr(client_mod, "requests", fake)
+    library.clear_browse_cache()
+
+    library.get_similar(client, "item-1")
+    library.clear_browse_cache()
+    result = library.get_similar(client, "item-1")
+
+    assert result == [{"Id": "s1-refetched"}]
+    assert len(fake.calls) == 2
+
+
+def test_mark_played_clears_the_similar_cache(client, monkeypatch):
+    library.clear_browse_cache()
+    fake = FakeRequests([
+        FakeResponse({"Items": [{"Id": "s1"}]}),
+        FakeResponse(None),  # mark_played
+        FakeResponse({"Items": [{"Id": "s1-refetched"}]}),
+    ])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    library.get_similar(client, "item-1")
+    library.mark_played(client, "item-1")
+    result = library.get_similar(client, "item-1")
+
+    assert result == [{"Id": "s1-refetched"}]
 
 
 def test_get_items_by_ids_builds_comma_separated_param(client, monkeypatch):
