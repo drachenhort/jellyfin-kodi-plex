@@ -73,6 +73,15 @@ class Player:
     def seekTime(self, seconds):
         pass
 
+    def setAudioStream(self, stream_index):
+        pass
+
+    def setSubtitleStream(self, stream_index):
+        pass
+
+    def showSubtitles(self, visible):
+        pass
+
     def onPlayBackStarted(self):
         pass
 

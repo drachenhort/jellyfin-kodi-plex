@@ -79,9 +79,37 @@
       <label>Mark as Watched</label>
       <texturefocus>button-focus.png</texturefocus>
       <texturenofocus>button-nofocus.png</texturenofocus>
-      <onright>407</onright>
+      <onright>409</onright>
       <onleft>406</onleft>
       <ondown>408</ondown>
+    </control>
+    <control type="button" id="409">
+      <posx>1040</posx>
+      <posy>660</posy>
+      <width>340</width>
+      <height>60</height>
+      <font>font16</font>
+      <label>Audio</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onright>410</onright>
+      <onleft>407</onleft>
+      <ondown>408</ondown>
+      <visible>false</visible>
+    </control>
+    <control type="button" id="410">
+      <posx>1400</posx>
+      <posy>660</posy>
+      <width>340</width>
+      <height>60</height>
+      <font>font16</font>
+      <label>Subtitles</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onright>410</onright>
+      <onleft>409</onleft>
+      <ondown>408</ondown>
+      <visible>false</visible>
     </control>
 
     <control type="group">

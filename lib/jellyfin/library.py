@@ -9,7 +9,12 @@ import time
 # too was pure overhead nobody saw, on exactly the kind of large listing
 # (e.g. a big real Music library) most likely to make a slow query timeout.
 LISTING_ITEM_FIELDS = "Overview,Genres,RunTimeTicks,ProductionYear,CommunityRating,CriticRating"
-DEFAULT_ITEM_FIELDS = LISTING_ITEM_FIELDS + ",People"
+# MediaSources (and its nested MediaStreams) is only needed for the Detail
+# screen's audio/subtitle track pickers - the other of get_item()'s two
+# callers (lib/player.py, just for the ListItem title) doesn't use it, but
+# there's only the one caller that matters cost-wise and it's a single-item
+# fetch, not a listing, so the extra payload is negligible.
+DEFAULT_ITEM_FIELDS = LISTING_ITEM_FIELDS + ",People,MediaSources"
 
 
 # Home re-fetches views on every visit (plain Back navigation, every

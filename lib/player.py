@@ -43,8 +43,11 @@ class JellyfinPlayer(xbmc.Player):
         self._progress_thread = None
         self._reported_stop = False
         self._end_reason = "ended"
+        self._audio_stream_index = None
+        self._subtitle_stream_index = None
 
-    def play_item(self, item_id, item_type=None, resume_ticks=0):
+    def play_item(self, item_id, item_type=None, resume_ticks=0,
+                  audio_stream_index=None, subtitle_stream_index=None):
         """Returns "ended" (played to completion), "stopped" (user backed
         out or explicitly stopped early), or "error" (playback never started,
         or Kodi reported a playback error) - lib.player.play_queue() uses
@@ -69,6 +72,8 @@ class JellyfinPlayer(xbmc.Player):
         self._play_session_id = play_session_id
         self._reported_stop = False
         self._end_reason = "ended"
+        self._audio_stream_index = audio_stream_index
+        self._subtitle_stream_index = subtitle_stream_index
 
         list_item = xbmcgui.ListItem(label=item.get("Name", "") if item else "", path=url)
         if item:
@@ -98,6 +103,7 @@ class JellyfinPlayer(xbmc.Player):
         # playing in the background, orphaned from the rest of the addon.
         monitor = xbmc.Monitor()
         started = False
+        selection_applied = False
         seconds_waiting_to_start = 0
         while True:
             if monitor.waitForAbort(1):
@@ -111,6 +117,18 @@ class JellyfinPlayer(xbmc.Player):
                 break
             if self.isPlayingVideo() or self.isPlayingAudio():
                 started = True
+                if not selection_applied:
+                    # Only meaningful once Kodi has actually opened the
+                    # stream and detected its tracks - calling these any
+                    # earlier is a silent no-op. This addon plays the
+                    # server's direct stream/play URL (the whole original
+                    # file, unmodified), so Kodi's own demuxer sees exactly
+                    # the same embedded audio/subtitle tracks Jellyfin
+                    # reported, in the same order - the Detail screen's
+                    # picker indices (position within just that track
+                    # type) line up with Kodi's own per-type stream index.
+                    self._apply_stream_selection()
+                    selection_applied = True
             elif started or self._stop_event.is_set():
                 break
             else:
@@ -150,6 +168,26 @@ class JellyfinPlayer(xbmc.Player):
                 break
         self._finish()
         return self._end_reason
+
+    def _apply_stream_selection(self):
+        try:
+            if self._audio_stream_index is not None:
+                self.setAudioStream(self._audio_stream_index)
+            if self._subtitle_stream_index is not None:
+                self.setSubtitleStream(self._subtitle_stream_index)
+                self.showSubtitles(True)
+            else:
+                # Explicit off, in case the source's own default subtitle
+                # track would otherwise auto-enable itself - the Detail
+                # screen's picker defaults to "None" unless a forced track
+                # exists, and that choice should stick.
+                self.showSubtitles(False)
+        except Exception as exc:  # noqa: BLE001 - a failed track switch shouldn't stop playback
+            xbmc.log(
+                f"{LOG_PREFIX} Player: applying audio/subtitle selection for "
+                f"{self._item_id!r} failed: {exc}",
+                xbmc.LOGWARNING,
+            )
 
     def onPlayBackStopped(self):
         self._end_reason = "stopped"
@@ -192,9 +230,13 @@ class JellyfinPlayer(xbmc.Player):
         library.clear_browse_cache()
 
 
-def play_item(client, item_id, item_type=None, resume_ticks=0):
+def play_item(client, item_id, item_type=None, resume_ticks=0,
+              audio_stream_index=None, subtitle_stream_index=None):
     player = JellyfinPlayer(client)
-    player.play_item(item_id, item_type=item_type, resume_ticks=resume_ticks)
+    player.play_item(
+        item_id, item_type=item_type, resume_ticks=resume_ticks,
+        audio_stream_index=audio_stream_index, subtitle_stream_index=subtitle_stream_index,
+    )
 
 
 def play_queue(client, item_ids, item_type=None):

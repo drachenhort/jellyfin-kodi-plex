@@ -9,17 +9,23 @@ while self.item is still None, which handle_click() must not crash on.
 """
 
 import lib.windows.detail as detail_mod
-from lib.windows.detail import _meta_line
+from lib.windows.detail import _format_runtime, _meta_line
 
 
 def test_meta_line_movie_unchanged():
     item = {
         "ProductionYear": 1979,
+        "OfficialRating": "R",
         "RunTimeTicks": 72_000_000_000,
         "CommunityRating": 8.4,
         "Genres": ["Horror", "Sci-Fi"],
     }
-    assert _meta_line(item) == "1979  •  120 min  •  8.4★  •  Horror, Sci-Fi"
+    assert _meta_line(item) == "1979  •  R  •  2h 0min  •  8.4★  •  Horror, Sci-Fi"
+
+
+def test_meta_line_omits_rating_when_absent():
+    item = {"ProductionYear": 1979, "RunTimeTicks": 72_000_000_000}
+    assert _meta_line(item) == "1979  •  2h 0min"
 
 
 def test_meta_line_track_shows_artist_and_album():
@@ -30,7 +36,7 @@ def test_meta_line_track_shows_artist_and_album():
         "ProductionYear": 1997,
         "RunTimeTicks": 4 * 60 * 10_000_000,
     }
-    assert _meta_line(item) == "Radiohead  •  OK Computer  •  1997  •  4 min"
+    assert _meta_line(item) == "Radiohead  •  OK Computer  •  1997  •  4min"
 
 
 def test_meta_line_track_falls_back_to_album_artist():
@@ -40,7 +46,7 @@ def test_meta_line_track_falls_back_to_album_artist():
 
 def test_meta_line_track_with_no_artist_or_album_omits_them():
     item = {"Type": "Audio", "RunTimeTicks": 3 * 60 * 10_000_000}
-    assert _meta_line(item) == "3 min"
+    assert _meta_line(item) == "3min"
 
 
 def test_meta_line_appends_watched_when_played():
@@ -51,6 +57,20 @@ def test_meta_line_appends_watched_when_played():
 def test_meta_line_omits_watched_when_not_played():
     item = {"ProductionYear": 1979, "UserData": {"Played": False}}
     assert _meta_line(item) == "1979"
+
+
+# -- _format_runtime ---------------------------------------------------------
+
+def test_format_runtime_under_an_hour():
+    assert _format_runtime(45 * 60 * 10_000_000) == "45min"
+
+
+def test_format_runtime_exact_hour():
+    assert _format_runtime(60 * 60 * 10_000_000) == "1h 0min"
+
+
+def test_format_runtime_hours_and_minutes():
+    assert _format_runtime(134 * 60 * 10_000_000) == "2h 14min"
 
 
 def _make_window(client, item_id="item-1"):
@@ -88,8 +108,135 @@ def test_play_click_after_load_includes_item_type_and_resume_ticks(client, monke
         "item_id": "item-1",
         "item_type": "Movie",
         "resume_ticks": 20 * 10_000_000,
+        "audio_stream_index": None,
+        "subtitle_stream_index": None,
     }
     assert window.closed
+
+
+# -- audio/subtitle track pickers --------------------------------------------
+
+AUDIO_STREAM_EN = {"Type": "Audio", "Index": 1, "DisplayTitle": "English 5.1 - AC3 - Default", "IsDefault": True}
+AUDIO_STREAM_FR = {"Type": "Audio", "Index": 2, "DisplayTitle": "French 2.0 - AAC"}
+SUBTITLE_STREAM_EN = {"Type": "Subtitle", "Index": 3, "DisplayTitle": "English - SRT"}
+SUBTITLE_STREAM_FORCED = {"Type": "Subtitle", "Index": 4, "DisplayTitle": "English (Forced) - SRT", "IsForced": True}
+
+
+def _window_with_streams(client, monkeypatch, streams):
+    monkeypatch.setattr(detail_mod.library, "get_item", lambda c, item_id, fields=None: {
+        "Id": "item-1", "Name": "Alien", "Type": "Movie",
+        "MediaSources": [{"MediaStreams": streams}],
+    })
+    monkeypatch.setattr(detail_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(detail_mod.images, "backdrop_image_url", lambda *a, **k: None)
+    window = _make_window(client)
+    window._load()
+    return window
+
+
+def test_load_streams_defaults_audio_to_the_stream_flagged_default(client, monkeypatch):
+    window = _window_with_streams(client, monkeypatch, [AUDIO_STREAM_EN, AUDIO_STREAM_FR])
+    assert window.selected_audio_index == 0
+    assert window.getControl(detail_mod.CTRL_AUDIO_BUTTON).getLabel() == "Audio: English 5.1 - AC3 - Default"
+
+
+def test_load_streams_defaults_subtitles_to_none_when_no_forced_track(client, monkeypatch):
+    window = _window_with_streams(client, monkeypatch, [AUDIO_STREAM_EN, SUBTITLE_STREAM_EN])
+    assert window.selected_subtitle_index is None
+    assert window.getControl(detail_mod.CTRL_SUBTITLE_BUTTON).getLabel() == "Subtitles: None"
+
+
+def test_load_streams_defaults_subtitles_to_the_forced_track(client, monkeypatch):
+    window = _window_with_streams(client, monkeypatch, [AUDIO_STREAM_EN, SUBTITLE_STREAM_EN, SUBTITLE_STREAM_FORCED])
+    assert window.selected_subtitle_index == 1
+    assert window.getControl(detail_mod.CTRL_SUBTITLE_BUTTON).getLabel() == "Subtitles: English (Forced) - SRT"
+
+
+def test_audio_button_hidden_with_zero_or_one_track(client, monkeypatch):
+    window = _window_with_streams(client, monkeypatch, [AUDIO_STREAM_EN])
+    assert window.getControl(detail_mod.CTRL_AUDIO_BUTTON).visible is False
+
+
+def test_audio_button_visible_with_multiple_tracks(client, monkeypatch):
+    window = _window_with_streams(client, monkeypatch, [AUDIO_STREAM_EN, AUDIO_STREAM_FR])
+    assert window.getControl(detail_mod.CTRL_AUDIO_BUTTON).visible is True
+
+
+def test_subtitle_button_hidden_when_no_subtitle_tracks(client, monkeypatch):
+    window = _window_with_streams(client, monkeypatch, [AUDIO_STREAM_EN])
+    assert window.getControl(detail_mod.CTRL_SUBTITLE_BUTTON).visible is False
+
+
+def test_subtitle_button_visible_with_a_subtitle_track(client, monkeypatch):
+    window = _window_with_streams(client, monkeypatch, [AUDIO_STREAM_EN, SUBTITLE_STREAM_EN])
+    assert window.getControl(detail_mod.CTRL_SUBTITLE_BUTTON).visible is True
+
+
+class _FakeSelectDialog:
+    """xbmcgui.Dialog() stand-in whose select() returns a fixed choice
+    regardless of the heading/options passed - same style as
+    tests/test_error_handling.py's FakeDialog for notification()."""
+
+    def __init__(self, choice):
+        self.choice = choice
+
+    def __call__(self):
+        return self
+
+    def select(self, heading, options, **kwargs):
+        return self.choice
+
+
+def test_pick_audio_updates_selection_and_label(client, monkeypatch):
+    window = _window_with_streams(client, monkeypatch, [AUDIO_STREAM_EN, AUDIO_STREAM_FR])
+    monkeypatch.setattr(detail_mod.xbmcgui, "Dialog", _FakeSelectDialog(1))
+
+    window.handle_click(detail_mod.CTRL_AUDIO_BUTTON)
+
+    assert window.selected_audio_index == 1
+    assert window.getControl(detail_mod.CTRL_AUDIO_BUTTON).getLabel() == "Audio: French 2.0 - AAC"
+
+
+def test_pick_audio_cancelled_leaves_selection_unchanged(client, monkeypatch):
+    window = _window_with_streams(client, monkeypatch, [AUDIO_STREAM_EN, AUDIO_STREAM_FR])
+    monkeypatch.setattr(detail_mod.xbmcgui, "Dialog", _FakeSelectDialog(-1))
+
+    window.handle_click(detail_mod.CTRL_AUDIO_BUTTON)
+
+    assert window.selected_audio_index == 0
+
+
+def test_pick_subtitle_first_option_selects_none(client, monkeypatch):
+    window = _window_with_streams(client, monkeypatch, [AUDIO_STREAM_EN, SUBTITLE_STREAM_EN, SUBTITLE_STREAM_FORCED])
+    assert window.selected_subtitle_index == 1  # starts on the forced track
+    monkeypatch.setattr(detail_mod.xbmcgui, "Dialog", _FakeSelectDialog(0))
+
+    window.handle_click(detail_mod.CTRL_SUBTITLE_BUTTON)
+
+    assert window.selected_subtitle_index is None
+    assert window.getControl(detail_mod.CTRL_SUBTITLE_BUTTON).getLabel() == "Subtitles: None"
+
+
+def test_pick_subtitle_selects_a_track(client, monkeypatch):
+    window = _window_with_streams(client, monkeypatch, [AUDIO_STREAM_EN, SUBTITLE_STREAM_EN])
+    monkeypatch.setattr(detail_mod.xbmcgui, "Dialog", _FakeSelectDialog(1))
+
+    window.handle_click(detail_mod.CTRL_SUBTITLE_BUTTON)
+
+    assert window.selected_subtitle_index == 0
+    assert window.getControl(detail_mod.CTRL_SUBTITLE_BUTTON).getLabel() == "Subtitles: English - SRT"
+
+
+def test_play_includes_the_selected_stream_indices(client, monkeypatch):
+    window = _window_with_streams(client, monkeypatch, [AUDIO_STREAM_EN, AUDIO_STREAM_FR, SUBTITLE_STREAM_EN])
+    monkeypatch.setattr(detail_mod.xbmcgui, "Dialog", _FakeSelectDialog(1))
+    window.handle_click(detail_mod.CTRL_AUDIO_BUTTON)  # -> French (index 1)
+    window.handle_click(detail_mod.CTRL_SUBTITLE_BUTTON)  # choice 1 -> English - SRT (index 0)
+
+    window.handle_click(detail_mod.CTRL_PLAY_BUTTON)
+
+    assert window.result["audio_stream_index"] == 1
+    assert window.result["subtitle_stream_index"] == 0
 
 
 # -- watched/unwatched toggle -----------------------------------------------

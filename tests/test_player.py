@@ -54,6 +54,13 @@ def _make_player(client, isplayingvideo_sequence, isplaying_sequence=None,
     player.stop = fake_stop
     player.play = lambda *a, **k: None
     player.getTime = lambda: 12.5
+
+    player.audio_stream_calls = []
+    player.subtitle_stream_calls = []
+    player.show_subtitles_calls = []
+    player.setAudioStream = lambda i: player.audio_stream_calls.append(i)
+    player.setSubtitleStream = lambda i: player.subtitle_stream_calls.append(i)
+    player.showSubtitles = lambda v: player.show_subtitles_calls.append(v)
     return player
 
 
@@ -98,6 +105,78 @@ def test_play_item_clears_the_browse_cache_on_finish(client, monkeypatch):
     player.play_item("item-1")
 
     assert library_mod.get_cached_children(client, "parent-1", "SortName", "Ascending") is None
+
+
+# -- audio/subtitle stream selection -----------------------------------------
+
+def test_play_item_applies_the_chosen_audio_and_subtitle_streams(client, monkeypatch):
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    player = _make_player(client, isplayingvideo_sequence=[False, True, False])
+    player.play_item("item-1", audio_stream_index=1, subtitle_stream_index=0)
+
+    assert player.audio_stream_calls == [1]
+    assert player.subtitle_stream_calls == [0]
+    assert player.show_subtitles_calls == [True]
+
+
+def test_play_item_explicitly_disables_subtitles_when_none_chosen(client, monkeypatch):
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    player = _make_player(client, isplayingvideo_sequence=[False, True, False])
+    player.play_item("item-1", audio_stream_index=0, subtitle_stream_index=None)
+
+    assert player.audio_stream_calls == [0]
+    assert player.subtitle_stream_calls == []
+    assert player.show_subtitles_calls == [False]
+
+
+def test_play_item_leaves_streams_alone_when_neither_chosen(client, monkeypatch):
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    player = _make_player(client, isplayingvideo_sequence=[False, True, False])
+    player.play_item("item-1")
+
+    assert player.audio_stream_calls == []
+    assert player.subtitle_stream_calls == []
+    assert player.show_subtitles_calls == [False]
+
+
+def test_play_item_applies_stream_selection_only_once(client, monkeypatch):
+    """The wait loop keeps polling isPlayingVideo() every second after
+    playback starts - setAudioStream()/setSubtitleStream() must not be
+    called again on every subsequent iteration."""
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, True, False])
+    player.play_item("item-1", audio_stream_index=1)
+
+    assert player.audio_stream_calls == [1]
+
+
+def test_play_item_applying_stream_selection_failure_does_not_crash(client, monkeypatch):
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    player = _make_player(client, isplayingvideo_sequence=[False, True, False])
+
+    def boom(i):
+        raise RuntimeError("boom")
+
+    player.setAudioStream = boom
+
+    status = player.play_item("item-1", audio_stream_index=0)  # must not raise
+
+    assert status == "ended"
 
 
 def test_play_item_returning_immediately_would_be_the_regression(client, monkeypatch):

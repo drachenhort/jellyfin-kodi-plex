@@ -1,7 +1,9 @@
 """Item detail / preplay window: fanart background, poster, metadata, cast,
-a Play (or Resume) button, and a "More Like This" row of similar items.
+a Play (or Resume) button, audio/subtitle track pickers, and a "More Like
+This" row of similar items.
 
-self.result on close: {"action": "play", "item_id": ..., "resume_ticks": N},
+self.result on close: {"action": "play", "item_id": ..., "resume_ticks": N,
+"audio_stream_index": N or None, "subtitle_stream_index": N or None},
 {"action": "open", "item_id": ..., "item_type": ..., "item_name": ...} (a
 similar item was clicked), or None (back).
 """
@@ -24,8 +26,19 @@ CTRL_CAST = 405
 CTRL_PLAY_BUTTON = 406
 CTRL_WATCHED_BUTTON = 407
 CTRL_SIMILAR = 408
+CTRL_AUDIO_BUTTON = 409
+CTRL_SUBTITLE_BUTTON = 410
 
 RESUME_THRESHOLD_TICKS = 10 * 10_000_000  # ignore resume points under 10s
+
+NO_SUBTITLES_LABEL = "None"
+
+
+def _format_runtime(run_time_ticks):
+    """72_000_000_000 (ticks) -> "2h 0min"; under an hour -> "45min"."""
+    total_minutes = int(run_time_ticks / 10_000_000 / 60)
+    hours, minutes = divmod(total_minutes, 60)
+    return f"{hours}h {minutes}min" if hours else f"{minutes}min"
 
 
 def _meta_line(item):
@@ -38,9 +51,10 @@ def _meta_line(item):
             parts.append(item["Album"])
     if item.get("ProductionYear"):
         parts.append(str(item["ProductionYear"]))
+    if item.get("OfficialRating"):
+        parts.append(item["OfficialRating"])
     if item.get("RunTimeTicks"):
-        minutes = int(item["RunTimeTicks"] / 10_000_000 / 60)
-        parts.append(f"{minutes} min")
+        parts.append(_format_runtime(item["RunTimeTicks"]))
     if item.get("CommunityRating"):
         parts.append(f"{item['CommunityRating']:.1f}★")
     if item.get("Genres"):
@@ -55,6 +69,17 @@ def _cast_line(item):
     return ", ".join(people[:6])
 
 
+def _stream_label(stream):
+    """A human-readable track description - Jellyfin's own DisplayTitle
+    (e.g. "English 5.1 - AC3 - Default") is already exactly this, built
+    from the stream's language/codec/channel layout; only synthesize a
+    fallback for the rare stream that lacks one."""
+    if stream.get("DisplayTitle"):
+        return stream["DisplayTitle"]
+    parts = [p for p in (stream.get("Language"), stream.get("Codec")) if p]
+    return ", ".join(parts) or f"Track {stream.get('Index', '?')}"
+
+
 class DetailWindow(ControlledWindow):
     xmlFile = "script-jellyfin-detail.xml"
 
@@ -63,6 +88,13 @@ class DetailWindow(ControlledWindow):
         self.client = client
         self.item_id = item_id
         self.item = None
+        self.audio_streams = []
+        self.subtitle_streams = []
+        # Indices into the two lists above (not Jellyfin's own MediaStreams
+        # Index field, which counts across all stream types together) -
+        # None for subtitles means "no subtitles", a valid, common choice.
+        self.selected_audio_index = None
+        self.selected_subtitle_index = None
 
     def onInit(self):
         # The skin's defaultcontrol already focuses the Play button before
@@ -120,10 +152,55 @@ class DetailWindow(ControlledWindow):
             self.getControl(CTRL_PLAY_BUTTON).setLabel("Play")
 
         self._set_watched_button_label()
+        self._load_streams()
 
     def _set_watched_button_label(self):
         played = bool((self.item.get("UserData") or {}).get("Played"))
         self.getControl(CTRL_WATCHED_BUTTON).setLabel("Mark as Unwatched" if played else "Mark as Watched")
+
+    def _load_streams(self):
+        """Audio/subtitle tracks for the item's primary media source -
+        MediaSources is requested via DEFAULT_ITEM_FIELDS, so this needs no
+        extra network call. Both buttons are hidden entirely (see the skin
+        XML's visibility conditions) rather than shown empty/pointless when
+        the item genuinely only has one track of that type."""
+        media_sources = self.item.get("MediaSources") or []
+        streams = media_sources[0].get("MediaStreams") or [] if media_sources else []
+        self.audio_streams = [s for s in streams if s.get("Type") == "Audio"]
+        self.subtitle_streams = [s for s in streams if s.get("Type") == "Subtitle"]
+
+        if self.audio_streams:
+            self.selected_audio_index = next(
+                (i for i, s in enumerate(self.audio_streams) if s.get("IsDefault")), 0
+            )
+        self._set_audio_button_label()
+        self.getControl(CTRL_AUDIO_BUTTON).setVisible(len(self.audio_streams) > 1)
+
+        # Subtitles default to off even if the source has some marked
+        # default - Jellyfin's "default" subtitle flag is about the
+        # server's own auto-select-subtitle setting, not a signal that most
+        # viewers want them on; forced tracks (honorifics/foreign-language
+        # dialogue only) are the one exception worth turning on by default.
+        forced_index = next(
+            (i for i, s in enumerate(self.subtitle_streams) if s.get("IsForced")), None
+        )
+        self.selected_subtitle_index = forced_index
+        self._set_subtitle_button_label()
+        self.getControl(CTRL_SUBTITLE_BUTTON).setVisible(bool(self.subtitle_streams))
+
+    def _set_audio_button_label(self):
+        if self.selected_audio_index is None:
+            label = "N/A"
+        else:
+            label = _stream_label(self.audio_streams[self.selected_audio_index])
+        self.getControl(CTRL_AUDIO_BUTTON).setLabel(f"Audio: {label}")
+
+    def _set_subtitle_button_label(self):
+        if self.selected_subtitle_index is None:
+            label = NO_SUBTITLES_LABEL
+        else:
+            label = _stream_label(self.subtitle_streams[self.selected_subtitle_index])
+        self.getControl(CTRL_SUBTITLE_BUTTON).setLabel(f"Subtitles: {label}")
 
     def _load_similar(self):
         try:
@@ -155,6 +232,28 @@ class DetailWindow(ControlledWindow):
             self._play()
         elif control_id == CTRL_WATCHED_BUTTON:
             threading.Thread(target=self._toggle_watched, daemon=True).start()
+        elif control_id == CTRL_AUDIO_BUTTON:
+            self._pick_audio()
+        elif control_id == CTRL_SUBTITLE_BUTTON:
+            self._pick_subtitle()
+
+    def _pick_audio(self):
+        if not self.audio_streams:
+            return
+        labels = [_stream_label(s) for s in self.audio_streams]
+        choice = xbmcgui.Dialog().select("Audio Track", labels)
+        if choice == -1:
+            return
+        self.selected_audio_index = choice
+        self._set_audio_button_label()
+
+    def _pick_subtitle(self):
+        labels = [NO_SUBTITLES_LABEL] + [_stream_label(s) for s in self.subtitle_streams]
+        choice = xbmcgui.Dialog().select("Subtitles", labels)
+        if choice == -1:
+            return
+        self.selected_subtitle_index = None if choice == 0 else choice - 1
+        self._set_subtitle_button_label()
 
     def _open_similar(self):
         selected = self.getControl(CTRL_SIMILAR).getSelectedItem()
@@ -178,6 +277,8 @@ class DetailWindow(ControlledWindow):
             "item_id": self.item_id,
             "item_type": self.item.get("Type"),
             "resume_ticks": resume_ticks,
+            "audio_stream_index": self.selected_audio_index,
+            "subtitle_stream_index": self.selected_subtitle_index,
         }
         self.close()
 
