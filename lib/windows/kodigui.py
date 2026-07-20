@@ -81,20 +81,23 @@ class WindowMixin(object):
 
     @classmethod
     def open(cls, addon_path, **kwargs):
-        """Modal: blocks until the window sets `self.result` and closes."""
-        try:
-            window = cls(cls.xmlFile, addon_path, cls.theme, cls.res)
-        except RuntimeError:
-            # Kodi refuses to construct any new window once it's begun
-            # tearing down for shutdown ("maximum number of windows
-            # reached") - callers already check xbmc.Monitor().abortRequested()
-            # before calling open() again, but that only narrows this race,
-            # it can't close it: Kodi can flip its abort/teardown state in
-            # the gap between that check and this constructor call.
-            # Observed on a real device even with the pre-check in place -
-            # treat it the same as an immediate abort-driven close (no
-            # result) rather than letting it crash the script.
-            return None
+        """Modal: blocks until the window sets `self.result` and closes.
+
+        Can raise RuntimeError("maximum number of windows reached") if Kodi
+        has begun tearing down for shutdown - callers already check
+        xbmc.Monitor().abortRequested() first, but that only narrows this
+        race, it can't close it (Kodi can flip its teardown state in the
+        gap between that check and this constructor call). Deliberately
+        NOT caught here: an earlier attempt at swallowing it and returning
+        None caused lib.main's window loop to immediately retry, hitting
+        the same error every time in a tight loop (Kodi keeps refusing new
+        windows for the rest of shutdown) - observed on a real device
+        logging 100,000+ exceptions/sec and never actually exiting, worse
+        than the crash-and-exit this was meant to fix. Letting it propagate
+        once is what actually terminates the script promptly; lib.main.run()
+        catches it exactly once at the top level instead.
+        """
+        window = cls(cls.xmlFile, addon_path, cls.theme, cls.res)
         window.setup(**kwargs)
         # Kodi doesn't force-close a script addon's own WindowXML/Dialog on
         # shutdown the way it does its native skin windows (see this

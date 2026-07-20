@@ -129,3 +129,50 @@ def test_run_clears_the_running_property_even_on_an_unhandled_exception(monkeypa
         pass
 
     assert home_window.getProperty(main_mod.RUNNING_PROPERTY) == ""
+
+
+# -- run(): a "maximum number of windows reached" RuntimeError from a window
+# loop is a shutdown-teardown race (see lib/windows/kodigui.py's open()
+# docstring), not a bug - caught exactly once here rather than retried.
+
+def test_run_treats_window_limit_runtime_error_as_a_clean_exit_when_aborting(monkeypatch):
+    home_window = xbmcgui.Window(main_mod.HOME_WINDOW_ID)
+    home_window.clearProperty(main_mod.RUNNING_PROPERTY)
+
+    monkeypatch.setattr(main_mod, "_migrate_legacy_settings", lambda: None)
+    monkeypatch.setattr(main_mod, "_load_saved_client", lambda: "some-client")
+
+    calls = []
+
+    def fake_home_loop(client):
+        calls.append(client)
+        raise RuntimeError("maximum number of windows reached")
+
+    monkeypatch.setattr(main_mod, "_home_loop", fake_home_loop)
+    monkeypatch.setattr(xbmc, "Monitor", _AbortMonitor)
+
+    main_mod.run()  # must not raise
+
+    assert calls == ["some-client"]  # never retried
+    assert home_window.getProperty(main_mod.RUNNING_PROPERTY) == ""
+
+
+def test_run_reraises_window_limit_runtime_error_when_not_aborting(monkeypatch):
+    home_window = xbmcgui.Window(main_mod.HOME_WINDOW_ID)
+    home_window.clearProperty(main_mod.RUNNING_PROPERTY)
+
+    monkeypatch.setattr(main_mod, "_migrate_legacy_settings", lambda: None)
+    monkeypatch.setattr(main_mod, "_load_saved_client", lambda: "some-client")
+
+    def fake_home_loop(client):
+        raise RuntimeError("maximum number of windows reached")
+
+    monkeypatch.setattr(main_mod, "_home_loop", fake_home_loop)
+
+    try:
+        main_mod.run()
+        assert False, "expected RuntimeError to propagate"
+    except RuntimeError:
+        pass
+
+    assert home_window.getProperty(main_mod.RUNNING_PROPERTY) == ""

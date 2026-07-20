@@ -330,7 +330,21 @@ def run():
         if not client:
             client = _login()
         while client:
-            client = _home_loop(client)
+            try:
+                client = _home_loop(client)
+            except RuntimeError:
+                # WindowXML/Dialog construction can raise "maximum number
+                # of windows reached" if Kodi has begun tearing down for
+                # shutdown right as a window loop tries to (re)open one -
+                # see lib/windows/kodigui.py's open() docstring for why
+                # this is caught exactly once here rather than swallowed
+                # and retried closer to the source (that caused an
+                # infinite retry loop on a real device). Only treat it as
+                # a clean shutdown if Kodi is actually aborting; a genuine
+                # bug elsewhere should still surface.
+                if not xbmc.Monitor().abortRequested():
+                    raise
+                break
     finally:
         # Always clears, even on an unhandled exception - a permanent
         # lockout after a crash would be worse than the bug this guards
