@@ -15,9 +15,12 @@ with drill-down through TV (Series → Season → Episode) and Music (Artist →
 → item detail → playback via Kodi's native OSD, with progress reported back to the server → a
 Servers screen for saving/switching between multiple Jellyfin server logins.
 
-Milestone 2 (TBD): scope not yet defined. `service.py` is a reserved no-op placeholder for it
-(see the Architecture section below) — likely candidates are background auto-discovery and
-session keep-alive while the script addon isn't in the foreground.
+Milestone 2 (in progress): expanding `resources/settings.xml` from purely-internal hidden state
+(saved servers, device id) into real user-facing configuration — per-hub-row Home show/hide
+toggles, hide-watched toggles for Recently Added rows, default library sort order, server request
+timeout, max streaming bitrate, and a Settings button on the Home screen. `service.py` is unrelated
+to M2 and remains a no-op placeholder reserved for a possible future milestone (e.g. background
+auto-discovery or session keep-alive).
 
 ## Commands
 
@@ -101,7 +104,7 @@ thread rather than Kodi's GUI thread, since a large real library (e.g. thousands
 can be slow to enumerate — this is why `JellyfinClient`'s request timeout is generous (60s): it no
 longer risks freezing the UI.
 
-**`service.py`** is currently a no-op placeholder reserved for M2 work (auto-discovery, session
-keep-alive); M1 playback-progress reporting runs inline in `lib/player.py` while the script addon
-is in the foreground.
+**`service.py`** is currently a no-op placeholder, unrelated to M2's Settings work — a future
+milestone may use it for auto-discovery or session keep-alive. M1 playback-progress reporting runs
+inline in `lib/player.py` while the script addon is in the foreground.
 
