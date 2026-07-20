@@ -158,6 +158,36 @@ class BrowseWindow(ControlledWindow):
         self.items = []
         select_index = None
         error = None
+
+        cached_items = library.get_cached_children(
+            self.client, self.parent_id, self.sort_by, self.sort_order
+        )
+        if cached_items is not None:
+            # Session-scoped cache hit (see library.clear_browse_cache's
+            # docstring) - skip the network walk entirely and populate
+            # straight from what's already in memory.
+            self.items = cached_items
+            control.addItems([
+                list_item(item, images.primary_image_url(self.client, item),
+                          images.backdrop_image_url(self.client, item))
+                for item in cached_items
+            ])
+            if cached_items:
+                self.setFocusId(active_control)
+            if self.select_item_id:
+                for offset, item in enumerate(cached_items):
+                    if item.get("Id") == self.select_item_id:
+                        control.selectItem(offset)
+                        self.setFocusId(active_control)
+                        break
+            self.loading_done.set()
+            self.getControl(CTRL_LOADING).setVisible(False)
+            self._track_id_cache = [item["Id"] for item in self.items if item.get("Type") == "Audio"]
+            show_queue_controls = self.parent_item_type in QUEUEABLE_PARENT_TYPES and self._track_id_cache
+            self.getControl(CTRL_PLAY_ALL).setVisible(bool(show_queue_controls))
+            self.getControl(CTRL_SHUFFLE).setVisible(bool(show_queue_controls))
+            return
+
         try:
             for page in library.iter_items_paged(
                 self.client, parent_id=self.parent_id, recursive=False,
@@ -237,6 +267,11 @@ class BrowseWindow(ControlledWindow):
                 f"({self.title!r}) in {elapsed:.1f}s",
                 xbmc.LOGINFO,
             )
+            # Only cache a clean, complete load - a load that stopped early
+            # (the `if error:` branch above) isn't the full listing, so
+            # caching it would silently truncate every future visit to this
+            # level until something else clears the cache.
+            library.cache_children(self.client, self.parent_id, self.sort_by, self.sort_order, self.items)
 
         self._track_id_cache = [item["Id"] for item in self.items if item.get("Type") == "Audio"]
         show_queue_controls = self.parent_item_type in QUEUEABLE_PARENT_TYPES and self._track_id_cache

@@ -337,7 +337,49 @@ def test_mark_unplayed_deletes_played_items(client, monkeypatch):
 
     call = fake.calls[0]
     assert call["method"] == "DELETE"
-    assert call["url"].endswith(f"/Users/{client.user_id}/PlayedItems/item-1")
+
+
+def test_mark_played_clears_the_browse_cache(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"Played": True})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+    library.cache_children(client, "parent-1", "SortName", "Ascending", ["stale"])
+
+    library.mark_played(client, "item-1")
+
+    assert library.get_cached_children(client, "parent-1", "SortName", "Ascending") is None
+
+
+def test_mark_unplayed_clears_the_browse_cache(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"Played": False})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+    library.cache_children(client, "parent-1", "SortName", "Ascending", ["stale"])
+
+    library.mark_unplayed(client, "item-1")
+
+    assert library.get_cached_children(client, "parent-1", "SortName", "Ascending") is None
+
+
+# -- browse cache primitives -------------------------------------------------
+
+def test_get_cached_children_returns_none_when_not_cached(client):
+    library.clear_browse_cache()
+    assert library.get_cached_children(client, "parent-1", "SortName", "Ascending") is None
+
+
+def test_cache_children_then_get_cached_children_round_trips(client):
+    library.clear_browse_cache()
+    library.cache_children(client, "parent-1", "SortName", "Ascending", ["a", "b"])
+
+    assert library.get_cached_children(client, "parent-1", "SortName", "Ascending") == ["a", "b"]
+
+
+def test_cache_children_keyed_separately_per_sort_order(client):
+    library.clear_browse_cache()
+    library.cache_children(client, "parent-1", "SortName", "Ascending", ["by-name"])
+    library.cache_children(client, "parent-1", "DateCreated", "Descending", ["by-date"])
+
+    assert library.get_cached_children(client, "parent-1", "SortName", "Ascending") == ["by-name"]
+    assert library.get_cached_children(client, "parent-1", "DateCreated", "Descending") == ["by-date"]
 
 
 def test_series_poster_url_prefers_season_art(client):

@@ -118,12 +118,48 @@ def get_latest_episodes(client, parent_id=None, limit=20):
 
 def mark_played(client, item_id):
     """POST /Users/{userId}/PlayedItems/{itemId} — mark an item watched."""
-    return client.post(f"/Users/{client.user_id}/PlayedItems/{item_id}")
+    result = client.post(f"/Users/{client.user_id}/PlayedItems/{item_id}")
+    clear_browse_cache()
+    return result
 
 
 def mark_unplayed(client, item_id):
     """DELETE /Users/{userId}/PlayedItems/{itemId} — mark an item unwatched."""
-    return client.delete(f"/Users/{client.user_id}/PlayedItems/{item_id}")
+    result = client.delete(f"/Users/{client.user_id}/PlayedItems/{item_id}")
+    clear_browse_cache()
+    return result
+
+
+# Caches a browse level's fully-loaded children (a library's top-level items,
+# a series' seasons, a season's episodes, ...) for the rest of the session,
+# so repeatedly backing into the same level (e.g. a big TV library's Series
+# list) doesn't re-run the whole iter_items_paged() walk each time - see
+# lib/windows/browse.py's _load(). Deliberately session-scoped rather than
+# time-based like get_views()'s cache: these listings carry each item's
+# watched-state (UserData.Played / UnplayedItemCount), which a TTL would let
+# go stale in a much more visible way (a just-finished episode still shown
+# unwatched) - clear_browse_cache() is called instead from the one place
+# watched-state actually changes (lib/player.py after playback, and here
+# after a manual watched/unwatched toggle).
+_browse_cache = {}  # (client, parent_id, sort_by, sort_order) -> items list
+
+
+def _browse_cache_key(client, parent_id, sort_by, sort_order):
+    return (client, parent_id, sort_by, sort_order)
+
+
+def get_cached_children(client, parent_id, sort_by, sort_order):
+    """The fully-loaded children previously cached for this exact browse
+    level, or None if not cached (never loaded, or invalidated since)."""
+    return _browse_cache.get(_browse_cache_key(client, parent_id, sort_by, sort_order))
+
+
+def cache_children(client, parent_id, sort_by, sort_order, items):
+    _browse_cache[_browse_cache_key(client, parent_id, sort_by, sort_order)] = items
+
+
+def clear_browse_cache():
+    _browse_cache.clear()
 
 
 def iter_items_paged(client, parent_id=None, include_item_types=None, fields="",

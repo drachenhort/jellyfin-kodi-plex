@@ -6,6 +6,7 @@ coverage at all.
 """
 
 import lib.jellyfin.client as client_mod
+import lib.jellyfin.library as library_mod
 import lib.player as player_mod
 from tests.fakes import FakeRequests, FakeResponse
 
@@ -82,6 +83,21 @@ def test_play_item_waits_for_playback_to_actually_start(client, monkeypatch):
     stopped_call = fake_requests.calls[-1]
     assert stopped_call["url"].endswith("/Sessions/Playing/Stopped")
     assert stopped_call["json"]["PositionTicks"] == int(12.5 * 10_000_000)
+
+
+def test_play_item_clears_the_browse_cache_on_finish(client, monkeypatch):
+    """Playback finishing is what makes Jellyfin update watched state
+    server-side (see lib/jellyfin/library.py's browse-cache docstring) -
+    any cached browse listing's UserData is now potentially stale."""
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+    library_mod.cache_children(client, "parent-1", "SortName", "Ascending", ["stale"])
+
+    player = _make_player(client, isplayingvideo_sequence=[False, False, True, False])
+    player.play_item("item-1")
+
+    assert library_mod.get_cached_children(client, "parent-1", "SortName", "Ascending") is None
 
 
 def test_play_item_returning_immediately_would_be_the_regression(client, monkeypatch):

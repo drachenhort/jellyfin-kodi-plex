@@ -446,3 +446,63 @@ def test_grid_click_still_opens_selected_item(client, monkeypatch):
         "item_overview": "",
     }
     assert window.closed
+
+
+# -- Session-scoped browse cache (library.get_cached_children/cache_children) --
+
+def test_load_caches_children_and_a_second_load_skips_the_network(client, monkeypatch):
+    from lib.jellyfin import library as library_mod
+    library_mod.clear_browse_cache()
+
+    calls = []
+
+    def fake_iter(*a, **k):
+        calls.append(1)
+        yield ALBUM_TRACKS
+
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", fake_iter)
+
+    window1 = _make_window(client, parent_item_type="MusicAlbum")
+    window1._load()
+    window2 = _make_window(client, parent_item_type="MusicAlbum")
+    window2._load()
+
+    assert len(calls) == 1  # second _load() served from cache
+    assert window2.items == ALBUM_TRACKS
+    assert window2.loading_done.is_set()
+
+
+def test_load_does_not_cache_a_load_that_stopped_early(client, monkeypatch):
+    from lib.jellyfin import library as library_mod
+    library_mod.clear_browse_cache()
+
+    monkeypatch.setattr(
+        browse_mod.library, "iter_items_paged",
+        _failing_after(ALBUM_TRACKS, error=RuntimeError("boom")),
+    )
+
+    window1 = _make_window(client, parent_item_type="MusicAlbum")
+    window1._load()
+
+    assert library_mod.get_cached_children(client, "parent-1", "SortName", "Ascending") is None
+
+
+def test_clear_browse_cache_forces_a_fresh_load(client, monkeypatch):
+    from lib.jellyfin import library as library_mod
+    library_mod.clear_browse_cache()
+
+    calls = []
+
+    def fake_iter(*a, **k):
+        calls.append(1)
+        yield ALBUM_TRACKS
+
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", fake_iter)
+
+    window1 = _make_window(client, parent_item_type="MusicAlbum")
+    window1._load()
+    library_mod.clear_browse_cache()
+    window2 = _make_window(client, parent_item_type="MusicAlbum")
+    window2._load()
+
+    assert len(calls) == 2  # cache was cleared, so the second load hit the network again

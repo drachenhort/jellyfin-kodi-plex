@@ -186,6 +186,10 @@ class JellyfinPlayer(xbmc.Player):
         playback.report_playback_stopped(
             self.client, self._item_id, self._play_session_id, position_ticks
         )
+        # Reporting playback stopped is what makes Jellyfin update watched
+        # state (played flag, resume position) server-side - any cached
+        # browse listing's UserData is now potentially stale.
+        library.clear_browse_cache()
 
 
 def play_item(client, item_id, item_type=None, resume_ticks=0):
