@@ -37,3 +37,18 @@ jobs:
             git commit -m "Rebuild Kodi repository [skip ci]"
             git push
           fi
+
+      - name: Create GitHub release for this version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(python -c "import xml.etree.ElementTree as ET; print(ET.parse('addon.xml').getroot().attrib['version'])")
+          tag="v${version}"
+          if gh release view "$tag" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "Release $tag already exists, skipping."
+          else
+            gh release create "$tag" --repo "${{ github.repository }}" \
+              --title "$tag" \
+              --generate-notes \
+              "docs/script.jellyfin.plex/script.jellyfin.plex-${version}.zip"
+          fi
