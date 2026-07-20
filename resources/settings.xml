@@ -130,6 +130,37 @@
             <popup>true</popup>
           </control>
         </setting>
+        <setting id="preferred_audio_language" type="string" label="30040" help="30042">
+          <level>0</level>
+          <default>eng</default>
+          <constraints>
+            <options>
+              <option label="30045">eng</option>
+              <option label="30046">deu</option>
+              <option label="30047">fra</option>
+              <option label="30048">spa</option>
+              <option label="30049">ita</option>
+              <option label="30050">jpn</option>
+            </options>
+          </constraints>
+          <control type="list" format="string"/>
+        </setting>
+        <setting id="preferred_subtitle_language" type="string" label="30041" help="30043">
+          <level>0</level>
+          <default>none</default>
+          <constraints>
+            <options>
+              <option label="30044">none</option>
+              <option label="30045">eng</option>
+              <option label="30046">deu</option>
+              <option label="30047">fra</option>
+              <option label="30048">spa</option>
+              <option label="30049">ita</option>
+              <option label="30050">jpn</option>
+            </options>
+          </constraints>
+          <control type="list" format="string"/>
+        </setting>
       </group>
     </category>
   </section>

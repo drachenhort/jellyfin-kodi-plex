@@ -12,10 +12,15 @@ import threading
 import time
 
 import xbmc
+import xbmcaddon
 import xbmcgui
 
 from lib.jellyfin import images, library
 from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item
+
+ADDON = xbmcaddon.Addon()
+PREFERRED_AUDIO_LANGUAGE_SETTING = "preferred_audio_language"
+PREFERRED_SUBTITLE_LANGUAGE_SETTING = "preferred_subtitle_language"
 
 CTRL_BACKDROP = 400
 CTRL_POSTER = 401
@@ -32,6 +37,7 @@ CTRL_SUBTITLE_BUTTON = 410
 RESUME_THRESHOLD_TICKS = 10 * 10_000_000  # ignore resume points under 10s
 
 NO_SUBTITLES_LABEL = "None"
+NO_LANGUAGE_PREFERENCE = "none"
 
 
 def _format_runtime(run_time_ticks):
@@ -161,31 +167,59 @@ class DetailWindow(ControlledWindow):
     def _load_streams(self):
         """Audio/subtitle tracks for the item's primary media source -
         MediaSources is requested via DEFAULT_ITEM_FIELDS, so this needs no
-        extra network call. Both buttons are hidden entirely (see the skin
-        XML's visibility conditions) rather than shown empty/pointless when
-        the item genuinely only has one track of that type."""
+        extra network call. Both buttons are hidden entirely (via
+        setVisible() below - deliberately no <visible> tag of its own in
+        the skin XML, see that file's comment on this exact gotcha) rather
+        than shown empty/pointless when the item genuinely only has one
+        track of that type."""
         media_sources = self.item.get("MediaSources") or []
         streams = media_sources[0].get("MediaStreams") or [] if media_sources else []
         self.audio_streams = [s for s in streams if s.get("Type") == "Audio"]
         self.subtitle_streams = [s for s in streams if s.get("Type") == "Subtitle"]
 
         if self.audio_streams:
-            self.selected_audio_index = next(
-                (i for i, s in enumerate(self.audio_streams) if s.get("IsDefault")), 0
-            )
+            preferred = (ADDON.getSetting(PREFERRED_AUDIO_LANGUAGE_SETTING) or "").strip().lower()
+            match_index = self._find_stream_by_language(self.audio_streams, preferred)
+            if match_index is not None:
+                self.selected_audio_index = match_index
+            else:
+                # Preferred language (English by default) not on this item -
+                # fall back to whichever track the source itself flags as
+                # default, the same as before this setting existed.
+                self.selected_audio_index = next(
+                    (i for i, s in enumerate(self.audio_streams) if s.get("IsDefault")), 0
+                )
         self._set_audio_button_label()
         self.getControl(CTRL_AUDIO_BUTTON).setVisible(len(self.audio_streams) > 1)
 
-        # Subtitles default to off even if the source has some marked
-        # default - Jellyfin's "default" subtitle flag is about the
+        # Subtitles default to off ("None") even if the source has some
+        # marked default - Jellyfin's "default" subtitle flag is about the
         # server's own auto-select-subtitle setting, not a signal that most
-        # viewers want them on; forced tracks (honorifics/foreign-language
-        # dialogue only) are the one exception worth turning on by default.
-        forced_index = next(
-            (i for i, s in enumerate(self.subtitle_streams) if s.get("IsForced")), None
+        # viewers want them on. A forced track (honorifics/foreign-language
+        # dialogue only) is still preselected regardless of this setting,
+        # since it's meant to always be on, not a language preference.
+        preferred_subtitle = (ADDON.getSetting(PREFERRED_SUBTITLE_LANGUAGE_SETTING) or "").strip().lower()
+        subtitle_match = (
+            self._find_stream_by_language(self.subtitle_streams, preferred_subtitle)
+            if preferred_subtitle and preferred_subtitle != NO_LANGUAGE_PREFERENCE
+            else None
         )
-        self.selected_subtitle_index = forced_index
+        if subtitle_match is not None:
+            self.selected_subtitle_index = subtitle_match
+        else:
+            self.selected_subtitle_index = next(
+                (i for i, s in enumerate(self.subtitle_streams) if s.get("IsForced")), None
+            )
         self._set_subtitle_button_label()
+        self.getControl(CTRL_SUBTITLE_BUTTON).setVisible(bool(self.subtitle_streams))
+
+    @staticmethod
+    def _find_stream_by_language(streams, language_code):
+        if not language_code or language_code == NO_LANGUAGE_PREFERENCE:
+            return None
+        return next(
+            (i for i, s in enumerate(streams) if (s.get("Language") or "").lower() == language_code), None
+        )
         self.getControl(CTRL_SUBTITLE_BUTTON).setVisible(bool(self.subtitle_streams))
 
     def _set_audio_button_label(self):

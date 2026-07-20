@@ -8,6 +8,8 @@ runs, and onInit() only starts the actual fetch on a background thread
 while self.item is still None, which handle_click() must not crash on.
 """
 
+import xbmcaddon
+
 import lib.windows.detail as detail_mod
 from lib.windows.detail import _format_runtime, _meta_line
 
@@ -116,19 +118,28 @@ def test_play_click_after_load_includes_item_type_and_resume_ticks(client, monke
 
 # -- audio/subtitle track pickers --------------------------------------------
 
-AUDIO_STREAM_EN = {"Type": "Audio", "Index": 1, "DisplayTitle": "English 5.1 - AC3 - Default", "IsDefault": True}
-AUDIO_STREAM_FR = {"Type": "Audio", "Index": 2, "DisplayTitle": "French 2.0 - AAC"}
-SUBTITLE_STREAM_EN = {"Type": "Subtitle", "Index": 3, "DisplayTitle": "English - SRT"}
-SUBTITLE_STREAM_FORCED = {"Type": "Subtitle", "Index": 4, "DisplayTitle": "English (Forced) - SRT", "IsForced": True}
+AUDIO_STREAM_EN = {"Type": "Audio", "Index": 1, "Language": "eng", "DisplayTitle": "English 5.1 - AC3 - Default", "IsDefault": True}
+AUDIO_STREAM_FR = {"Type": "Audio", "Index": 2, "Language": "fra", "DisplayTitle": "French 2.0 - AAC"}
+SUBTITLE_STREAM_EN = {"Type": "Subtitle", "Index": 3, "Language": "eng", "DisplayTitle": "English - SRT"}
+SUBTITLE_STREAM_FORCED = {"Type": "Subtitle", "Index": 4, "Language": "eng", "DisplayTitle": "English (Forced) - SRT", "IsForced": True}
 
 
-def _window_with_streams(client, monkeypatch, streams):
+def _window_with_streams(client, monkeypatch, streams, extra_settings=None):
     monkeypatch.setattr(detail_mod.library, "get_item", lambda c, item_id, fields=None: {
         "Id": "item-1", "Name": "Alien", "Type": "Movie",
         "MediaSources": [{"MediaStreams": streams}],
     })
     monkeypatch.setattr(detail_mod.images, "primary_image_url", lambda *a, **k: None)
     monkeypatch.setattr(detail_mod.images, "backdrop_image_url", lambda *a, **k: None)
+    if extra_settings:
+        # detail.py's ADDON is a single module-level instance shared across
+        # the whole test session - give this test its own fresh stub so a
+        # setSetting() call here can't leak into another test's assertions
+        # (same reasoning as tests/test_home.py's _make_window helper).
+        addon = xbmcaddon.Addon()
+        for key, value in extra_settings.items():
+            addon.setSetting(key, value)
+        monkeypatch.setattr(detail_mod, "ADDON", addon)
     window = _make_window(client)
     window._load()
     return window
@@ -150,6 +161,56 @@ def test_load_streams_defaults_subtitles_to_the_forced_track(client, monkeypatch
     window = _window_with_streams(client, monkeypatch, [AUDIO_STREAM_EN, SUBTITLE_STREAM_EN, SUBTITLE_STREAM_FORCED])
     assert window.selected_subtitle_index == 1
     assert window.getControl(detail_mod.CTRL_SUBTITLE_BUTTON).getLabel() == "Subtitles: English (Forced) - SRT"
+
+
+# -- preferred audio/subtitle language settings ------------------------------
+
+def test_preferred_audio_language_setting_picks_matching_track(client, monkeypatch):
+    window = _window_with_streams(
+        client, monkeypatch, [AUDIO_STREAM_EN, AUDIO_STREAM_FR],
+        extra_settings={detail_mod.PREFERRED_AUDIO_LANGUAGE_SETTING: "fra"},
+    )
+    assert window.selected_audio_index == 1
+    assert window.getControl(detail_mod.CTRL_AUDIO_BUTTON).getLabel() == "Audio: French 2.0 - AAC"
+
+
+def test_preferred_audio_language_setting_falls_back_when_not_present(client, monkeypatch):
+    """The item has no German track - falls back to the source's own
+    default (English here), same as if no preference were set at all."""
+    window = _window_with_streams(
+        client, monkeypatch, [AUDIO_STREAM_EN, AUDIO_STREAM_FR],
+        extra_settings={detail_mod.PREFERRED_AUDIO_LANGUAGE_SETTING: "deu"},
+    )
+    assert window.selected_audio_index == 0
+
+
+def test_preferred_subtitle_language_none_leaves_subtitles_off(client, monkeypatch):
+    window = _window_with_streams(
+        client, monkeypatch, [AUDIO_STREAM_EN, SUBTITLE_STREAM_EN],
+        extra_settings={detail_mod.PREFERRED_SUBTITLE_LANGUAGE_SETTING: "none"},
+    )
+    assert window.selected_subtitle_index is None
+
+
+def test_preferred_subtitle_language_setting_picks_matching_track(client, monkeypatch):
+    french_subtitle = {"Type": "Subtitle", "Index": 5, "Language": "fra", "DisplayTitle": "French - SRT"}
+    window = _window_with_streams(
+        client, monkeypatch, [AUDIO_STREAM_EN, SUBTITLE_STREAM_EN, french_subtitle],
+        extra_settings={detail_mod.PREFERRED_SUBTITLE_LANGUAGE_SETTING: "fra"},
+    )
+    assert window.selected_subtitle_index == 1
+    assert window.getControl(detail_mod.CTRL_SUBTITLE_BUTTON).getLabel() == "Subtitles: French - SRT"
+
+
+def test_forced_subtitle_track_still_wins_over_none_preference(client, monkeypatch):
+    """A forced track is meant to always be on (foreign-language dialogue,
+    honorifics) - it isn't a language preference, so it stays preselected
+    even with the default "None" setting."""
+    window = _window_with_streams(
+        client, monkeypatch, [AUDIO_STREAM_EN, SUBTITLE_STREAM_EN, SUBTITLE_STREAM_FORCED],
+        extra_settings={detail_mod.PREFERRED_SUBTITLE_LANGUAGE_SETTING: "none"},
+    )
+    assert window.selected_subtitle_index == 1
 
 
 def test_audio_button_hidden_with_zero_or_one_track(client, monkeypatch):

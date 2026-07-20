@@ -119,3 +119,47 @@ msgstr ""
 msgctxt "#30039"
 msgid "How many items to fetch per Recently Added row (Movies/TV/Music) on Home."
 msgstr ""
+
+msgctxt "#30040"
+msgid "Preferred audio language"
+msgstr ""
+
+msgctxt "#30041"
+msgid "Preferred subtitle language"
+msgstr ""
+
+msgctxt "#30042"
+msgid "Which audio track to select by default on an item's Play button. Defaults to English if the item has an English track, otherwise falls back to the source's own default track."
+msgstr ""
+
+msgctxt "#30043"
+msgid "Which subtitle track to preselect by default. \"None\" means no subtitles are shown unless you pick one on the item's detail page (a forced track, if the item has one, is still preselected even when this is \"None\")."
+msgstr ""
+
+msgctxt "#30044"
+msgid "None"
+msgstr ""
+
+msgctxt "#30045"
+msgid "English"
+msgstr ""
+
+msgctxt "#30046"
+msgid "German"
+msgstr ""
+
+msgctxt "#30047"
+msgid "French"
+msgstr ""
+
+msgctxt "#30048"
+msgid "Spanish"
+msgstr ""
+
+msgctxt "#30049"
+msgid "Italian"
+msgstr ""
+
+msgctxt "#30050"
+msgid "Japanese"
+msgstr ""

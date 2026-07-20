@@ -83,6 +83,13 @@
       <onleft>406</onleft>
       <ondown>408</ondown>
     </control>
+    <!-- Deliberately no <visible> tag on 409/410: their visibility is
+         controlled purely from Python (DetailWindow._load_streams()'s
+         setVisible() calls) - the skin engine re-evaluates any control's
+         own <visible> condition every frame, so a static <visible>false</visible>
+         here would silently override setVisible(True) on the very next
+         frame and the buttons would never actually appear (this exact bug
+         shipped once - see the git history around v0.3.27). -->
     <control type="button" id="409">
       <posx>1040</posx>
       <posy>660</posy>
