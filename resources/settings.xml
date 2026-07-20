@@ -73,6 +73,18 @@
           <default>false</default>
           <control type="toggle"/>
         </setting>
+        <setting id="recently_added_item_limit" type="integer" label="30038" help="30039">
+          <level>0</level>
+          <default>10</default>
+          <constraints>
+            <minimum>5</minimum>
+            <maximum>50</maximum>
+            <step>5</step>
+          </constraints>
+          <control type="slider" format="integer">
+            <popup>true</popup>
+          </control>
+        </setting>
       </group>
     </category>
     <category id="library" label="30020">

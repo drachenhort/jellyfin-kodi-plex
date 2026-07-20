@@ -111,3 +111,11 @@ msgstr ""
 msgctxt "#30037"
 msgid "Hide watched Recently Added Music"
 msgstr ""
+
+msgctxt "#30038"
+msgid "Recently Added item limit"
+msgstr ""
+
+msgctxt "#30039"
+msgid "How many items to fetch per Recently Added row (Movies/TV/Music) on Home."
+msgstr ""

@@ -667,3 +667,37 @@ def test_hide_watched_setting_off_keeps_watched_items(client, monkeypatch):
     result = window._latest(views, "movies")
 
     assert result == [watched]
+
+
+# -- Recently Added item limit (addon setting) -------------------------------
+
+def test_recently_added_item_limit_defaults_to_ten(client, monkeypatch):
+    window = _make_window(client, monkeypatch)
+    assert window.recently_added_item_limit == 10
+
+
+def test_recently_added_item_limit_setting_is_passed_to_get_latest(client, monkeypatch):
+    views = [{"Id": "lib-movies", "Name": "Filme", "CollectionType": "movies"}]
+    seen_limits = []
+
+    def fake_get_latest(c, parent_id=None, limit=10):
+        seen_limits.append(limit)
+        return []
+
+    monkeypatch.setattr(home_mod.library, "get_latest", fake_get_latest)
+
+    window = _make_window(
+        client, monkeypatch,
+        extra_settings={home_mod.RECENTLY_ADDED_ITEM_LIMIT_SETTING: "25"},
+    )
+    window._latest(views, "movies")
+
+    assert seen_limits == [25]
+
+
+def test_recently_added_item_limit_setting_invalid_falls_back_to_default(client, monkeypatch):
+    window = _make_window(
+        client, monkeypatch,
+        extra_settings={home_mod.RECENTLY_ADDED_ITEM_LIMIT_SETTING: ""},
+    )
+    assert window.recently_added_item_limit == home_mod.DEFAULT_RECENTLY_ADDED_ITEM_LIMIT

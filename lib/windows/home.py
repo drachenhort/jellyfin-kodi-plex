@@ -26,6 +26,17 @@ from lib.jellyfin import images, library
 from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item, placeholder_art, progress_percent
 
 ADDON = xbmcaddon.Addon()
+
+
+def _recently_added_item_limit():
+    """The addon's "Recently Added item limit" setting - falls back to
+    DEFAULT_RECENTLY_ADDED_ITEM_LIMIT if unset or not a valid int."""
+    try:
+        return int(ADDON.getSetting(RECENTLY_ADDED_ITEM_LIMIT_SETTING))
+    except (TypeError, ValueError):
+        return DEFAULT_RECENTLY_ADDED_ITEM_LIMIT
+
+
 HIDE_PLAYLISTS_SETTING = "hide_playlists"
 SHOW_CONTINUE_WATCHING_SETTING = "show_continue_watching"
 SHOW_NEXT_UP_SETTING = "show_next_up"
@@ -35,6 +46,8 @@ SHOW_RECENTLY_ADDED_MUSIC_SETTING = "show_recently_added_music"
 HIDE_WATCHED_RECENTLY_ADDED_MOVIES_SETTING = "hide_watched_recently_added_movies"
 HIDE_WATCHED_RECENTLY_ADDED_TV_SETTING = "hide_watched_recently_added_tv"
 HIDE_WATCHED_RECENTLY_ADDED_MUSIC_SETTING = "hide_watched_recently_added_music"
+RECENTLY_ADDED_ITEM_LIMIT_SETTING = "recently_added_item_limit"
+DEFAULT_RECENTLY_ADDED_ITEM_LIMIT = 10
 
 CTRL_LIBRARIES = 200
 CTRL_CONTINUE_WATCHING = 201
@@ -108,6 +121,7 @@ class HomeWindow(ControlledWindow):
         self.hide_watched_recently_added_movies = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_MOVIES_SETTING) == "true"
         self.hide_watched_recently_added_tv = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_TV_SETTING) == "true"
         self.hide_watched_recently_added_music = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_MUSIC_SETTING) == "true"
+        self.recently_added_item_limit = _recently_added_item_limit()
         self.loaded_steps = 0
         # Which item (if any) to re-select once its row is loaded, e.g.
         # because Home is being shown again after the user backed out of
@@ -261,7 +275,7 @@ class HomeWindow(ControlledWindow):
         for view in views:
             if view.get("CollectionType") != collection_type:
                 continue
-            latest.extend(library.get_latest(self.client, parent_id=view.get("Id"), limit=10))
+            latest.extend(library.get_latest(self.client, parent_id=view.get("Id"), limit=self.recently_added_item_limit))
         if collection_type == "movies" and self.hide_watched_recently_added_movies:
             latest = [item for item in latest if not (item.get("UserData") or {}).get("Played")]
         if collection_type == "music" and self.hide_watched_recently_added_music:
@@ -275,7 +289,7 @@ class HomeWindow(ControlledWindow):
         for view in views:
             if view.get("CollectionType") != "tvshows":
                 continue
-            latest.extend(library.get_latest_episodes(self.client, parent_id=view.get("Id"), limit=10))
+            latest.extend(library.get_latest_episodes(self.client, parent_id=view.get("Id"), limit=self.recently_added_item_limit))
         if self.hide_watched_recently_added_tv:
             latest = [item for item in latest if not (item.get("UserData") or {}).get("Played")]
         return latest
@@ -380,6 +394,7 @@ class HomeWindow(ControlledWindow):
         self.hide_watched_recently_added_movies = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_MOVIES_SETTING) == "true"
         self.hide_watched_recently_added_tv = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_TV_SETTING) == "true"
         self.hide_watched_recently_added_music = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_MUSIC_SETTING) == "true"
+        self.recently_added_item_limit = _recently_added_item_limit()
         self._update_playlists_toggle_label()
         # A settings-driven refresh re-fetches every row from scratch (the
         # simplest way to correctly pick up a newly-enabled row, which was
