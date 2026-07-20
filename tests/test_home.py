@@ -608,6 +608,7 @@ def test_hide_watched_recently_added_defaults_to_off(client, monkeypatch):
     window = _make_window(client, monkeypatch)
     assert window.hide_watched_recently_added_movies is False
     assert window.hide_watched_recently_added_tv is False
+    assert window.hide_watched_recently_added_music is False
 
 
 def test_hide_watched_recently_added_movies_filters_played_items(client, monkeypatch):
@@ -637,6 +638,21 @@ def test_hide_watched_recently_added_tv_filters_played_episodes(client, monkeypa
         extra_settings={home_mod.HIDE_WATCHED_RECENTLY_ADDED_TV_SETTING: "true"},
     )
     result = window._latest_tv_episodes(views)
+
+    assert result == [unwatched]
+
+
+def test_hide_watched_recently_added_music_filters_played_tracks(client, monkeypatch):
+    views = [{"Id": "lib-music", "Name": "Musik", "CollectionType": "music"}]
+    unwatched = {"Id": "t1", "Name": "Unwatched", "UserData": {"Played": False}}
+    watched = {"Id": "t2", "Name": "Watched", "UserData": {"Played": True}}
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [unwatched, watched])
+
+    window = _make_window(
+        client, monkeypatch,
+        extra_settings={home_mod.HIDE_WATCHED_RECENTLY_ADDED_MUSIC_SETTING: "true"},
+    )
+    result = window._latest(views, "music")
 
     assert result == [unwatched]
 

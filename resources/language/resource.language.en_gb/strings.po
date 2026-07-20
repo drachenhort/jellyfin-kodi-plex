@@ -107,3 +107,7 @@ msgstr ""
 msgctxt "#30036"
 msgid "Hide watched Recently Added TV"
 msgstr ""
+
+msgctxt "#30037"
+msgid "Hide watched Recently Added Music"
+msgstr ""

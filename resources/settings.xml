@@ -68,6 +68,11 @@
           <default>true</default>
           <control type="toggle"/>
         </setting>
+        <setting id="hide_watched_recently_added_music" type="boolean" label="30037" help="">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle"/>
+        </setting>
       </group>
     </category>
     <category id="library" label="30020">

@@ -34,6 +34,7 @@ SHOW_RECENTLY_ADDED_TV_SETTING = "show_recently_added_tv"
 SHOW_RECENTLY_ADDED_MUSIC_SETTING = "show_recently_added_music"
 HIDE_WATCHED_RECENTLY_ADDED_MOVIES_SETTING = "hide_watched_recently_added_movies"
 HIDE_WATCHED_RECENTLY_ADDED_TV_SETTING = "hide_watched_recently_added_tv"
+HIDE_WATCHED_RECENTLY_ADDED_MUSIC_SETTING = "hide_watched_recently_added_music"
 
 CTRL_LIBRARIES = 200
 CTRL_CONTINUE_WATCHING = 201
@@ -106,6 +107,7 @@ class HomeWindow(ControlledWindow):
         self.show_recently_added_music = ADDON.getSetting(SHOW_RECENTLY_ADDED_MUSIC_SETTING) != "false"
         self.hide_watched_recently_added_movies = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_MOVIES_SETTING) == "true"
         self.hide_watched_recently_added_tv = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_TV_SETTING) == "true"
+        self.hide_watched_recently_added_music = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_MUSIC_SETTING) == "true"
         self.loaded_steps = 0
         # Which item (if any) to re-select once its row is loaded, e.g.
         # because Home is being shown again after the user backed out of
@@ -262,6 +264,8 @@ class HomeWindow(ControlledWindow):
             latest.extend(library.get_latest(self.client, parent_id=view.get("Id"), limit=10))
         if collection_type == "movies" and self.hide_watched_recently_added_movies:
             latest = [item for item in latest if not (item.get("UserData") or {}).get("Played")]
+        if collection_type == "music" and self.hide_watched_recently_added_music:
+            latest = [item for item in latest if not (item.get("UserData") or {}).get("Played")]
         return latest
 
     def _latest_tv_episodes(self, views):
@@ -375,6 +379,7 @@ class HomeWindow(ControlledWindow):
         self.show_recently_added_music = ADDON.getSetting(SHOW_RECENTLY_ADDED_MUSIC_SETTING) != "false"
         self.hide_watched_recently_added_movies = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_MOVIES_SETTING) == "true"
         self.hide_watched_recently_added_tv = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_TV_SETTING) == "true"
+        self.hide_watched_recently_added_music = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_MUSIC_SETTING) == "true"
         self._update_playlists_toggle_label()
         # A settings-driven refresh re-fetches every row from scratch (the
         # simplest way to correctly pick up a newly-enabled row, which was
