@@ -70,7 +70,7 @@ für jede zukünftige Version manuell wiederholt werden.
 
 ## Status
 
-Meilenstein 1 (in Arbeit): Login (LAN-Autoerkennung, Quick Connect mit Passwort-Fallback) → Startbildschirm mit
+Meilenstein 1 (abgeschlossen): Login (LAN-Autoerkennung, Quick Connect mit Passwort-Fallback) → Startbildschirm mit
 den Hub-Zeilen „Weiterschauen" / „Als Nächstes" / „Kürzlich hinzugefügte Filme" / „Kürzlich hinzugefügte Serien" /
 „Kürzlich hinzugefügte Musik" → Bibliotheks-Posterwand-Browsing, inklusive Drilldown durch die TV-
 (Serie → Staffel → Episode) und Musik-Hierarchien (Interpret → Album → Titel), sowie ein Suchbildschirm →
@@ -80,6 +80,12 @@ mehrere Jellyfin-Server und zum Wechseln zwischen ihnen. Die Detailseite eines A
 „Alle abspielen"/„Zufällig abspielen"-Schaltflächen, um dessen Titel nacheinander abzuspielen — zum
 nächsten Titel wird nur gewechselt, wenn der aktuelle regulär zu Ende gespielt wurde, nicht bei
 vorzeitigem Stopp.
+
+Meilenstein 2 (in Arbeit): Erweiterung der Addon-Einstellungen zu echter, benutzerseitiger Konfiguration —
+Ein-/Ausblenden-Schalter pro Hub-Zeile auf dem Startbildschirm, „Gesehene ausblenden"-Schalter für die
+„Kürzlich hinzugefügt"-Zeilen, eine einstellbare Obergrenze für „Kürzlich hinzugefügt"-Einträge, die
+Standard-Sortierreihenfolge der Bibliothek, das Server-Timeout, die maximale Streaming-Bitrate sowie
+eine Settings-Schaltfläche auf dem Startbildschirm neben Server/Suche.
 
 Der TV-/Musik-Drilldown funktioniert, indem die direkten Kindelemente jedes Objekts nicht-rekursiv abgerufen werden
 (`lib/windows/browse.py` wird auf jeder Ebene wiederverwendet: die Top-Level-Elemente einer Bibliothek, die Staffeln

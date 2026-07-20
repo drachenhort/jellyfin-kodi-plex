@@ -65,7 +65,7 @@ future version.
 
 ## Status
 
-Milestone 1 (in progress): login (LAN autodiscovery, Quick Connect + password fallback) → home screen with
+Milestone 1 (complete): login (LAN autodiscovery, Quick Connect + password fallback) → home screen with
 Continue Watching / Next Up / Recently Added Movies / Recently Added TV / Recently Added Music hub
 rows → library poster-wall browsing, including drill-down through TV (Series → Season → Episode)
 and Music (Artist → Album → Track) hierarchies, and a Search screen → item detail page → playback
@@ -73,6 +73,11 @@ and Music (Artist → Album → Track) hierarchies, and a Search screen → item
 and a Servers screen for saving logins to multiple Jellyfin servers and switching between them. An
 album's own screen adds Play All/Shuffle buttons to queue its tracks back-to-back, advancing to the
 next track only when the current one finishes naturally rather than being stopped early.
+
+Milestone 2 (in progress): expanding the addon's Settings into real user-facing configuration —
+per-hub-row Home show/hide toggles, hide-watched toggles for Recently Added rows, a configurable
+Recently Added item limit, default library sort order, server request timeout, max streaming
+bitrate, and a Settings button on the Home screen next to Servers/Search.
 
 The TV/Music drill-down works by fetching each item's direct children non-recursively
 (`lib/windows/browse.py` is reused at every level: a library's top-level items, a series'
