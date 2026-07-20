@@ -99,6 +99,62 @@ def test_get_views(client, monkeypatch):
     assert fake.calls[0]["url"].endswith(f"/Users/{client.user_id}/Views")
 
 
+# -- get_views caching -------------------------------------------------------
+
+def test_get_views_is_cached_within_ttl(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"Items": [{"Name": "Movies", "Id": "lib-1"}]})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+    library._views_cache.clear()
+
+    first = library.get_views(client)
+    second = library.get_views(client)
+
+    assert first == second == [{"Name": "Movies", "Id": "lib-1"}]
+    assert len(fake.calls) == 1  # second call served from cache, no new request
+
+
+def test_get_views_refetches_after_ttl_expires(client, monkeypatch):
+    fake = FakeRequests([
+        FakeResponse({"Items": [{"Name": "Movies", "Id": "lib-1"}]}),
+        FakeResponse({"Items": [{"Name": "Movies", "Id": "lib-1"}, {"Name": "TV", "Id": "lib-2"}]}),
+    ])
+    monkeypatch.setattr(client_mod, "requests", fake)
+    library._views_cache.clear()
+
+    times = iter([1000.0, 1000.0 + library.VIEWS_CACHE_TTL_SECONDS + 1])
+    monkeypatch.setattr(library.time, "time", lambda: next(times))
+
+    first = library.get_views(client)
+    second = library.get_views(client)
+
+    assert len(first) == 1
+    assert len(second) == 2
+    assert len(fake.calls) == 2
+
+
+def test_get_views_cache_is_per_client(monkeypatch):
+    from lib.jellyfin.client import JellyfinClient
+
+    client_a = JellyfinClient("http://a.example:8096", device_id="dev-a")
+    client_a.access_token, client_a.user_id = "tok-a", "user-a"
+    client_b = JellyfinClient("http://b.example:8096", device_id="dev-b")
+    client_b.access_token, client_b.user_id = "tok-b", "user-b"
+
+    fake = FakeRequests([
+        FakeResponse({"Items": [{"Name": "A-Movies", "Id": "a1"}]}),
+        FakeResponse({"Items": [{"Name": "B-Movies", "Id": "b1"}]}),
+    ])
+    monkeypatch.setattr(client_mod, "requests", fake)
+    library._views_cache.clear()
+
+    views_a = library.get_views(client_a)
+    views_b = library.get_views(client_b)
+
+    assert views_a == [{"Name": "A-Movies", "Id": "a1"}]
+    assert views_b == [{"Name": "B-Movies", "Id": "b1"}]
+    assert len(fake.calls) == 2
+
+
 def test_get_items_builds_params(client, monkeypatch):
     fake = FakeRequests([FakeResponse({"Items": [], "TotalRecordCount": 0})])
     monkeypatch.setattr(client_mod, "requests", fake)

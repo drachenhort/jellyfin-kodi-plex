@@ -1,5 +1,7 @@
 """Library/item browsing: views, item listings, and home-screen hubs."""
 
+import time
+
 # People (cast) is the most expensive field for Jellyfin to hydrate per item,
 # and it's only ever displayed on the single-item Detail page (_cast_line in
 # lib/windows/detail.py) - every other call here returns many items at once
@@ -10,10 +12,28 @@ LISTING_ITEM_FIELDS = "Overview,Genres,RunTimeTicks,ProductionYear,CommunityRati
 DEFAULT_ITEM_FIELDS = LISTING_ITEM_FIELDS + ",People"
 
 
+# Home re-fetches views on every visit (plain Back navigation, every
+# settings-driven reload) even though a user's library list rarely changes
+# within a session - a short per-client cache avoids a redundant round trip
+# on each of those without meaningfully risking staleness (a newly added
+# library just takes up to this long to show up on Home).
+VIEWS_CACHE_TTL_SECONDS = 60
+
+_views_cache = {}  # client -> (cached_at, views)
+
+
 def get_views(client):
-    """GET /Users/{userId}/Views — the user's top-level libraries."""
+    """GET /Users/{userId}/Views — the user's top-level libraries.
+
+    Cached per client for VIEWS_CACHE_TTL_SECONDS - see module comment."""
+    cached = _views_cache.get(client)
+    now = time.time()
+    if cached is not None and now - cached[0] < VIEWS_CACHE_TTL_SECONDS:
+        return cached[1]
     result = client.get(f"/Users/{client.user_id}/Views")
-    return result.get("Items", [])
+    views = result.get("Items", [])
+    _views_cache[client] = (now, views)
+    return views
 
 
 def get_items(client, parent_id=None, start_index=0, limit=50, sort_by="SortName",
