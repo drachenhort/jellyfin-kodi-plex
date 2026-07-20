@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <addons>
-  <addon id="script.jellyfin.plex" name="Jellyfin (Plex-style)" version="0.3.16" provider-name="jellyfin-kodi-plex">
+  <addon id="script.jellyfin.plex" name="Jellyfin (Plex-style)" version="0.3.17" provider-name="jellyfin-kodi-plex">
     <requires>
       <import addon="xbmc.python" version="3.0.0" />
       <import addon="script.module.requests" version="2.22.0" />
