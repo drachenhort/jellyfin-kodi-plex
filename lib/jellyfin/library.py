@@ -65,6 +65,17 @@ def get_item(client, item_id, fields=DEFAULT_ITEM_FIELDS):
     )
 
 
+def get_similar(client, item_id, limit=12):
+    """GET /Items/{itemId}/Similar — items similar to this one (genre, cast,
+    etc. per Jellyfin's own recommendation logic), for the Detail screen's
+    "More Like This" row."""
+    result = client.get(
+        f"/Items/{item_id}/Similar",
+        params={"UserId": client.user_id, "Limit": limit, "Fields": LISTING_ITEM_FIELDS},
+    )
+    return result.get("Items", [])
+
+
 def get_resume(client, limit=20):
     """GET /Users/{userId}/Items/Resume — Continue Watching hub."""
     result = client.get(

@@ -167,3 +167,100 @@ def test_clicking_watched_button_before_item_is_loaded_is_a_no_op(client):
 
     assert window.result is None
     assert not window.closed
+
+
+# -- "More Like This" (similar items) ---------------------------------------
+
+def test_load_similar_populates_the_similar_control(client, monkeypatch):
+    monkeypatch.setattr(detail_mod.library, "get_similar", lambda c, item_id, limit=12: [
+        {"Id": "s1", "Name": "Similar One", "Type": "Movie"},
+        {"Id": "s2", "Name": "Similar Two", "Type": "Movie"},
+    ])
+    monkeypatch.setattr(detail_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(detail_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client)
+    window._load_similar()
+
+    assert window.getControl(detail_mod.CTRL_SIMILAR).items[0].getLabel() == "Similar One"
+    assert window.getControl(detail_mod.CTRL_SIMILAR).items[1].getLabel() == "Similar Two"
+
+
+def test_load_similar_leaves_the_row_empty_on_failure(client, monkeypatch):
+    def boom(*a, **k):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(detail_mod.library, "get_similar", boom)
+
+    window = _make_window(client)
+    window._load_similar()  # must not raise
+
+    assert window.getControl(detail_mod.CTRL_SIMILAR).items == []
+
+
+def test_load_similar_does_nothing_if_window_already_closed(client, monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        detail_mod.library, "get_similar",
+        lambda c, item_id, limit=12: (calls.append(1), [{"Id": "s1", "Name": "X", "Type": "Movie"}])[1],
+    )
+
+    window = _make_window(client)
+    window.closed_event.set()
+    window._load_similar()
+
+    assert calls == [1]  # the request itself still happens...
+    assert window.getControl(detail_mod.CTRL_SIMILAR).items == []  # ...but nothing gets populated
+
+
+def test_clicking_similar_item_sets_open_result_and_closes(client, monkeypatch):
+    monkeypatch.setattr(detail_mod.library, "get_similar", lambda c, item_id, limit=12: [
+        {"Id": "s1", "Name": "Similar One", "Type": "Movie", "Overview": "A similar plot."},
+    ])
+    monkeypatch.setattr(detail_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(detail_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client)
+    window._load_similar()
+    window.getControl(detail_mod.CTRL_SIMILAR).selectItem(0)
+
+    window.handle_click(detail_mod.CTRL_SIMILAR)
+
+    assert window.result == {
+        "action": "open",
+        "item_id": "s1",
+        "item_type": "Movie",
+        "item_name": "Similar One",
+        "item_overview": "A similar plot.",
+    }
+    assert window.closed
+
+
+def test_clicking_similar_item_before_any_selection_is_a_no_op(client):
+    window = _make_window(client)
+
+    window.handle_click(detail_mod.CTRL_SIMILAR)
+
+    assert window.result is None
+    assert not window.closed
+
+
+def test_clicking_similar_item_works_even_before_main_item_is_loaded(client, monkeypatch):
+    """handle_click()'s self.item is None guard must not swallow a
+    CTRL_SIMILAR click - similar items load on their own thread and could
+    finish before the main item fetch does."""
+    monkeypatch.setattr(detail_mod.library, "get_similar", lambda c, item_id, limit=12: [
+        {"Id": "s1", "Name": "Similar One", "Type": "Movie"},
+    ])
+    monkeypatch.setattr(detail_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(detail_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client)
+    assert window.item is None
+    window._load_similar()
+    window.getControl(detail_mod.CTRL_SIMILAR).selectItem(0)
+
+    window.handle_click(detail_mod.CTRL_SIMILAR)
+
+    assert window.result["item_id"] == "s1"
+    assert window.closed

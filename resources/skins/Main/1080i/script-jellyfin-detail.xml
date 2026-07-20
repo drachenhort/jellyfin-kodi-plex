@@ -45,12 +45,12 @@
       <posx>420</posx>
       <posy>260</posy>
       <width>1400</width>
-      <height>620</height>
+      <height>340</height>
       <font>font13</font>
     </control>
     <control type="label" id="405">
       <posx>420</posx>
-      <posy>890</posy>
+      <posy>610</posy>
       <width>1400</width>
       <height>30</height>
       <font>font12</font>
@@ -59,7 +59,7 @@
 
     <control type="button" id="406">
       <posx>420</posx>
-      <posy>950</posy>
+      <posy>660</posy>
       <width>260</width>
       <height>60</height>
       <font>font16</font>
@@ -68,10 +68,11 @@
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onright>407</onright>
       <onleft>406</onleft>
+      <ondown>408</ondown>
     </control>
     <control type="button" id="407">
       <posx>700</posx>
-      <posy>950</posy>
+      <posy>660</posy>
       <width>320</width>
       <height>60</height>
       <font>font16</font>
@@ -80,6 +81,107 @@
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onright>407</onright>
       <onleft>406</onleft>
+      <ondown>408</ondown>
+    </control>
+
+    <control type="group">
+      <width>1760</width>
+      <height>260</height>
+      <visible>Integer.IsGreater(Container(408).NumItems,0)</visible>
+      <control type="label">
+        <posx>80</posx>
+        <posy>750</posy>
+        <width>1760</width>
+        <height>30</height>
+        <font>font16</font>
+        <label>More Like This</label>
+      </control>
+      <control type="list" id="408">
+        <posx>80</posx>
+        <posy>790</posy>
+        <width>1760</width>
+        <height>225</height>
+        <orientation>horizontal</orientation>
+        <itemgap>15</itemgap>
+        <onup>406</onup>
+        <animation effect="zoom" start="100" end="108" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
+        <animation effect="zoom" start="108" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
+        <itemlayout width="150" height="225">
+          <control type="image">
+            <width>150</width>
+            <height>225</height>
+            <aspectratio>scale</aspectratio>
+            <texture>$INFO[ListItem.Art(thumb)]</texture>
+          </control>
+          <control type="image">
+            <posy>179</posy>
+            <width>150</width>
+            <height>46</height>
+            <texture>gradient-overlay.png</texture>
+          </control>
+          <control type="label">
+            <posx>8</posx>
+            <posy>200</posy>
+            <width>134</width>
+            <height>18</height>
+            <font>font12</font>
+            <label>$INFO[ListItem.Property(ratings_text)]</label>
+          </control>
+          <control type="image">
+            <posx>122</posx>
+            <posy>6</posy>
+            <width>24</width>
+            <height>24</height>
+            <texture>watched-badge.png</texture>
+            <visible>ListItem.Property(watched)</visible>
+          </control>
+        </itemlayout>
+        <focusedlayout width="150" height="225">
+          <control type="image">
+            <width>150</width>
+            <height>225</height>
+            <texture border="6">focus-highlight.png</texture>
+          </control>
+          <control type="image">
+            <posx>2</posx>
+            <posy>2</posy>
+            <width>146</width>
+            <height>221</height>
+            <aspectratio>scale</aspectratio>
+            <texture>$INFO[ListItem.Art(thumb)]</texture>
+          </control>
+          <control type="image">
+            <posx>2</posx>
+            <posy>177</posy>
+            <width>146</width>
+            <height>46</height>
+            <texture>focus-turquoise.png</texture>
+          </control>
+          <control type="label">
+            <posx>10</posx>
+            <posy>198</posy>
+            <width>130</width>
+            <height>18</height>
+            <font>font12</font>
+            <label>$INFO[ListItem.Property(ratings_text)]</label>
+          </control>
+          <control type="image">
+            <posx>65</posx>
+            <posy>0</posy>
+            <width>20</width>
+            <height>13</height>
+            <texture>focus-arrow.png</texture>
+          </control>
+          <control type="image">
+            <posx>120</posx>
+            <posy>16</posy>
+            <width>24</width>
+            <height>24</height>
+            <texture>watched-badge.png</texture>
+            <visible>ListItem.Property(watched)</visible>
+          </control>
+        </focusedlayout>
+      </control>
     </control>
   </controls>
 </window>

@@ -210,6 +210,13 @@ def _detail_loop(client, item_id):
             except Exception as exc:  # noqa: BLE001 - surface playback failures, don't crash the addon
                 xbmcgui.Dialog().notification("Jellyfin", f"Playback failed: {exc}")
             # Loop back to the detail page (e.g. to show updated resume state).
+        elif result["action"] == "open":
+            # A "More Like This" item was clicked - opens on top, and
+            # backing out of it re-shows this same detail page (the
+            # while-loop reopening DetailWindow again), the same nesting
+            # pattern _browse_loop/_search_loop use for their own items.
+            _open_item(client, result["item_id"], result["item_type"], result["item_name"],
+                       item_overview=result.get("item_overview", ""))
 
 
 def _open_item(client, item_id, item_type, item_name, item_overview=""):

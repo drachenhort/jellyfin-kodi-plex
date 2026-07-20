@@ -1,8 +1,9 @@
 """Item detail / preplay window: fanart background, poster, metadata, cast,
-and a Play (or Resume) button.
+a Play (or Resume) button, and a "More Like This" row of similar items.
 
-self.result on close: {"action": "play", "item_id": ..., "resume_ticks": N}
-or None (back).
+self.result on close: {"action": "play", "item_id": ..., "resume_ticks": N},
+{"action": "open", "item_id": ..., "item_type": ..., "item_name": ...} (a
+similar item was clicked), or None (back).
 """
 
 import threading
@@ -12,7 +13,7 @@ import xbmc
 import xbmcgui
 
 from lib.jellyfin import images, library
-from lib.windows.kodigui import LOG_PREFIX, ControlledWindow
+from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item
 
 CTRL_BACKDROP = 400
 CTRL_POSTER = 401
@@ -22,6 +23,7 @@ CTRL_OVERVIEW = 404
 CTRL_CAST = 405
 CTRL_PLAY_BUTTON = 406
 CTRL_WATCHED_BUTTON = 407
+CTRL_SIMILAR = 408
 
 RESUME_THRESHOLD_TICKS = 10 * 10_000_000  # ignore resume points under 10s
 
@@ -69,6 +71,11 @@ class DetailWindow(ControlledWindow):
         # a background thread (_load()) so it can't block the GUI thread.
         self.getControl(CTRL_TITLE).setLabel("Loading…")
         threading.Thread(target=self._load, daemon=True).start()
+        # Runs on its own thread, independent of _load() above - similar
+        # items are a nice-to-have, secondary to the item's own metadata/
+        # Play button, so a slow or failing Similar request must never hold
+        # up (or take down) the rest of the page.
+        threading.Thread(target=self._load_similar, daemon=True).start()
 
     def _load(self):
         started = time.time()
@@ -118,13 +125,49 @@ class DetailWindow(ControlledWindow):
         played = bool((self.item.get("UserData") or {}).get("Played"))
         self.getControl(CTRL_WATCHED_BUTTON).setLabel("Mark as Unwatched" if played else "Mark as Watched")
 
+    def _load_similar(self):
+        try:
+            items = library.get_similar(self.client, self.item_id)
+        except Exception as exc:  # noqa: BLE001 - a failed/slow Similar lookup shouldn't affect the rest of the page
+            xbmc.log(
+                f"{LOG_PREFIX} Detail: fetching similar items for {self.item_id!r} failed: {exc}",
+                xbmc.LOGWARNING,
+            )
+            return
+        if self.closed_event.is_set():
+            return
+        control = self.getControl(CTRL_SIMILAR)
+        control.addItems([
+            list_item(item, images.primary_image_url(self.client, item),
+                      images.backdrop_image_url(self.client, item))
+            for item in items
+        ])
+
     def handle_click(self, control_id):
+        # Independent of self.item's own load state - similar items load on
+        # a separate thread (see _load_similar) and could finish first.
+        if control_id == CTRL_SIMILAR:
+            self._open_similar()
+            return
         if self.item is None:
             return
         if control_id == CTRL_PLAY_BUTTON:
             self._play()
         elif control_id == CTRL_WATCHED_BUTTON:
             threading.Thread(target=self._toggle_watched, daemon=True).start()
+
+    def _open_similar(self):
+        selected = self.getControl(CTRL_SIMILAR).getSelectedItem()
+        if not selected:
+            return
+        self.result = {
+            "action": "open",
+            "item_id": selected.getProperty("jellyfin_id"),
+            "item_type": selected.getProperty("jellyfin_type"),
+            "item_name": selected.getLabel(),
+            "item_overview": selected.getProperty("overview"),
+        }
+        self.close()
 
     def _play(self):
         resume_ticks = (self.item.get("UserData") or {}).get("PlaybackPositionTicks", 0)

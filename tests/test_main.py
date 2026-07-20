@@ -82,6 +82,28 @@ def test_home_loop_does_not_reopen_home_if_abort_fires_during_confirm_dialog(mon
     assert main_mod._home_loop(client=object()) is None
 
 
+# -- _detail_loop: opening a "More Like This" item nests and returns -------
+
+def test_detail_loop_opens_a_similar_item_then_returns_to_the_original(monkeypatch):
+    calls = []
+
+    def fake_open(addon_path, client=None, item_id=None):
+        calls.append(item_id)
+        if item_id == "item-1" and calls.count("item-1") == 1:
+            return {"action": "open", "item_id": "item-2", "item_type": "Movie", "item_name": "Other"}
+        return None
+
+    monkeypatch.setattr(main_mod.DetailWindow, "open", staticmethod(fake_open))
+
+    main_mod._detail_loop(client=object(), item_id="item-1")
+
+    # item-1 opened, clicked through to item-2 (nested _detail_loop), backed
+    # out of item-2 straight to None, then the outer loop re-shows item-1
+    # (the same "loop back to the detail page" pattern the Play action
+    # already uses) before finally backing out of that too.
+    assert calls == ["item-1", "item-2", "item-1"]
+
+
 def test_run_refuses_to_start_a_second_instance(monkeypatch):
     calls = []
     monkeypatch.setattr(main_mod, "_migrate_legacy_settings", lambda: calls.append("migrate"))

@@ -302,6 +302,19 @@ def test_get_resume_and_next_up_and_latest(client, monkeypatch):
     assert fake.calls[2]["url"].endswith("/Items/Latest")
 
 
+def test_get_similar(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"Items": [{"Id": "s1", "Name": "Similar Movie"}]})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    result = library.get_similar(client, "item-1")
+
+    assert result == [{"Id": "s1", "Name": "Similar Movie"}]
+    call = fake.calls[0]
+    assert call["url"].endswith("/Items/item-1/Similar")
+    assert call["params"]["UserId"] == client.user_id
+    assert call["params"]["Limit"] == 12
+
+
 def test_get_items_by_ids_builds_comma_separated_param(client, monkeypatch):
     fake = FakeRequests([FakeResponse({"Items": [{"Id": "s1"}, {"Id": "s2"}]})])
     monkeypatch.setattr(client_mod, "requests", fake)
