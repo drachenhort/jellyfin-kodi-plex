@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## What this is
 
 `script.jellyfin.plex` — a Kodi *program* addon (not `plugin.video.*`) that connects to a Jellyfin
