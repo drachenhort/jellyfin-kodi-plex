@@ -45,6 +45,7 @@ class JellyfinPlayer(xbmc.Player):
         self._end_reason = "ended"
         self._audio_stream_index = None
         self._subtitle_stream_index = None
+        self._last_position_ticks = 0
 
     def play_item(self, item_id, item_type=None, resume_ticks=0,
                   audio_stream_index=None, subtitle_stream_index=None):
@@ -71,6 +72,7 @@ class JellyfinPlayer(xbmc.Player):
         self._item_id = item_id
         self._play_session_id = play_session_id
         self._reported_stop = False
+        self._last_position_ticks = resume_ticks or 0
         self._end_reason = "ended"
         self._audio_stream_index = audio_stream_index
         self._subtitle_stream_index = subtitle_stream_index
@@ -207,6 +209,7 @@ class JellyfinPlayer(xbmc.Player):
                 if not self.isPlaying():
                     continue
                 position_ticks = int(self.getTime() * 10_000_000)
+                self._last_position_ticks = position_ticks
                 playback.report_playback_progress(
                     self.client, self._item_id, self._play_session_id, position_ticks
                 )
@@ -218,9 +221,18 @@ class JellyfinPlayer(xbmc.Player):
             return
         self._reported_stop = True
         try:
-            position_ticks = int(self.getTime() * 10_000_000)
+            # Only trust a live getTime() while Kodi still considers itself
+            # playing - onPlayBackStopped/onPlayBackEnded fire before the
+            # player is torn down, but by the time this runs isPlaying() is
+            # often already False and getTime() raises, which used to fall
+            # back to 0 and wipe the resume position server-side. The last
+            # position seen by the progress-report loop is a much better
+            # fallback than "from the beginning".
+            if self.isPlaying():
+                self._last_position_ticks = int(self.getTime() * 10_000_000)
         except Exception:  # noqa: BLE001 - player may already be torn down
-            position_ticks = 0
+            pass
+        position_ticks = self._last_position_ticks
         playback.report_playback_stopped(
             self.client, self._item_id, self._play_session_id, position_ticks
         )
