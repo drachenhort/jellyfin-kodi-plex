@@ -60,10 +60,27 @@
     <control type="button" id="406">
       <posx>420</posx>
       <posy>660</posy>
-      <width>260</width>
+      <width>200</width>
       <height>60</height>
       <font>font16</font>
       <label>Play</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onright>411</onright>
+      <onleft>406</onleft>
+      <ondown>408</ondown>
+    </control>
+    <!-- Deliberately no <visible> tag on 411: its visibility is controlled
+         purely from Python (DetailWindow._load()'s setVisible() call, only
+         shown once resume state is known) - see the comment above 409/410
+         on why a static <visible> here would fight setVisible(). -->
+    <control type="button" id="411">
+      <posx>640</posx>
+      <posy>660</posy>
+      <width>240</width>
+      <height>60</height>
+      <font>font16</font>
+      <label>Play from Start</label>
       <texturefocus>button-focus.png</texturefocus>
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onright>407</onright>
@@ -71,9 +88,9 @@
       <ondown>408</ondown>
     </control>
     <control type="button" id="407">
-      <posx>700</posx>
+      <posx>900</posx>
       <posy>660</posy>
-      <width>320</width>
+      <width>280</width>
       <height>60</height>
       <font>font16</font>
       <label>Mark as Watched</label>
@@ -91,9 +108,9 @@
          frame and the buttons would never actually appear (this exact bug
          shipped once - see the git history around v0.3.27). -->
     <control type="button" id="409">
-      <posx>1040</posx>
+      <posx>1200</posx>
       <posy>660</posy>
-      <width>340</width>
+      <width>280</width>
       <height>60</height>
       <font>font16</font>
       <label>Audio</label>
@@ -104,9 +121,9 @@
       <ondown>408</ondown>
     </control>
     <control type="button" id="410">
-      <posx>1400</posx>
+      <posx>1500</posx>
       <posy>660</posy>
-      <width>340</width>
+      <width>280</width>
       <height>60</height>
       <font>font16</font>
       <label>Subtitles</label>

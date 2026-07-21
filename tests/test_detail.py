@@ -11,7 +11,7 @@ while self.item is still None, which handle_click() must not crash on.
 import xbmcaddon
 
 import lib.windows.detail as detail_mod
-from lib.windows.detail import _format_runtime, _meta_line
+from lib.windows.detail import TIME_LEFT_COLOR, _format_runtime, _meta_line
 
 
 def test_meta_line_movie_unchanged():
@@ -59,6 +59,33 @@ def test_meta_line_appends_watched_when_played():
 def test_meta_line_omits_watched_when_not_played():
     item = {"ProductionYear": 1979, "UserData": {"Played": False}}
     assert _meta_line(item) == "1979"
+
+
+def test_meta_line_shows_time_left_when_resumable():
+    item = {
+        "ProductionYear": 1979,
+        "RunTimeTicks": 72_000_000_000,
+        "UserData": {"PlaybackPositionTicks": 36_000_000_000},
+    }
+    assert _meta_line(item) == f"1979  •  2h 0min  •  [COLOR {TIME_LEFT_COLOR}]1h 0min left[/COLOR]"
+
+
+def test_meta_line_omits_time_left_below_resume_threshold():
+    item = {
+        "ProductionYear": 1979,
+        "RunTimeTicks": 72_000_000_000,
+        "UserData": {"PlaybackPositionTicks": 5 * 10_000_000},
+    }
+    assert _meta_line(item) == "1979  •  2h 0min"
+
+
+def test_meta_line_omits_time_left_when_watched():
+    item = {
+        "ProductionYear": 1979,
+        "RunTimeTicks": 72_000_000_000,
+        "UserData": {"PlaybackPositionTicks": 36_000_000_000, "Played": True},
+    }
+    assert _meta_line(item) == "1979  •  2h 0min  •  Watched"
 
 
 # -- _format_runtime ---------------------------------------------------------
@@ -114,6 +141,56 @@ def test_play_click_after_load_includes_item_type_and_resume_ticks(client, monke
         "subtitle_stream_index": None,
     }
     assert window.closed
+
+
+def test_play_from_start_click_ignores_resume_position(client, monkeypatch):
+    monkeypatch.setattr(detail_mod.library, "get_item", lambda c, item_id, fields=None: {
+        "Id": "item-1", "Name": "Alien", "Type": "Movie",
+        "UserData": {"PlaybackPositionTicks": 20 * 10_000_000},
+    })
+    monkeypatch.setattr(detail_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(detail_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client)
+    window._load()
+    window.handle_click(detail_mod.CTRL_PLAY_FROM_START_BUTTON)
+
+    assert window.result == {
+        "action": "play",
+        "item_id": "item-1",
+        "item_type": "Movie",
+        "resume_ticks": 0,
+        "audio_stream_index": None,
+        "subtitle_stream_index": None,
+    }
+    assert window.closed
+
+
+def test_play_from_start_button_visible_only_when_resumable(client, monkeypatch):
+    monkeypatch.setattr(detail_mod.library, "get_item", lambda c, item_id, fields=None: {
+        "Id": "item-1", "Name": "Alien", "Type": "Movie",
+        "UserData": {"PlaybackPositionTicks": 20 * 10_000_000},
+    })
+    monkeypatch.setattr(detail_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(detail_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client)
+    window._load()
+
+    assert window.getControl(detail_mod.CTRL_PLAY_FROM_START_BUTTON).visible is True
+
+
+def test_play_from_start_button_hidden_when_not_resumable(client, monkeypatch):
+    monkeypatch.setattr(detail_mod.library, "get_item", lambda c, item_id, fields=None: {
+        "Id": "item-1", "Name": "Alien", "Type": "Movie", "UserData": {},
+    })
+    monkeypatch.setattr(detail_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(detail_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client)
+    window._load()
+
+    assert window.getControl(detail_mod.CTRL_PLAY_FROM_START_BUTTON).visible is False
 
 
 # -- audio/subtitle track pickers --------------------------------------------

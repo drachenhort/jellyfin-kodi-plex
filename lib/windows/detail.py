@@ -33,11 +33,13 @@ CTRL_WATCHED_BUTTON = 407
 CTRL_SIMILAR = 408
 CTRL_AUDIO_BUTTON = 409
 CTRL_SUBTITLE_BUTTON = 410
+CTRL_PLAY_FROM_START_BUTTON = 411
 
 RESUME_THRESHOLD_TICKS = 10 * 10_000_000  # ignore resume points under 10s
 
 NO_SUBTITLES_LABEL = "None"
 NO_LANGUAGE_PREFERENCE = "none"
+TIME_LEFT_COLOR = "FFFFA500"  # orange - Kodi label markup, ARGB hex
 
 
 def _format_runtime(run_time_ticks):
@@ -65,8 +67,16 @@ def _meta_line(item):
         parts.append(f"{item['CommunityRating']:.1f}★")
     if item.get("Genres"):
         parts.append(", ".join(item["Genres"]))
-    if (item.get("UserData") or {}).get("Played"):
+    user_data = item.get("UserData") or {}
+    if user_data.get("Played"):
         parts.append("Watched")
+    else:
+        resume_ticks = user_data.get("PlaybackPositionTicks", 0)
+        run_time_ticks = item.get("RunTimeTicks")
+        if resume_ticks and resume_ticks > RESUME_THRESHOLD_TICKS and run_time_ticks:
+            remaining_ticks = run_time_ticks - resume_ticks
+            if remaining_ticks > 0:
+                parts.append(f"[COLOR {TIME_LEFT_COLOR}]{_format_runtime(remaining_ticks)} left[/COLOR]")
     return "  •  ".join(parts)
 
 
@@ -152,10 +162,12 @@ class DetailWindow(ControlledWindow):
         self.getControl(CTRL_CAST).setLabel(_cast_line(self.item))
 
         resume_ticks = (self.item.get("UserData") or {}).get("PlaybackPositionTicks", 0)
-        if resume_ticks and resume_ticks > RESUME_THRESHOLD_TICKS:
-            self.getControl(CTRL_PLAY_BUTTON).setLabel("Resume")
-        else:
-            self.getControl(CTRL_PLAY_BUTTON).setLabel("Play")
+        is_resumable = bool(resume_ticks and resume_ticks > RESUME_THRESHOLD_TICKS)
+        self.getControl(CTRL_PLAY_BUTTON).setLabel("Resume" if is_resumable else "Play")
+        # Only offered as a separate choice when there's actually a resume
+        # point to bypass - otherwise "Play" and "Play from Start" would be
+        # the same action twice.
+        self.getControl(CTRL_PLAY_FROM_START_BUTTON).setVisible(is_resumable)
 
         self._set_watched_button_label()
         self._load_streams()
@@ -264,6 +276,8 @@ class DetailWindow(ControlledWindow):
             return
         if control_id == CTRL_PLAY_BUTTON:
             self._play()
+        elif control_id == CTRL_PLAY_FROM_START_BUTTON:
+            self._play(from_start=True)
         elif control_id == CTRL_WATCHED_BUTTON:
             threading.Thread(target=self._toggle_watched, daemon=True).start()
         elif control_id == CTRL_AUDIO_BUTTON:
@@ -302,8 +316,8 @@ class DetailWindow(ControlledWindow):
         }
         self.close()
 
-    def _play(self):
-        resume_ticks = (self.item.get("UserData") or {}).get("PlaybackPositionTicks", 0)
+    def _play(self, from_start=False):
+        resume_ticks = 0 if from_start else (self.item.get("UserData") or {}).get("PlaybackPositionTicks", 0)
         if resume_ticks <= RESUME_THRESHOLD_TICKS:
             resume_ticks = 0
         self.result = {
