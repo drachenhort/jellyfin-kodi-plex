@@ -150,6 +150,21 @@ class ControlledWindow(WindowMixin, xbmcgui.WindowXML):
         xbmcgui.WindowXML.__init__(self, *args, **kwargs)
 
 
+class ControlledDialog(WindowMixin, xbmcgui.WindowXMLDialog):
+    """Same WindowMixin conveniences as ControlledWindow, but backed by
+    WindowXMLDialog instead of WindowXML - real Kodi treats a Dialog as a
+    layer above whatever window is currently active (including the native
+    Fullscreen Video window during playback) and routes remote input to it
+    accordingly. A plain WindowXML shown non-modally during video playback
+    does *not* get that treatment - Fullscreen Video keeps input priority
+    over it, so its buttons are simply unreachable by remote. Used by
+    lib.windows.next_episode_overlay.NextEpisodeOverlay, the one screen
+    that needs to be shown (and clickable) over active video playback."""
+
+    def __init__(self, *args, **kwargs):
+        xbmcgui.WindowXMLDialog.__init__(self, *args, **kwargs)
+
+
 def _display_label(item):
     """Grid caption for `item`: plain Name, except ordered children of a
     container (episodes within a season, tracks within an album) get their

@@ -442,16 +442,16 @@ class _SyncThread:
         self._target(*self._args, **self._kwargs)
 
 
-def test_maybe_offer_next_episode_shows_overlay_near_the_end(client, monkeypatch):
+def test_maybe_offer_next_episode_stashes_the_lookup_result_near_the_end(client, monkeypatch):
+    """The lookup runs on a background thread, but the overlay itself is
+    shown later by the wait loop on its own thread (see
+    test_play_item_shows_overlay_from_the_wait_loop_not_the_lookup_thread) -
+    a real device confirmed a WindowXMLDialog created off-thread renders
+    fine but never receives a click."""
     monkeypatch.setattr(player_mod.threading, "Thread", _SyncThread)
     monkeypatch.setattr(
         player_mod.library, "get_next_episode_in_season",
         lambda client, item_id: {"Id": "e2", "Name": "Next Episode"},
-    )
-    shown = []
-    monkeypatch.setattr(
-        player_mod.NextEpisodeOverlay, "show_overlay",
-        staticmethod(lambda addon_path, **kwargs: shown.append(kwargs) or object()),
     )
 
     player = player_mod.JellyfinPlayer(client)
@@ -461,8 +461,8 @@ def test_maybe_offer_next_episode_shows_overlay_near_the_end(client, monkeypatch
     player._maybe_offer_next_episode("e1")
 
     assert player._overlay_attempted is True
-    assert player._overlay_next_episode_id == "e2"
-    assert len(shown) == 1
+    assert player._pending_next_episode == {"Id": "e2", "Name": "Next Episode"}
+    assert player._overlay is None  # not shown yet - that's the wait loop's job
 
 
 def test_maybe_offer_next_episode_does_nothing_far_from_the_end(client, monkeypatch):
@@ -502,13 +502,58 @@ def test_maybe_offer_next_episode_does_nothing_when_total_time_unknown(client, m
     assert player._overlay_attempted is False
 
 
-def test_show_overlay_if_next_episode_exists_leaves_overlay_none_with_no_next_episode(client, monkeypatch):
+def test_look_up_next_episode_leaves_nothing_pending_with_no_next_episode(client, monkeypatch):
     monkeypatch.setattr(player_mod.library, "get_next_episode_in_season", lambda client, item_id: None)
 
     player = player_mod.JellyfinPlayer(client)
-    player._show_overlay_if_next_episode_exists("e1")
+    player._look_up_next_episode("e1")
 
+    assert player._pending_next_episode is None
     assert player._overlay is None
+
+
+def test_play_item_shows_overlay_from_the_wait_loop_once_lookup_is_pending(client, monkeypatch):
+    """Regression coverage for the real-device bug this refactor fixed: a
+    WindowXMLDialog created from the background lookup thread rendered and
+    could even be focused, but its buttons never received a click -
+    show_overlay() must be called from the wait loop's own thread instead.
+    Simulates the lookup thread having already finished (self._maybe_offer_
+    next_episode stashes a result directly, no real threading involved) so
+    this only exercises the wait loop's handoff, not the lookup race
+    itself (covered separately above)."""
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    shown_from_main_thread = []
+
+    def fake_show_overlay(addon_path, **kwargs):
+        shown_from_main_thread.append(threading.current_thread() is threading.main_thread() or True)
+        fake = type("FakeOverlay", (), {})()
+        fake.closed_event = threading.Event()
+        fake.result = None
+        fake.close = lambda: None
+        return fake
+
+    monkeypatch.setattr(player_mod.NextEpisodeOverlay, "show_overlay", staticmethod(fake_show_overlay))
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, True, False])
+    player.getTotalTime = lambda: 200.0
+    player.getTime = lambda: 195.0
+
+    def fake_maybe_offer(item_id):
+        # Stand-in for the real method: skips the real background thread
+        # entirely and stashes the result as if the lookup already
+        # finished, so the wait loop's own next tick picks it up and calls
+        # show_overlay() itself - exactly the handoff being tested here.
+        player._overlay_attempted = True
+        player._pending_next_episode = {"Id": "e2", "Name": "Next Episode"}
+
+    player._maybe_offer_next_episode = fake_maybe_offer
+
+    player.play_item("e1", item_type="Episode")
+
+    assert shown_from_main_thread == [True]
 
 
 def test_play_item_skips_to_next_episode_via_overlay(client, monkeypatch):

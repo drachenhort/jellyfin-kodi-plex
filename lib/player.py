@@ -61,6 +61,7 @@ class JellyfinPlayer(xbmc.Player):
         self._overlay = None
         self._overlay_attempted = False
         self._overlay_next_episode_id = None
+        self._pending_next_episode = None
         self.skip_target_item_id = None
 
     def play_item(self, item_id, item_type=None, resume_ticks=0,
@@ -99,6 +100,7 @@ class JellyfinPlayer(xbmc.Player):
         self._overlay = None
         self._overlay_attempted = False
         self._overlay_next_episode_id = None
+        self._pending_next_episode = None
         self.skip_target_item_id = None
 
         list_item = xbmcgui.ListItem(label=item.get("Name", "") if item else "", path=url)
@@ -195,6 +197,19 @@ class JellyfinPlayer(xbmc.Player):
             if started and self._item_type == "Episode":
                 if self._overlay is None and not self._overlay_attempted:
                     self._maybe_offer_next_episode(item_id)
+                elif self._overlay is None and self._pending_next_episode is not None:
+                    # The background lookup thread found a next episode -
+                    # show the overlay here, on this loop's own thread,
+                    # rather than from the lookup thread itself: a
+                    # WindowXMLDialog created off the main script thread
+                    # rendered fine on a real device but never received a
+                    # single click (confirmed via JSON-RPC-driven input
+                    # testing) - showing it from here fixed that.
+                    self._overlay_next_episode_id = self._pending_next_episode.get("Id")
+                    self._overlay = NextEpisodeOverlay.show_overlay(
+                        ADDON_PATH, client=self.client, next_item=self._pending_next_episode,
+                    )
+                    self._pending_next_episode = None
                 elif self._overlay is not None and self._overlay.closed_event.is_set():
                     overlay_result = self._overlay.result
                     self._overlay = None
@@ -215,12 +230,15 @@ class JellyfinPlayer(xbmc.Player):
         return self._end_reason
 
     def _maybe_offer_next_episode(self, item_id):
-        """Shows the "play next episode" overlay once playback has entered
-        its closing NEXT_EPISODE_OVERLAY_REMAINING_SECONDS, if a next
-        episode actually exists - never re-attempted after the first try
-        (self._overlay_attempted), whether or not one was actually shown,
-        so a missing next episode or a lookup failure doesn't retry every
-        second for the rest of playback."""
+        """Kicks off the background lookup for the "play next episode"
+        overlay once playback has entered its closing
+        NEXT_EPISODE_OVERLAY_REMAINING_SECONDS - never re-attempted after
+        the first try (self._overlay_attempted), whether or not a next
+        episode actually turned up, so a missing next episode or a lookup
+        failure doesn't retry every second for the rest of playback. The
+        overlay itself is shown later, back on this same wait loop's own
+        thread once the lookup finishes - see play_item()'s handling of
+        self._pending_next_episode."""
         try:
             total_time = self.getTotalTime()
         except Exception:  # noqa: BLE001 - player may not be fully ready yet
@@ -232,24 +250,23 @@ class JellyfinPlayer(xbmc.Player):
             return
         self._overlay_attempted = True
         threading.Thread(
-            target=self._show_overlay_if_next_episode_exists, args=(item_id,), daemon=True,
+            target=self._look_up_next_episode, args=(item_id,), daemon=True,
         ).start()
 
-    def _show_overlay_if_next_episode_exists(self, item_id):
+    def _look_up_next_episode(self, item_id):
         # Runs on its own thread (network lookup) so the 1s wait loop above
         # keeps ticking (progress reporting, abort/Home-active checks)
         # rather than stalling on a slow server for however long the
-        # request timeout allows.
+        # request timeout allows. Only stashes the result for the wait
+        # loop to actually show - see the "pending_next_episode" handling
+        # in play_item() for why the overlay itself isn't shown here.
         try:
             next_episode = library.get_next_episode_in_season(self.client, item_id)
         except Exception:  # noqa: BLE001 - no overlay is better than a crash this close to the end
             next_episode = None
         if not next_episode or self._stop_event.is_set():
             return
-        self._overlay_next_episode_id = next_episode.get("Id")
-        self._overlay = NextEpisodeOverlay.show_overlay(
-            ADDON_PATH, client=self.client, next_item=next_episode,
-        )
+        self._pending_next_episode = next_episode
 
     def _apply_stream_selection(self):
         try:

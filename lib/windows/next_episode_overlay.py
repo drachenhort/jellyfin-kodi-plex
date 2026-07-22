@@ -11,6 +11,16 @@ show() (non-blocking, non-modal), not doModal() - lib/player.py's playback
 wait loop polls `.result` itself rather than blocking on this window the
 way lib/main.py's window stack blocks on every other screen.
 
+Built on ControlledDialog (WindowXMLDialog), not ControlledWindow
+(WindowXML): real Kodi only routes remote input to a plain WindowXML shown
+non-modally if it's the "current" window, and the native Fullscreen Video
+window keeps that status for itself during playback - a WindowXML overlay
+would render on top but its buttons would be unreachable. WindowXMLDialog
+is Kodi's own mechanism for a screen that's supposed to receive input while
+layered above whatever's currently active, which is exactly this case
+(confirmed on a real device: a first WindowXML-based attempt at this
+overlay rendered fine but never received a single click).
+
 self.result once closed_event is set is one of:
   {"action": "play"}  — "Play Next Episode" was clicked
   None                — "Dismiss" was clicked, or the auto-dismiss timer
@@ -20,7 +30,7 @@ self.result once closed_event is set is one of:
 import threading
 
 from lib.jellyfin import images
-from lib.windows.kodigui import ControlledWindow, placeholder_art
+from lib.windows.kodigui import ControlledDialog, placeholder_art
 
 AUTO_DISMISS_SECONDS = 15
 
@@ -30,7 +40,7 @@ CTRL_PLAY_NOW = 602
 CTRL_DISMISS = 603
 
 
-class NextEpisodeOverlay(ControlledWindow):
+class NextEpisodeOverlay(ControlledDialog):
     xmlFile = "script-jellyfin-nextepisode-overlay.xml"
 
     def setup(self, client=None, next_item=None, auto_dismiss_seconds=AUTO_DISMISS_SECONDS, **kwargs):
