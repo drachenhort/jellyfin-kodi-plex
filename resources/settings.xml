@@ -130,6 +130,18 @@
             <popup>true</popup>
           </control>
         </setting>
+        <setting id="next_episode_overlay_seconds" type="integer" label="30051" help="30052">
+          <level>0</level>
+          <default>150</default>
+          <constraints>
+            <minimum>30</minimum>
+            <maximum>600</maximum>
+            <step>15</step>
+          </constraints>
+          <control type="slider" format="integer">
+            <popup>true</popup>
+          </control>
+        </setting>
         <setting id="preferred_audio_language" type="string" label="30040" help="30042">
           <level>0</level>
           <default>eng</default>

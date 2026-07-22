@@ -83,7 +83,8 @@ next episode without waiting for natural end.
 Milestone 2 (in progress): expanding the addon's Settings into real user-facing configuration —
 per-hub-row Home show/hide toggles, hide-watched toggles for Recently Added rows, a configurable
 Recently Added item limit, default library sort order, server request timeout, max streaming
-bitrate, and a Settings button on the Home screen next to Servers/Search.
+bitrate, the "Play Next Episode" overlay's lead time (Playback settings), and a Settings button on
+the Home screen next to Servers/Search.
 
 The TV/Music drill-down works by fetching each item's direct children non-recursively
 (`lib/windows/browse.py` is reused at every level: a library's top-level items, a series'

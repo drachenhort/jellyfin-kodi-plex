@@ -26,9 +26,9 @@ ADDON = xbmcaddon.Addon()
 ADDON_PATH = ADDON.getAddonInfo("path")
 PROGRESS_REPORT_INTERVAL_SECONDS = 10
 STARTUP_TIMEOUT_SECONDS = 30
-# How much runtime must remain before the "play next episode" overlay
-# offers skipping ahead - roughly the closing minutes (end credits/outro)
-# of a typical TV episode, per the feature request this implements.
+# Fallback only, for callers (e.g. tests) that construct a JellyfinPlayer
+# without going through the addon's "Play Next Episode overlay lead time"
+# setting - see _next_episode_overlay_remaining_seconds().
 NEXT_EPISODE_OVERLAY_REMAINING_SECONDS = 150
 
 
@@ -40,6 +40,17 @@ def _max_streaming_bitrate():
         return int(ADDON.getSetting("max_streaming_bitrate_mbps")) * 1_000_000
     except (TypeError, ValueError):
         return None
+
+
+def _next_episode_overlay_remaining_seconds():
+    """The addon's "Play Next Episode overlay lead time" setting (Playback
+    settings) - how much runtime must remain in an episode before the
+    overlay offers skipping ahead. Falls back to
+    NEXT_EPISODE_OVERLAY_REMAINING_SECONDS if unset or not a valid int."""
+    try:
+        return int(ADDON.getSetting("next_episode_overlay_seconds"))
+    except (TypeError, ValueError):
+        return NEXT_EPISODE_OVERLAY_REMAINING_SECONDS
 
 
 class JellyfinPlayer(xbmc.Player):
@@ -231,14 +242,14 @@ class JellyfinPlayer(xbmc.Player):
 
     def _maybe_offer_next_episode(self, item_id):
         """Kicks off the background lookup for the "play next episode"
-        overlay once playback has entered its closing
-        NEXT_EPISODE_OVERLAY_REMAINING_SECONDS - never re-attempted after
-        the first try (self._overlay_attempted), whether or not a next
-        episode actually turned up, so a missing next episode or a lookup
-        failure doesn't retry every second for the rest of playback. The
-        overlay itself is shown later, back on this same wait loop's own
-        thread once the lookup finishes - see play_item()'s handling of
-        self._pending_next_episode."""
+        overlay once playback has entered its closing "Play Next Episode
+        overlay lead time" setting worth of runtime - never re-attempted
+        after the first try (self._overlay_attempted), whether or not a
+        next episode actually turned up, so a missing next episode or a
+        lookup failure doesn't retry every second for the rest of playback.
+        The overlay itself is shown later, back on this same wait loop's
+        own thread once the lookup finishes - see play_item()'s handling
+        of self._pending_next_episode."""
         try:
             total_time = self.getTotalTime()
         except Exception:  # noqa: BLE001 - player may not be fully ready yet
@@ -246,7 +257,7 @@ class JellyfinPlayer(xbmc.Player):
         if total_time <= 0:
             return
         remaining = total_time - self.getTime()
-        if not (0 < remaining <= NEXT_EPISODE_OVERLAY_REMAINING_SECONDS):
+        if not (0 < remaining <= _next_episode_overlay_remaining_seconds()):
             return
         self._overlay_attempted = True
         threading.Thread(

@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.35 - 2026-07-22
+- Add a Playback setting for the "Play Next Episode" overlay's lead time (default 150s)
+
 ## 0.3.34 - 2026-07-22
 - Fix the "Play Next Episode" overlay's buttons being unclickable on a real device (WindowXML -> WindowXMLDialog, shown from the main playback thread)
 

@@ -726,3 +726,36 @@ def test_module_play_item_chains_into_the_overlay_skip_target(client, monkeypatc
 
     assert played_item_id == "e2"
     assert len(calls) == 2  # chained into a second JellyfinPlayer for e2
+
+
+# -- "Play Next Episode" overlay lead time setting (Playback settings) -----
+
+def test_next_episode_overlay_remaining_seconds_reads_the_setting(monkeypatch):
+    monkeypatch.setattr(player_mod.ADDON, "getSetting", lambda setting_id: "90")
+    assert player_mod._next_episode_overlay_remaining_seconds() == 90
+
+
+def test_next_episode_overlay_remaining_seconds_falls_back_when_unset(monkeypatch):
+    monkeypatch.setattr(player_mod.ADDON, "getSetting", lambda setting_id: "")
+    assert (
+        player_mod._next_episode_overlay_remaining_seconds()
+        == player_mod.NEXT_EPISODE_OVERLAY_REMAINING_SECONDS
+    )
+
+
+def test_maybe_offer_next_episode_honors_the_configured_lead_time(client, monkeypatch):
+    monkeypatch.setattr(player_mod.ADDON, "getSetting", lambda setting_id: "20")
+    monkeypatch.setattr(player_mod.threading, "Thread", _SyncThread)
+
+    def fail_if_looked_up(client, item_id):
+        raise AssertionError("30s remaining exceeds the configured 20s lead time")
+
+    monkeypatch.setattr(player_mod.library, "get_next_episode_in_season", fail_if_looked_up)
+
+    player = player_mod.JellyfinPlayer(client)
+    player.getTotalTime = lambda: 200.0
+    player.getTime = lambda: 170.0  # 30s remaining - would trigger at the 150s default, not at 20s
+
+    player._maybe_offer_next_episode("e1")
+
+    assert player._overlay_attempted is False

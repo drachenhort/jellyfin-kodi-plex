@@ -163,3 +163,11 @@ msgstr ""
 msgctxt "#30050"
 msgid "Japanese"
 msgstr ""
+
+msgctxt "#30051"
+msgid "Play Next Episode overlay lead time (seconds)"
+msgstr ""
+
+msgctxt "#30052"
+msgid "How much runtime must remain in an episode before the \"Play Next Episode\" overlay offers skipping ahead to the next one."
+msgstr ""

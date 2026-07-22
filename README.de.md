@@ -90,8 +90,9 @@ Episode erscheint zusätzlich ein kleines, nicht-modales „Nächste Episode abs
 Meilenstein 2 (in Arbeit): Erweiterung der Addon-Einstellungen zu echter, benutzerseitiger Konfiguration —
 Ein-/Ausblenden-Schalter pro Hub-Zeile auf dem Startbildschirm, „Gesehene ausblenden"-Schalter für die
 „Kürzlich hinzugefügt"-Zeilen, eine einstellbare Obergrenze für „Kürzlich hinzugefügt"-Einträge, die
-Standard-Sortierreihenfolge der Bibliothek, das Server-Timeout, die maximale Streaming-Bitrate sowie
-eine Settings-Schaltfläche auf dem Startbildschirm neben Server/Suche.
+Standard-Sortierreihenfolge der Bibliothek, das Server-Timeout, die maximale Streaming-Bitrate, den
+Vorlauf des „Nächste Episode abspielen"-Overlays (unter Wiedergabe) sowie eine Settings-Schaltfläche
+auf dem Startbildschirm neben Server/Suche.
 
 Der TV-/Musik-Drilldown funktioniert, indem die direkten Kindelemente jedes Objekts nicht-rekursiv abgerufen werden
 (`lib/windows/browse.py` wird auf jeder Ebene wiederverwendet: die Top-Level-Elemente einer Bibliothek, die Staffeln
