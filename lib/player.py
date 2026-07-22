@@ -2,9 +2,14 @@
 and reports position back to Jellyfin so watched-state/resume stays in sync
 with other Jellyfin clients. Uses Kodi's own native video OSD/controls
 during playback (pause, seek, stop, audio/subtitle selection) rather than a
-custom overlay - an earlier custom seek dialog was removed after repeated
-real-device testing showed it could leave the whole OSD unresponsive to
-input (see git history for lib/windows/seekdialog.py if reviving the idea).
+custom seek/scrub UI - an earlier custom seek dialog was removed after
+repeated real-device testing showed it could leave the whole OSD
+unresponsive to input (see git history for lib/windows/seekdialog.py if
+reviving the idea). The one deliberate exception is
+lib.windows.next_episode_overlay.NextEpisodeOverlay: a small, non-modal,
+corner-positioned "play next episode" prompt shown in an Episode's closing
+minutes - much simpler than the reverted seek dialog (two buttons, no
+scrubbing) and verified on a real device not to reproduce that failure.
 """
 
 import threading
@@ -15,10 +20,16 @@ import xbmcgui
 
 from lib.jellyfin import playback, library
 from lib.windows.kodigui import LOG_PREFIX
+from lib.windows.next_episode_overlay import NextEpisodeOverlay
 
 ADDON = xbmcaddon.Addon()
+ADDON_PATH = ADDON.getAddonInfo("path")
 PROGRESS_REPORT_INTERVAL_SECONDS = 10
 STARTUP_TIMEOUT_SECONDS = 30
+# How much runtime must remain before the "play next episode" overlay
+# offers skipping ahead - roughly the closing minutes (end credits/outro)
+# of a typical TV episode, per the feature request this implements.
+NEXT_EPISODE_OVERLAY_REMAINING_SECONDS = 150
 
 
 def _max_streaming_bitrate():
@@ -46,13 +57,21 @@ class JellyfinPlayer(xbmc.Player):
         self._audio_stream_index = None
         self._subtitle_stream_index = None
         self._last_position_ticks = 0
+        self._item_type = None
+        self._overlay = None
+        self._overlay_attempted = False
+        self._overlay_next_episode_id = None
+        self.skip_target_item_id = None
 
     def play_item(self, item_id, item_type=None, resume_ticks=0,
                   audio_stream_index=None, subtitle_stream_index=None):
-        """Returns "ended" (played to completion), "stopped" (user backed
-        out or explicitly stopped early), or "error" (playback never started,
-        or Kodi reported a playback error) - lib.player.play_queue() uses
-        this to decide whether to auto-advance to the next item."""
+        """Returns "ended" (played to completion - including via the "play
+        next episode" overlay's Play Now/countdown, since from the caller's
+        perspective this item is done either way), "stopped" (user backed
+        out or explicitly stopped early), or "error" (playback never
+        started, or Kodi reported a playback error) - lib.player.play_queue()
+        and the module-level play_item() below use this to decide whether
+        to auto-advance to the next item."""
         try:
             item = library.get_item(self.client, item_id)
         except Exception:  # noqa: BLE001 - metadata is nice-to-have, not critical
@@ -70,12 +89,17 @@ class JellyfinPlayer(xbmc.Player):
         url, play_session_id = playback.stream_url(self.client, item_id, media_source, item_type=item_type)
 
         self._item_id = item_id
+        self._item_type = item_type
         self._play_session_id = play_session_id
         self._reported_stop = False
         self._last_position_ticks = resume_ticks or 0
         self._end_reason = "ended"
         self._audio_stream_index = audio_stream_index
         self._subtitle_stream_index = subtitle_stream_index
+        self._overlay = None
+        self._overlay_attempted = False
+        self._overlay_next_episode_id = None
+        self.skip_target_item_id = None
 
         list_item = xbmcgui.ListItem(label=item.get("Name", "") if item else "", path=url)
         if item:
@@ -168,8 +192,64 @@ class JellyfinPlayer(xbmc.Player):
                 self._end_reason = "stopped"
                 self.stop()
                 break
+            if started and self._item_type == "Episode":
+                if self._overlay is None and not self._overlay_attempted:
+                    self._maybe_offer_next_episode(item_id)
+                elif self._overlay is not None and self._overlay.closed_event.is_set():
+                    overlay_result = self._overlay.result
+                    self._overlay = None
+                    if overlay_result and overlay_result.get("action") == "play":
+                        self.skip_target_item_id = self._overlay_next_episode_id
+                        self._end_reason = "ended"
+                        if self.isPlaying():
+                            self.stop()
+                        break
+        if self._overlay is not None:
+            # Playback ended (naturally, by error, or via the Home-active
+            # escape route above) before the user reacted to the overlay -
+            # tear it down rather than leaving it on screen with nothing
+            # left playing underneath it.
+            self._overlay.close()
+            self._overlay = None
         self._finish()
         return self._end_reason
+
+    def _maybe_offer_next_episode(self, item_id):
+        """Shows the "play next episode" overlay once playback has entered
+        its closing NEXT_EPISODE_OVERLAY_REMAINING_SECONDS, if a next
+        episode actually exists - never re-attempted after the first try
+        (self._overlay_attempted), whether or not one was actually shown,
+        so a missing next episode or a lookup failure doesn't retry every
+        second for the rest of playback."""
+        try:
+            total_time = self.getTotalTime()
+        except Exception:  # noqa: BLE001 - player may not be fully ready yet
+            return
+        if total_time <= 0:
+            return
+        remaining = total_time - self.getTime()
+        if not (0 < remaining <= NEXT_EPISODE_OVERLAY_REMAINING_SECONDS):
+            return
+        self._overlay_attempted = True
+        threading.Thread(
+            target=self._show_overlay_if_next_episode_exists, args=(item_id,), daemon=True,
+        ).start()
+
+    def _show_overlay_if_next_episode_exists(self, item_id):
+        # Runs on its own thread (network lookup) so the 1s wait loop above
+        # keeps ticking (progress reporting, abort/Home-active checks)
+        # rather than stalling on a slow server for however long the
+        # request timeout allows.
+        try:
+            next_episode = library.get_next_episode_in_season(self.client, item_id)
+        except Exception:  # noqa: BLE001 - no overlay is better than a crash this close to the end
+            next_episode = None
+        if not next_episode or self._stop_event.is_set():
+            return
+        self._overlay_next_episode_id = next_episode.get("Id")
+        self._overlay = NextEpisodeOverlay.show_overlay(
+            ADDON_PATH, client=self.client, next_item=next_episode,
+        )
 
     def _apply_stream_selection(self):
         try:
@@ -244,14 +324,23 @@ class JellyfinPlayer(xbmc.Player):
 
 def play_item(client, item_id, item_type=None, resume_ticks=0,
               audio_stream_index=None, subtitle_stream_index=None):
-    """Returns the same "ended"/"stopped"/"error" status as
-    JellyfinPlayer.play_item() - lib/main.py uses this to decide whether to
-    offer auto-playing the next episode in the season."""
+    """Returns (status, last_item_id): status is the same "ended"/"stopped"/
+    "error" JellyfinPlayer.play_item() returns, for whichever item was
+    actually last played. last_item_id can differ from the requested
+    item_id: choosing "Play Next Episode" on the in-playback overlay skips
+    the rest of the current episode and chains straight into the next one
+    (recursively, in case that one's overlay gets used too) without
+    returning control to the caller - lib/main.py uses last_item_id, not
+    the original item_id, to decide which episode its own post-playback
+    "Up Next" prompt should offer."""
     player = JellyfinPlayer(client)
-    return player.play_item(
+    status = player.play_item(
         item_id, item_type=item_type, resume_ticks=resume_ticks,
         audio_stream_index=audio_stream_index, subtitle_stream_index=subtitle_stream_index,
     )
+    if status == "ended" and player.skip_target_item_id:
+        return play_item(client, player.skip_target_item_id, item_type="Episode")
+    return status, item_id
 
 
 def play_queue(client, item_ids, item_type=None):

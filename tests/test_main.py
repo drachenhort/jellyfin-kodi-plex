@@ -323,7 +323,7 @@ def test_offer_next_episode_plays_next_episode_on_confirm(monkeypatch):
 
     def fake_play_item(client, item_id, item_type=None, **kwargs):
         played.append(item_id)
-        return "stopped"  # don't chain further in this test
+        return "stopped", item_id  # don't chain further in this test
 
     monkeypatch.setattr(main_mod.player, "play_item", fake_play_item)
 
@@ -359,7 +359,7 @@ def test_offer_next_episode_chains_through_a_whole_season(monkeypatch):
 
     def fake_play_item(client, item_id, item_type=None, **kwargs):
         played.append(item_id)
-        return "ended"
+        return "ended", item_id
 
     monkeypatch.setattr(main_mod.player, "play_item", fake_play_item)
 
@@ -379,7 +379,7 @@ def test_offer_next_episode_stops_chaining_if_playback_is_stopped_early(monkeypa
     played = []
     monkeypatch.setattr(
         main_mod.player, "play_item",
-        lambda client, item_id, **k: played.append(item_id) or "stopped",
+        lambda client, item_id, **k: (played.append(item_id) or "stopped", item_id),
     )
 
     main_mod._offer_next_episode(client=object(), item_id="e1")
@@ -397,7 +397,7 @@ def test_detail_loop_offers_next_episode_only_when_an_episode_finishes(monkeypat
         return None
 
     monkeypatch.setattr(main_mod.DetailWindow, "open", staticmethod(fake_open))
-    monkeypatch.setattr(main_mod.player, "play_item", lambda *a, **k: "ended")
+    monkeypatch.setattr(main_mod.player, "play_item", lambda client, item_id, **k: ("ended", item_id))
 
     offered = []
     monkeypatch.setattr(
@@ -420,7 +420,7 @@ def test_detail_loop_does_not_offer_next_episode_for_a_movie(monkeypatch):
         return None
 
     monkeypatch.setattr(main_mod.DetailWindow, "open", staticmethod(fake_open))
-    monkeypatch.setattr(main_mod.player, "play_item", lambda *a, **k: "ended")
+    monkeypatch.setattr(main_mod.player, "play_item", lambda client, item_id, **k: ("ended", item_id))
 
     def fail_if_offered(*a, **k):
         raise AssertionError("must not offer a next episode for a non-Episode item")
@@ -440,7 +440,7 @@ def test_detail_loop_does_not_offer_next_episode_when_playback_was_stopped_early
         return None
 
     monkeypatch.setattr(main_mod.DetailWindow, "open", staticmethod(fake_open))
-    monkeypatch.setattr(main_mod.player, "play_item", lambda *a, **k: "stopped")
+    monkeypatch.setattr(main_mod.player, "play_item", lambda client, item_id, **k: ("stopped", item_id))
 
     def fail_if_offered(*a, **k):
         raise AssertionError("must not offer a next episode when the user stopped early")

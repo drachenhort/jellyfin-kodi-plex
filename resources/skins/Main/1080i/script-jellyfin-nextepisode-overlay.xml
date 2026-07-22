@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<window>
+  <defaultcontrol always="true">602</defaultcontrol>
+  <controls>
+    <control type="image">
+      <posx>1440</posx>
+      <posy>820</posy>
+      <width>440</width>
+      <height>200</height>
+      <texture colordiffuse="C0000000">white.png</texture>
+    </control>
+
+    <control type="image" id="600">
+      <posx>1456</posx>
+      <posy>836</posy>
+      <width>140</width>
+      <height>79</height>
+      <aspectratio>scale</aspectratio>
+    </control>
+
+    <control type="label">
+      <posx>1610</posx>
+      <posy>836</posy>
+      <width>250</width>
+      <height>30</height>
+      <font>font12</font>
+      <label>Next Episode</label>
+    </control>
+
+    <control type="label" id="601">
+      <posx>1610</posx>
+      <posy>866</posy>
+      <width>250</width>
+      <height>50</height>
+      <font>font13</font>
+      <label></label>
+    </control>
+
+    <control type="button" id="602">
+      <posx>1456</posx>
+      <posy>940</posy>
+      <width>200</width>
+      <height>60</height>
+      <font>font12</font>
+      <label>Play Next Episode</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onright>603</onright>
+      <onleft>602</onleft>
+      <onup>602</onup>
+      <ondown>602</ondown>
+    </control>
+    <control type="button" id="603">
+      <posx>1666</posx>
+      <posy>940</posy>
+      <width>194</width>
+      <height>60</height>
+      <font>font12</font>
+      <label>Dismiss</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onright>603</onright>
+      <onleft>602</onleft>
+      <onup>603</onup>
+      <ondown>603</ondown>
+    </control>
+  </controls>
+</window>

@@ -75,7 +75,10 @@ album's own screen adds Play All/Shuffle buttons to queue its tracks back-to-bac
 next track only when the current one finishes naturally rather than being stopped early. When a TV
 episode finishes playing to completion, an "Up Next" prompt offers the following episode in the
 same season with a 30-second auto-play countdown (`lib/windows/next_episode.py`), chaining through
-the rest of the season for as long as each one keeps playing to completion.
+the rest of the season for as long as each one keeps playing to completion. In an episode's closing
+~2.5 minutes, a small non-modal "Play Next Episode" overlay (`lib/windows/next_episode_overlay.py`)
+also appears in the bottom-right corner, letting the outro/credits be skipped straight into the
+next episode without waiting for natural end.
 
 Milestone 2 (in progress): expanding the addon's Settings into real user-facing configuration —
 per-hub-row Home show/hide toggles, hide-watched toggles for Recently Added rows, a configurable

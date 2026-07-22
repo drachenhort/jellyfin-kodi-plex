@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.33 - 2026-07-22
+- Add a non-intrusive "Play Next Episode" overlay in an episode's closing ~2.5 minutes, to skip the outro
+
 ## 0.3.32 - 2026-07-22
 - Offer to auto-play the next episode in the season, with a 30s countdown, after an episode finishes
 

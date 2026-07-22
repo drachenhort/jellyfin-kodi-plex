@@ -5,6 +5,8 @@ flag and STARTUP_TIMEOUT_SECONDS in lib/player.py) before it had any test
 coverage at all.
 """
 
+import threading
+
 import lib.jellyfin.client as client_mod
 import lib.jellyfin.library as library_mod
 import lib.player as player_mod
@@ -422,3 +424,260 @@ def test_play_queue_stops_after_a_track_is_stopped_early(client, monkeypatch):
     # Backed out to Kodi's home screen mid-track-1 - queue must not advance
     # to track 2 or 3.
     assert len(players_created) == 1
+
+
+# -- "play next episode" overlay: offered near the end of an Episode -------
+
+class _SyncThread:
+    """threading.Thread stand-in that runs its target immediately in
+    start() rather than on a real thread - makes the background-thread
+    overlay lookup deterministic in tests without a real race."""
+
+    def __init__(self, target=None, args=(), kwargs=None, daemon=None):
+        self._target = target
+        self._args = args
+        self._kwargs = kwargs or {}
+
+    def start(self):
+        self._target(*self._args, **self._kwargs)
+
+
+def test_maybe_offer_next_episode_shows_overlay_near_the_end(client, monkeypatch):
+    monkeypatch.setattr(player_mod.threading, "Thread", _SyncThread)
+    monkeypatch.setattr(
+        player_mod.library, "get_next_episode_in_season",
+        lambda client, item_id: {"Id": "e2", "Name": "Next Episode"},
+    )
+    shown = []
+    monkeypatch.setattr(
+        player_mod.NextEpisodeOverlay, "show_overlay",
+        staticmethod(lambda addon_path, **kwargs: shown.append(kwargs) or object()),
+    )
+
+    player = player_mod.JellyfinPlayer(client)
+    player.getTotalTime = lambda: 200.0
+    player.getTime = lambda: 195.0  # 5s remaining, well under the threshold
+
+    player._maybe_offer_next_episode("e1")
+
+    assert player._overlay_attempted is True
+    assert player._overlay_next_episode_id == "e2"
+    assert len(shown) == 1
+
+
+def test_maybe_offer_next_episode_does_nothing_far_from_the_end(client, monkeypatch):
+    monkeypatch.setattr(player_mod.threading, "Thread", _SyncThread)
+
+    def fail_if_looked_up(client, item_id):
+        raise AssertionError("must not look up the next episode this early")
+
+    monkeypatch.setattr(player_mod.library, "get_next_episode_in_season", fail_if_looked_up)
+
+    player = player_mod.JellyfinPlayer(client)
+    player.getTotalTime = lambda: 1200.0
+    player.getTime = lambda: 60.0  # over 15 minutes remaining
+
+    player._maybe_offer_next_episode("e1")
+
+    assert player._overlay_attempted is False
+    assert player._overlay is None
+
+
+def test_maybe_offer_next_episode_does_nothing_when_total_time_unknown(client, monkeypatch):
+    """getTotalTime() can be 0 briefly right as playback starts - must not
+    be misread as "0 seconds remaining"."""
+    monkeypatch.setattr(player_mod.threading, "Thread", _SyncThread)
+
+    def fail_if_looked_up(client, item_id):
+        raise AssertionError("must not look up the next episode with no known duration")
+
+    monkeypatch.setattr(player_mod.library, "get_next_episode_in_season", fail_if_looked_up)
+
+    player = player_mod.JellyfinPlayer(client)
+    player.getTotalTime = lambda: 0.0
+    player.getTime = lambda: 0.0
+
+    player._maybe_offer_next_episode("e1")
+
+    assert player._overlay_attempted is False
+
+
+def test_show_overlay_if_next_episode_exists_leaves_overlay_none_with_no_next_episode(client, monkeypatch):
+    monkeypatch.setattr(player_mod.library, "get_next_episode_in_season", lambda client, item_id: None)
+
+    player = player_mod.JellyfinPlayer(client)
+    player._show_overlay_if_next_episode_exists("e1")
+
+    assert player._overlay is None
+
+
+def test_play_item_skips_to_next_episode_via_overlay(client, monkeypatch):
+    """Simulates the overlay's "Play Next Episode" having already been
+    clicked (closed_event set, result play) by the time the wait loop next
+    checks it - the loop must stop the current item early, mark it "ended"
+    (not "stopped" - from the caller's perspective this episode is done),
+    and record which episode to skip to."""
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, True, True])
+    player.getTotalTime = lambda: 200.0
+    player.getTime = lambda: 190.0
+
+    class _FakeOverlay:
+        def __init__(self):
+            self.closed_event = threading.Event()
+            self.closed_event.set()
+            self.result = {"action": "play"}
+
+        def close(self):
+            pass
+
+    def fake_maybe_offer(item_id):
+        player._overlay_attempted = True
+        player._overlay_next_episode_id = "e2"
+        player._overlay = _FakeOverlay()
+
+    player._maybe_offer_next_episode = fake_maybe_offer
+
+    status = player.play_item("e1", item_type="Episode")
+
+    assert status == "ended"
+    assert player.skip_target_item_id == "e2"
+    assert player.stop_calls == 1
+
+
+def test_play_item_dismissed_overlay_does_not_skip(client, monkeypatch):
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, False])
+    player.getTotalTime = lambda: 200.0
+    player.getTime = lambda: 190.0
+
+    class _FakeOverlay:
+        def __init__(self):
+            self.closed_event = threading.Event()
+            self.closed_event.set()
+            self.result = None  # dismissed / auto-dismiss timeout
+
+        def close(self):
+            pass
+
+    def fake_maybe_offer(item_id):
+        player._overlay_attempted = True
+        player._overlay = _FakeOverlay()
+
+    player._maybe_offer_next_episode = fake_maybe_offer
+
+    status = player.play_item("e1", item_type="Episode")
+
+    assert status == "ended"  # played to completion naturally, not skipped
+    assert player.skip_target_item_id is None
+    assert player.stop_calls == 0
+
+
+def test_play_item_closes_a_still_open_overlay_when_playback_ends_first(client, monkeypatch):
+    """If playback reaches its natural end (or is stopped) before the user
+    ever reacts to the overlay, the overlay must not linger on screen with
+    nothing left playing underneath it."""
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, False])
+    player.getTotalTime = lambda: 200.0
+    player.getTime = lambda: 190.0
+
+    closed = []
+
+    class _FakeOverlay:
+        def __init__(self):
+            self.closed_event = threading.Event()  # never set - still "open"
+            self.result = None
+
+        def close(self):
+            closed.append(True)
+            self.closed_event.set()
+
+    def fake_maybe_offer(item_id):
+        player._overlay_attempted = True
+        player._overlay = _FakeOverlay()
+
+    player._maybe_offer_next_episode = fake_maybe_offer
+
+    player.play_item("e1", item_type="Episode")
+
+    assert closed == [True]
+
+
+# -- module-level play_item(): unwraps/chains the (status, item_id) pair ---
+
+def test_module_play_item_returns_status_and_the_requested_item_id(client, monkeypatch):
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    real_init = player_mod.JellyfinPlayer.__init__
+
+    def init_with_fakes(self, client_arg):
+        real_init(self, client_arg)
+        self.isPlayingVideo = iter([True, False]).__next__
+        self.isPlaying = lambda: True
+        self.isPlayingAudio = lambda: False
+        self.getTime = lambda: 12.5
+
+    monkeypatch.setattr(player_mod.JellyfinPlayer, "__init__", init_with_fakes)
+
+    status, played_item_id = player_mod.play_item(client, "item-1")
+
+    assert status == "ended"
+    assert played_item_id == "item-1"
+
+
+def test_module_play_item_chains_into_the_overlay_skip_target(client, monkeypatch):
+    """When the in-playback overlay is used, the module-level play_item()
+    must chain straight into the next episode itself and report *that*
+    episode's outcome/id, not the originally requested one."""
+    fake_requests = FakeRequests([
+        FakeResponse({"Name": "Episode 1"}), FakeResponse({"MediaSources": [{"Id": "ms-1"}]}),
+        FakeResponse(None), FakeResponse(None),
+        FakeResponse({"Name": "Episode 2"}), FakeResponse({"MediaSources": [{"Id": "ms-2"}]}),
+        FakeResponse(None), FakeResponse(None),
+    ])
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    real_init = player_mod.JellyfinPlayer.__init__
+    calls = []
+
+    def init_with_fakes(self, client_arg):
+        real_init(self, client_arg)
+        calls.append(self)
+        self.isPlayingVideo = iter([True, True, False]).__next__
+        self.isPlaying = lambda: True
+        self.isPlayingAudio = lambda: False
+        self.getTime = lambda: 12.5
+        if len(calls) == 1:
+            # First instance: simulate the overlay having been used.
+            self._skip_after_start = True
+
+    monkeypatch.setattr(player_mod.JellyfinPlayer, "__init__", init_with_fakes)
+
+    real_play_item = player_mod.JellyfinPlayer.play_item
+
+    def play_item_with_skip(self, item_id, **kwargs):
+        if getattr(self, "_skip_after_start", False):
+            self.skip_target_item_id = "e2"
+            self._reported_stop = True  # skip _finish()'s HTTP call for this fake instance
+            return "ended"
+        return real_play_item(self, item_id, **kwargs)
+
+    monkeypatch.setattr(player_mod.JellyfinPlayer, "play_item", play_item_with_skip)
+
+    status, played_item_id = player_mod.play_item(client, "e1", item_type="Episode")
+
+    assert played_item_id == "e2"
+    assert len(calls) == 2  # chained into a second JellyfinPlayer for e2

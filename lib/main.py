@@ -256,12 +256,12 @@ def _offer_next_episode(client, item_id):
         return
     next_id = next_item["Id"]
     try:
-        status = player.play_item(client, next_id, item_type="Episode")
+        status, played_item_id = player.play_item(client, next_id, item_type="Episode")
     except Exception as exc:  # noqa: BLE001 - surface playback failures, don't crash the addon
         xbmcgui.Dialog().notification("Jellyfin", f"Playback failed: {exc}")
         return
     if status == "ended":
-        _offer_next_episode(client, next_id)
+        _offer_next_episode(client, played_item_id)
 
 
 def _detail_loop(client, item_id):
@@ -271,7 +271,7 @@ def _detail_loop(client, item_id):
             return
         if result["action"] == "play":
             try:
-                status = player.play_item(
+                status, played_item_id = player.play_item(
                     client,
                     result["item_id"],
                     item_type=result.get("item_type"),
@@ -281,9 +281,9 @@ def _detail_loop(client, item_id):
                 )
             except Exception as exc:  # noqa: BLE001 - surface playback failures, don't crash the addon
                 xbmcgui.Dialog().notification("Jellyfin", f"Playback failed: {exc}")
-                status = None
+                status, played_item_id = None, None
             if status == "ended" and result.get("item_type") == "Episode":
-                _offer_next_episode(client, result["item_id"])
+                _offer_next_episode(client, played_item_id)
             # Loop back to the detail page (e.g. to show updated resume state).
         elif result["action"] == "open":
             # A "More Like This" item was clicked - opens on top, and

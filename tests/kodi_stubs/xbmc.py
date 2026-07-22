@@ -70,6 +70,9 @@ class Player:
     def getTime(self):
         return 0.0
 
+    def getTotalTime(self):
+        return 0.0
+
     def seekTime(self, seconds):
         pass
 

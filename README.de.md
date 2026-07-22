@@ -82,7 +82,10 @@ nächsten Titel wird nur gewechselt, wenn der aktuelle regulär zu Ende gespielt
 vorzeitigem Stopp. Wird eine TV-Episode regulär zu Ende gespielt, bietet ein „Als Nächstes"-Dialog
 die folgende Episode derselben Staffel an, mit einem 30-Sekunden-Countdown zur automatischen
 Wiedergabe (`lib/windows/next_episode.py`) — das setzt sich durch die restliche Staffel fort,
-solange jede Episode weiterhin regulär zu Ende gespielt wird.
+solange jede Episode weiterhin regulär zu Ende gespielt wird. In den letzten ca. 2,5 Minuten einer
+Episode erscheint zusätzlich ein kleines, nicht-modales „Nächste Episode abspielen"-Overlay
+(`lib/windows/next_episode_overlay.py`) unten rechts im Bild, mit dem sich Abspann/Outro
+überspringen lassen, ohne auf das reguläre Ende zu warten.
 
 Meilenstein 2 (in Arbeit): Erweiterung der Addon-Einstellungen zu echter, benutzerseitiger Konfiguration —
 Ein-/Ausblenden-Schalter pro Hub-Zeile auf dem Startbildschirm, „Gesehene ausblenden"-Schalter für die
