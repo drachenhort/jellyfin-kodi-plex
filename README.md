@@ -102,6 +102,12 @@ via the same login flow, or remove a saved one (the currently active server can'
 switch away from it first). An existing single-server install is migrated into this list
 automatically the first time it runs after updating, so it doesn't get logged out.
 
+If the active server can't be reached on startup (down, unreachable, returning a 5xx error),
+`lib/main.py` automatically tries the other saved servers in order and switches to the first one
+that responds, with a notification explaining which server failed and why, and which one it
+switched to. If none of the saved servers are reachable, a notification reports that instead and
+the normal login screen opens.
+
 ## Development
 
 ```bash

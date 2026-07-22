@@ -10,6 +10,7 @@ of the root Home loop actually ends the script.
 
 import uuid
 
+import requests
 import xbmc
 import xbmcaddon
 import xbmcgui
@@ -90,18 +91,62 @@ def _client_from_server(server):
     return client
 
 
+def _probe_server(server):
+    """Lightweight reachability check for a saved server: hits the
+    unauthenticated /System/Info/Public endpoint so a connection problem
+    (server down, network unreachable, 5xx) is caught here rather than
+    surfacing later as a broken Home screen. Returns (client, None) on
+    success, or (None, short_reason) on failure - never raises."""
+    client = _client_from_server(server)
+    try:
+        system.get_public_info(client)
+    except (client_mod.JellyfinApiError, requests.exceptions.RequestException) as exc:
+        return None, str(exc)[:200]
+    return client, None
+
+
 def _load_saved_client():
+    """Connects to the active saved server, falling back to another saved
+    server (in list order) if the active one can't be reached - e.g. its
+    Jellyfin instance is down or returning 5xx. The user is always notified
+    when this happens, and why, so a switched-to library doesn't look like
+    it appeared out of nowhere."""
     server_list = _load_servers()
     if not server_list:
         return None
-    server = servers.find(server_list, _get_active_server_id())
-    if not server:
-        server = server_list[0]
+    active_id = _get_active_server_id()
+    active_server = servers.find(server_list, active_id)
+    if not active_server:
+        active_server = server_list[0]
+        _set_active_server_id(active_server["id"])
+
+    client, error = _probe_server(active_server)
+    if client is not None:
+        return client if client.is_authenticated() else None
+
+    xbmc.log(
+        f"{LOG_PREFIX} Active server '{active_server.get('name')}' unreachable "
+        f"({error}) - trying other saved servers",
+        xbmc.LOGWARNING,
+    )
+    for server in server_list:
+        if server["id"] == active_server["id"]:
+            continue
+        fallback_client, fallback_error = _probe_server(server)
+        if fallback_client is None or not fallback_client.is_authenticated():
+            continue
         _set_active_server_id(server["id"])
-    client = _client_from_server(server)
-    if not client.is_authenticated():
-        return None
-    return client
+        xbmcgui.Dialog().notification(
+            "Jellyfin",
+            f"'{active_server.get('name')}' unreachable ({error}) - "
+            f"switched to '{server.get('name')}'",
+        )
+        return fallback_client
+
+    xbmcgui.Dialog().notification(
+        "Jellyfin", f"'{active_server.get('name')}' unreachable: {error}"
+    )
+    return None
 
 
 def _migrate_legacy_settings():

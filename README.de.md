@@ -114,6 +114,12 @@ aktuell aktive Server kann nicht entfernt werden — dazu muss man zuerst zu ein
 Eine bestehende Einzelserver-Installation wird beim ersten Start nach dem Update automatisch in
 diese Liste übernommen, damit sie nicht abgemeldet wird.
 
+Ist der aktive Server beim Start nicht erreichbar (offline, nicht erreichbar, 5xx-Fehler),
+versucht `lib/main.py` automatisch die anderen gespeicherten Server der Reihe nach und wechselt
+zum ersten, der antwortet — mit einer Benachrichtigung, welcher Server fehlgeschlagen ist, warum,
+und zu welchem gewechselt wurde. Ist keiner der gespeicherten Server erreichbar, meldet eine
+Benachrichtigung auch das, und der normale Login-Bildschirm öffnet sich.
+
 ## Entwicklung
 
 ```bash

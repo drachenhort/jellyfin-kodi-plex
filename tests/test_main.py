@@ -198,3 +198,104 @@ def test_run_reraises_window_limit_runtime_error_when_not_aborting(monkeypatch):
         pass
 
     assert home_window.getProperty(main_mod.RUNNING_PROPERTY) == ""
+
+
+# -- _load_saved_client: falls back to another saved server when the active
+# one can't be reached (down, unreachable, 5xx), and always notifies why.
+
+def _stub_server(name, server_id):
+    return {
+        "id": server_id, "name": name, "server_url": f"http://{name}",
+        "access_token": "tok", "user_id": "user",
+    }
+
+
+def test_load_saved_client_uses_active_server_when_reachable(monkeypatch):
+    server = _stub_server("primary", "s1")
+    monkeypatch.setattr(main_mod, "_load_servers", lambda: [server])
+    monkeypatch.setattr(main_mod, "_get_active_server_id", lambda: "s1")
+
+    def fake_probe(srv):
+        assert srv["id"] == "s1"
+        client = object.__new__(main_mod.JellyfinClient)
+        client.is_authenticated = lambda: True
+        return client, None
+
+    monkeypatch.setattr(main_mod, "_probe_server", fake_probe)
+
+    notifications = []
+    monkeypatch.setattr(
+        xbmcgui.Dialog, "notification",
+        lambda self, *a, **k: notifications.append(a),
+    )
+
+    result = main_mod._load_saved_client()
+
+    assert result is not None
+    assert notifications == []  # no notification when the active server just works
+
+
+def test_load_saved_client_falls_back_and_notifies_why(monkeypatch):
+    primary = _stub_server("primary", "s1")
+    backup = _stub_server("backup", "s2")
+    monkeypatch.setattr(main_mod, "_load_servers", lambda: [primary, backup])
+    monkeypatch.setattr(main_mod, "_get_active_server_id", lambda: "s1")
+
+    set_ids = []
+    monkeypatch.setattr(main_mod, "_set_active_server_id", set_ids.append)
+
+    def fake_probe(srv):
+        if srv["id"] == "s1":
+            return None, "503 Service Unavailable"
+        client = object.__new__(main_mod.JellyfinClient)
+        client.is_authenticated = lambda: True
+        return client, None
+
+    monkeypatch.setattr(main_mod, "_probe_server", fake_probe)
+
+    notifications = []
+    monkeypatch.setattr(
+        xbmcgui.Dialog, "notification",
+        lambda self, *a, **k: notifications.append(a),
+    )
+
+    result = main_mod._load_saved_client()
+
+    assert result is not None
+    assert set_ids == ["s2"]
+    assert len(notifications) == 1
+    message = notifications[0][1]
+    assert "primary" in message and "503 Service Unavailable" in message and "backup" in message
+
+
+def test_load_saved_client_notifies_and_returns_none_when_nothing_reachable(monkeypatch):
+    primary = _stub_server("primary", "s1")
+    backup = _stub_server("backup", "s2")
+    monkeypatch.setattr(main_mod, "_load_servers", lambda: [primary, backup])
+    monkeypatch.setattr(main_mod, "_get_active_server_id", lambda: "s1")
+    monkeypatch.setattr(main_mod, "_probe_server", lambda srv: (None, "connection refused"))
+
+    notifications = []
+    monkeypatch.setattr(
+        xbmcgui.Dialog, "notification",
+        lambda self, *a, **k: notifications.append(a),
+    )
+
+    result = main_mod._load_saved_client()
+
+    assert result is None
+    assert len(notifications) == 1
+    assert "primary" in notifications[0][1] and "connection refused" in notifications[0][1]
+
+
+def test_probe_server_returns_reason_on_api_error(monkeypatch):
+    server = _stub_server("primary", "s1")
+    monkeypatch.setattr(
+        main_mod.system, "get_public_info",
+        lambda client: (_ for _ in ()).throw(main_mod.client_mod.JellyfinApiError(503, "Service Unavailable")),
+    )
+
+    client, error = main_mod._probe_server(server)
+
+    assert client is None
+    assert "503" in error
