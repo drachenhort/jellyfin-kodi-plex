@@ -244,8 +244,11 @@ class JellyfinPlayer(xbmc.Player):
 
 def play_item(client, item_id, item_type=None, resume_ticks=0,
               audio_stream_index=None, subtitle_stream_index=None):
+    """Returns the same "ended"/"stopped"/"error" status as
+    JellyfinPlayer.play_item() - lib/main.py uses this to decide whether to
+    offer auto-playing the next episode in the season."""
     player = JellyfinPlayer(client)
-    player.play_item(
+    return player.play_item(
         item_id, item_type=item_type, resume_ticks=resume_ticks,
         audio_stream_index=audio_stream_index, subtitle_stream_index=subtitle_stream_index,
     )

@@ -146,6 +146,27 @@ def get_latest_episodes(client, parent_id=None, limit=20):
     return result.get("Items", [])
 
 
+def get_next_episode_in_season(client, item_id):
+    """The episode immediately after `item_id` within the same season, by
+    IndexNumber - or None if `item_id` isn't an Episode, has no season, or
+    is already the season's last episode. Used to offer auto-play after an
+    episode finishes (lib/main.py)."""
+    current = get_item(client, item_id, fields=LISTING_ITEM_FIELDS)
+    if not current or current.get("Type") != "Episode":
+        return None
+    season_id = current.get("SeasonId") or current.get("ParentId")
+    if not season_id:
+        return None
+    siblings = get_items(
+        client, parent_id=season_id, limit=1000, sort_by="IndexNumber",
+        sort_order="Ascending", include_item_types="Episode", fields=LISTING_ITEM_FIELDS,
+    ).get("Items", [])
+    for index, episode in enumerate(siblings):
+        if episode.get("Id") == item_id:
+            return siblings[index + 1] if index + 1 < len(siblings) else None
+    return None
+
+
 def mark_played(client, item_id):
     """POST /Users/{userId}/PlayedItems/{itemId} — mark an item watched."""
     result = client.post(f"/Users/{client.user_id}/PlayedItems/{item_id}")

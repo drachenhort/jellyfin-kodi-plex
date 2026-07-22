@@ -16,13 +16,14 @@ import xbmcaddon
 import xbmcgui
 
 from lib import player, servers
-from lib.jellyfin import JellyfinClient, auth, system
+from lib.jellyfin import JellyfinClient, auth, library, system
 from lib.jellyfin import client as client_mod
 from lib.windows.browse import BrowseWindow
 from lib.windows.detail import DetailWindow
 from lib.windows.home import HomeWindow
 from lib.windows.kodigui import LOG_PREFIX
 from lib.windows.login import LoginWindow
+from lib.windows.next_episode import NextEpisodeWindow
 from lib.windows.search import SearchWindow
 from lib.windows.servers import ServerListWindow
 
@@ -239,6 +240,30 @@ def _manage_servers(client):
             return _client_from_server(server)
 
 
+def _offer_next_episode(client, item_id):
+    """Called right after an Episode finishes playing to completion (not on
+    a manual stop). Offers the next episode in the same season via a
+    Plex-style "Up Next" prompt with a 30s auto-play countdown
+    (lib/windows/next_episode.py); chains onward through the rest of the
+    season for as long as the user keeps letting it auto-play or clicking
+    Play Now, and stops silently at the season's last episode, on Cancel/
+    Back, or if playback of the next episode doesn't itself end cleanly."""
+    next_item = library.get_next_episode_in_season(client, item_id)
+    if not next_item:
+        return
+    result = NextEpisodeWindow.open(ADDON_PATH, client=client, next_item=next_item)
+    if not result or result.get("action") != "play":
+        return
+    next_id = next_item["Id"]
+    try:
+        status = player.play_item(client, next_id, item_type="Episode")
+    except Exception as exc:  # noqa: BLE001 - surface playback failures, don't crash the addon
+        xbmcgui.Dialog().notification("Jellyfin", f"Playback failed: {exc}")
+        return
+    if status == "ended":
+        _offer_next_episode(client, next_id)
+
+
 def _detail_loop(client, item_id):
     while True:
         result = DetailWindow.open(ADDON_PATH, client=client, item_id=item_id)
@@ -246,7 +271,7 @@ def _detail_loop(client, item_id):
             return
         if result["action"] == "play":
             try:
-                player.play_item(
+                status = player.play_item(
                     client,
                     result["item_id"],
                     item_type=result.get("item_type"),
@@ -256,6 +281,9 @@ def _detail_loop(client, item_id):
                 )
             except Exception as exc:  # noqa: BLE001 - surface playback failures, don't crash the addon
                 xbmcgui.Dialog().notification("Jellyfin", f"Playback failed: {exc}")
+                status = None
+            if status == "ended" and result.get("item_type") == "Episode":
+                _offer_next_episode(client, result["item_id"])
             # Loop back to the detail page (e.g. to show updated resume state).
         elif result["action"] == "open":
             # A "More Like This" item was clicked - opens on top, and

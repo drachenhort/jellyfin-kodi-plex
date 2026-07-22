@@ -79,7 +79,10 @@ an den Server zurückgemeldetem Fortschritt sowie einem Server-Bildschirm zum Sp
 mehrere Jellyfin-Server und zum Wechseln zwischen ihnen. Die Detailseite eines Albums bietet zusätzlich
 „Alle abspielen"/„Zufällig abspielen"-Schaltflächen, um dessen Titel nacheinander abzuspielen — zum
 nächsten Titel wird nur gewechselt, wenn der aktuelle regulär zu Ende gespielt wurde, nicht bei
-vorzeitigem Stopp.
+vorzeitigem Stopp. Wird eine TV-Episode regulär zu Ende gespielt, bietet ein „Als Nächstes"-Dialog
+die folgende Episode derselben Staffel an, mit einem 30-Sekunden-Countdown zur automatischen
+Wiedergabe (`lib/windows/next_episode.py`) — das setzt sich durch die restliche Staffel fort,
+solange jede Episode weiterhin regulär zu Ende gespielt wird.
 
 Meilenstein 2 (in Arbeit): Erweiterung der Addon-Einstellungen zu echter, benutzerseitiger Konfiguration —
 Ein-/Ausblenden-Schalter pro Hub-Zeile auf dem Startbildschirm, „Gesehene ausblenden"-Schalter für die

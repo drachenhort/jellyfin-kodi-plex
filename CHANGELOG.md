@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.32 - 2026-07-22
+- Offer to auto-play the next episode in the season, with a 30s countdown, after an episode finishes
+
 ## 0.3.31 - 2026-07-22
 - Fall back to another saved server when the active one is unreachable
 

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<window>
+  <defaultcontrol always="true">504</defaultcontrol>
+  <controls>
+    <control type="image">
+      <posx>0</posx>
+      <posy>0</posy>
+      <width>1920</width>
+      <height>1080</height>
+      <texture>background.png</texture>
+    </control>
+
+    <control type="image">
+      <posx>1160</posx>
+      <posy>340</posy>
+      <width>600</width>
+      <height>580</height>
+      <texture colordiffuse="D0000000">white.png</texture>
+    </control>
+
+    <control type="image" id="500">
+      <posx>1160</posx>
+      <posy>340</posy>
+      <width>600</width>
+      <height>337</height>
+      <aspectratio>scale</aspectratio>
+    </control>
+
+    <control type="label">
+      <posx>1160</posx>
+      <posy>690</posy>
+      <width>600</width>
+      <height>40</height>
+      <font>font13</font>
+      <label>Up Next</label>
+    </control>
+
+    <control type="label" id="502">
+      <posx>1160</posx>
+      <posy>720</posy>
+      <width>600</width>
+      <height>30</height>
+      <font>font12</font>
+      <label></label>
+    </control>
+
+    <control type="label" id="501">
+      <posx>1160</posx>
+      <posy>750</posy>
+      <width>600</width>
+      <height>50</height>
+      <font>font16</font>
+      <label></label>
+    </control>
+
+    <control type="label" id="503">
+      <posx>1160</posx>
+      <posy>810</posy>
+      <width>600</width>
+      <height>30</height>
+      <font>font12</font>
+      <label></label>
+    </control>
+
+    <control type="button" id="504">
+      <posx>1160</posx>
+      <posy>860</posy>
+      <width>290</width>
+      <height>60</height>
+      <font>font13</font>
+      <label>Play Now</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onright>505</onright>
+      <onleft>504</onleft>
+      <onup>504</onup>
+      <ondown>504</ondown>
+    </control>
+    <control type="button" id="505">
+      <posx>1470</posx>
+      <posy>860</posy>
+      <width>290</width>
+      <height>60</height>
+      <font>font13</font>
+      <label>Cancel</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onright>505</onright>
+      <onleft>504</onleft>
+      <onup>505</onup>
+      <ondown>505</ondown>
+    </control>
+  </controls>
+</window>

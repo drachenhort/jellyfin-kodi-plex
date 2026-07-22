@@ -72,7 +72,10 @@ and Music (Artist → Album → Track) hierarchies, and a Search screen → item
 (video and audio, using Kodi's own native OSD/controls) with progress reported back to the server,
 and a Servers screen for saving logins to multiple Jellyfin servers and switching between them. An
 album's own screen adds Play All/Shuffle buttons to queue its tracks back-to-back, advancing to the
-next track only when the current one finishes naturally rather than being stopped early.
+next track only when the current one finishes naturally rather than being stopped early. When a TV
+episode finishes playing to completion, an "Up Next" prompt offers the following episode in the
+same season with a 30-second auto-play countdown (`lib/windows/next_episode.py`), chaining through
+the rest of the season for as long as each one keeps playing to completion.
 
 Milestone 2 (in progress): expanding the addon's Settings into real user-facing configuration —
 per-hub-row Home show/hide toggles, hide-watched toggles for Recently Added rows, a configurable
