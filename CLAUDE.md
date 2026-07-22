@@ -73,7 +73,8 @@ directory into `~/.kodi/addons/script.jellyfin.plex/` and launch it from the Pro
 ## Release workflow
 
 After implementing a change: run `pytest` and confirm it passes, commit, push, bump the version in
-`addon.xml`, and note the change in the changelog/news if one exists. Verify each git step (status,
+`addon.xml`, and add a matching entry to `CHANGELOG.md` (newest version at the top, one line per
+change — see existing entries for the format). Verify each git step (status,
 push result) rather than assuming success. Don't consider a feature done until it's been verified
 against a real Jellyfin server and/or real Kodi install (see Verification below) — passing tests
 alone only proves the pure-Python layer, not the actual UI behavior in Kodi. Pushing a version bump to `master` also triggers `.github/workflows/build-repo.yml`, which
