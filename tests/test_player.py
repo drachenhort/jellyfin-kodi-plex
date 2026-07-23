@@ -96,12 +96,14 @@ def test_play_item_waits_for_playback_to_actually_start(client, monkeypatch):
     assert stopped_call["json"]["PositionTicks"] == int(12.5 * 10_000_000)
 
 
-def test_play_item_seeks_to_the_resume_position_once_playback_starts(client, monkeypatch):
+def test_play_item_seeks_to_the_resume_position_if_start_offset_was_ignored(client, monkeypatch):
     """The ListItem "StartOffset" property set before play() is supposed to
     make Kodi open already at the resume position, but this was observed to
-    be silently ignored on a real device for some streams, so play_item()
-    also calls seekTime() explicitly once playback has actually started -
-    verify it fires exactly once, with the resume position in seconds."""
+    be silently ignored on a real device for some streams - if getTime()
+    doesn't reflect the resume position once playback starts, play_item()
+    falls back to seekTime() explicitly. The default _make_player() fakes
+    getTime() as 12.5s, nowhere near this test's resume position, so the
+    mismatch should trigger exactly one seekTime() call."""
     fake_requests = _fake_playback_responses()
     monkeypatch.setattr(client_mod, "requests", fake_requests)
     monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
@@ -110,6 +112,22 @@ def test_play_item_seeks_to_the_resume_position_once_playback_starts(client, mon
     player.play_item("item-1", resume_ticks=1_234 * 10_000_000)
 
     assert player.seek_time_calls == [1234.0]
+
+
+def test_play_item_does_not_seek_when_start_offset_already_worked(client, monkeypatch):
+    """The normal case: StartOffset already put playback at (near) the
+    resume position, so the seekTime() fallback must not fire a second,
+    redundant seek - that would add a visible stutter to every resume,
+    not just the rare case where StartOffset is actually ignored."""
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, False])
+    player.getTime = lambda: 1230.0  # within tolerance of the 1234s resume position
+    player.play_item("item-1", resume_ticks=1_234 * 10_000_000)
+
+    assert player.seek_time_calls == []
 
 
 def test_play_item_does_not_seek_when_there_is_no_resume_position(client, monkeypatch):

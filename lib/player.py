@@ -26,6 +26,10 @@ ADDON = xbmcaddon.Addon()
 ADDON_PATH = ADDON.getAddonInfo("path")
 PROGRESS_REPORT_INTERVAL_SECONDS = 10
 STARTUP_TIMEOUT_SECONDS = 30
+# How far getTime() may be from the requested resume position before the
+# ListItem "StartOffset" property is considered to have failed and the
+# seekTime() fallback kicks in - see the resume-seek block in play_item().
+RESUME_SEEK_TOLERANCE_SECONDS = 10
 # Fallback only, for callers (e.g. tests) that construct a JellyfinPlayer
 # without going through the addon's "Play Next Episode overlay lead time"
 # setting - see _next_episode_overlay_remaining_seconds().
@@ -178,18 +182,26 @@ class JellyfinPlayer(xbmc.Player):
                     # already at this position, but on some streams/builds
                     # it's silently ignored (observed on a real device -
                     # resume from Detail played from 0:00 instead of the
-                    # saved position). An explicit seekTime() once playback
-                    # has actually started is a well-known, more reliable
-                    # fallback for exactly this case.
-                    try:
-                        self.seekTime(self._resume_seconds)
-                    except Exception as exc:  # noqa: BLE001 - better to keep playing from 0 than crash
-                        xbmc.log(
-                            f"{LOG_PREFIX} Player: resume seek to "
-                            f"{self._resume_seconds}s failed: {exc}",
-                            xbmc.LOGWARNING,
-                        )
+                    # saved position). Only fall back to an explicit
+                    # seekTime() when getTime() shows StartOffset actually
+                    # didn't take - calling it unconditionally would add a
+                    # second, redundant seek (and its stutter) to every
+                    # single resume, even the (normal) case where
+                    # StartOffset already worked.
                     self._resume_seek_applied = True
+                    try:
+                        current_time = self.getTime()
+                    except Exception:  # noqa: BLE001 - player may not be fully ready yet
+                        current_time = 0
+                    if abs(current_time - self._resume_seconds) > RESUME_SEEK_TOLERANCE_SECONDS:
+                        try:
+                            self.seekTime(self._resume_seconds)
+                        except Exception as exc:  # noqa: BLE001 - better to keep playing from 0 than crash
+                            xbmc.log(
+                                f"{LOG_PREFIX} Player: resume seek to "
+                                f"{self._resume_seconds}s failed: {exc}",
+                                xbmc.LOGWARNING,
+                            )
             elif started or self._stop_event.is_set():
                 break
             else:

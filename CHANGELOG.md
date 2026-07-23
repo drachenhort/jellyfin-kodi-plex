@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.37 - 2026-07-23
+- Only fall back to an explicit resume seekTime() when StartOffset actually failed, instead of on every resume
+
 ## 0.3.36 - 2026-07-23
 - Fix resume playback being killed within ~0.1s by a false-positive "Kodi home became active" check, and add a resume seekTime() fallback
 
