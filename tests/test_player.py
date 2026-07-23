@@ -63,6 +63,8 @@ def _make_player(client, isplayingvideo_sequence, isplaying_sequence=None,
     player.setAudioStream = lambda i: player.audio_stream_calls.append(i)
     player.setSubtitleStream = lambda i: player.subtitle_stream_calls.append(i)
     player.showSubtitles = lambda v: player.show_subtitles_calls.append(v)
+    player.seek_time_calls = []
+    player.seekTime = lambda seconds: player.seek_time_calls.append(seconds)
     return player
 
 
@@ -92,6 +94,33 @@ def test_play_item_waits_for_playback_to_actually_start(client, monkeypatch):
     stopped_call = fake_requests.calls[-1]
     assert stopped_call["url"].endswith("/Sessions/Playing/Stopped")
     assert stopped_call["json"]["PositionTicks"] == int(12.5 * 10_000_000)
+
+
+def test_play_item_seeks_to_the_resume_position_once_playback_starts(client, monkeypatch):
+    """The ListItem "StartOffset" property set before play() is supposed to
+    make Kodi open already at the resume position, but this was observed to
+    be silently ignored on a real device for some streams, so play_item()
+    also calls seekTime() explicitly once playback has actually started -
+    verify it fires exactly once, with the resume position in seconds."""
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, False])
+    player.play_item("item-1", resume_ticks=1_234 * 10_000_000)
+
+    assert player.seek_time_calls == [1234.0]
+
+
+def test_play_item_does_not_seek_when_there_is_no_resume_position(client, monkeypatch):
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, False])
+    player.play_item("item-1")
+
+    assert player.seek_time_calls == []
 
 
 def test_play_item_clears_the_browse_cache_on_finish(client, monkeypatch):
@@ -248,6 +277,31 @@ def test_play_item_stops_when_kodi_home_becomes_active(client, monkeypatch):
     player.play_item("item-1")
 
     assert player.stop_calls == 1
+
+
+def test_play_item_ignores_a_single_tick_home_active_false_positive(client, monkeypatch):
+    """Real-device bug: a kodi.log capture of a failed resume showed
+    Window.IsActive(home) reading True for exactly one tick right as the
+    stream opened (still setting up audio/subtitle codecs, before Kodi's
+    fullscreen video window fully took over) - killing every resume attempt
+    within ~0.1s of starting, which is what "tried resume a couple times"
+    looked like from the user's side. Must not stop on a single blip."""
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+
+    home_active = iter([True, False, False, False])
+    monkeypatch.setattr(
+        player_mod.xbmc, "getCondVisibility", lambda cond: next(home_active, False)
+    )
+
+    player = _make_player(
+        client,
+        isplayingvideo_sequence=[True, True, True, False],
+        isplaying_sequence=[True, True, True, True],
+    )
+    player.play_item("item-1")
+
+    assert player.stop_calls == 0
 
 
 def test_play_item_treats_audio_only_playback_as_started(client, monkeypatch):

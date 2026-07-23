@@ -74,6 +74,8 @@ class JellyfinPlayer(xbmc.Player):
         self._overlay_next_episode_id = None
         self._pending_next_episode = None
         self.skip_target_item_id = None
+        self._resume_seconds = 0
+        self._resume_seek_applied = False
 
     def play_item(self, item_id, item_type=None, resume_ticks=0,
                   audio_stream_index=None, subtitle_stream_index=None):
@@ -113,14 +115,15 @@ class JellyfinPlayer(xbmc.Player):
         self._overlay_next_episode_id = None
         self._pending_next_episode = None
         self.skip_target_item_id = None
+        self._resume_seconds = resume_ticks / 10_000_000 if resume_ticks else 0
+        self._resume_seek_applied = False
 
         list_item = xbmcgui.ListItem(label=item.get("Name", "") if item else "", path=url)
         if item:
             info_tag = list_item.getVideoInfoTag()
             info_tag.setTitle(item.get("Name", ""))
-        resume_seconds = resume_ticks / 10_000_000 if resume_ticks else 0
-        if resume_seconds:
-            list_item.setProperty("StartOffset", str(resume_seconds))
+        if self._resume_seconds:
+            list_item.setProperty("StartOffset", str(self._resume_seconds))
 
         playback.report_playback_start(
             self.client, item_id, play_session_id, position_ticks=resume_ticks
@@ -144,6 +147,7 @@ class JellyfinPlayer(xbmc.Player):
         started = False
         selection_applied = False
         seconds_waiting_to_start = 0
+        home_active_ticks = 0
         while True:
             if monitor.waitForAbort(1):
                 # Kodi is telling the script to exit (shutdown, being
@@ -168,6 +172,24 @@ class JellyfinPlayer(xbmc.Player):
                     # type) line up with Kodi's own per-type stream index.
                     self._apply_stream_selection()
                     selection_applied = True
+                if self._resume_seconds and not self._resume_seek_applied:
+                    # Belt-and-braces: the ListItem "StartOffset" property
+                    # set before play() is supposed to make Kodi open
+                    # already at this position, but on some streams/builds
+                    # it's silently ignored (observed on a real device -
+                    # resume from Detail played from 0:00 instead of the
+                    # saved position). An explicit seekTime() once playback
+                    # has actually started is a well-known, more reliable
+                    # fallback for exactly this case.
+                    try:
+                        self.seekTime(self._resume_seconds)
+                    except Exception as exc:  # noqa: BLE001 - better to keep playing from 0 than crash
+                        xbmc.log(
+                            f"{LOG_PREFIX} Player: resume seek to "
+                            f"{self._resume_seconds}s failed: {exc}",
+                            xbmc.LOGWARNING,
+                        )
+                    self._resume_seek_applied = True
             elif started or self._stop_event.is_set():
                 break
             else:
@@ -192,19 +214,27 @@ class JellyfinPlayer(xbmc.Player):
                 # separate script windows, never Kodi's built-in "home", so
                 # this only fires on that specific escape route. Gated on
                 # `started` (not just isPlaying()) so it can't fire during
-                # the ambiguous opening/buffering phase - logged explicitly
-                # since a previous attempt at this check was reverted after
-                # a confusing real-device result that, on reflection, was
-                # likely actually caused by the startup race fixed above,
-                # not by this condition misfiring.
-                xbmc.log(
-                    f"{LOG_PREFIX} stopping playback of {item_id}: Kodi's home "
-                    "screen became active while still playing",
-                    xbmc.LOGINFO,
-                )
-                self._end_reason = "stopped"
-                self.stop()
-                break
+                # the ambiguous opening/buffering phase - but a real device's
+                # log showed Window.IsActive(home) can still read True for a
+                # single tick right as the stream opens (audio/subtitle
+                # codecs still being set up, fullscreen video not yet fully
+                # swapped in), which was silently killing every resume
+                # attempt within ~0.1s of starting. Debounced to 2
+                # consecutive ticks (2s) so a real Home-button escape is
+                # still caught quickly, without that startup-race
+                # false-positive.
+                home_active_ticks += 1
+                if home_active_ticks >= 2:
+                    xbmc.log(
+                        f"{LOG_PREFIX} stopping playback of {item_id}: Kodi's home "
+                        "screen became active while still playing",
+                        xbmc.LOGINFO,
+                    )
+                    self._end_reason = "stopped"
+                    self.stop()
+                    break
+                continue
+            home_active_ticks = 0
             if started and self._item_type == "Episode":
                 if self._overlay is None and not self._overlay_attempted:
                     self._maybe_offer_next_episode(item_id)

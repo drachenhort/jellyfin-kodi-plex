@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.36 - 2026-07-23
+- Fix resume playback being killed within ~0.1s by a false-positive "Kodi home became active" check, and add a resume seekTime() fallback
+
 ## 0.3.35 - 2026-07-22
 - Add a Playback setting for the "Play Next Episode" overlay's lead time (default 150s)
 
