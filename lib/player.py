@@ -26,6 +26,15 @@ ADDON = xbmcaddon.Addon()
 ADDON_PATH = ADDON.getAddonInfo("path")
 PROGRESS_REPORT_INTERVAL_SECONDS = 10
 STARTUP_TIMEOUT_SECONDS = 30
+# xbmc.Player.stop() is normally near-instant, but if Kodi's own VideoPlayer
+# engine is wedged (observed on a real device: a dead network connection
+# stuck in libcurl's reconnect retry, with no further onPlayBack* callback
+# ever firing) it can block indefinitely on the engine's internal lock -
+# freezing this addon's one and only script thread forever, which Kodi then
+# reports as "still running" and refuses to relaunch. Calling stop() on a
+# throwaway daemon thread and only waiting up to this long for it lets the
+# wait loop below give up and move on instead of hanging with it.
+STOP_TIMEOUT_SECONDS = 5
 # How far getTime() may be from the requested resume position before the
 # ListItem "StartOffset" property is considered to have failed and the
 # seekTime() fallback kicks in - see the resume-seek block in play_item().
@@ -160,7 +169,7 @@ class JellyfinPlayer(xbmc.Player):
                 # its progress-reporting thread) is already gone.
                 self._end_reason = "stopped"
                 if self.isPlaying():
-                    self.stop()
+                    self._stop_with_timeout()
                 break
             if self.isPlayingVideo() or self.isPlayingAudio():
                 started = True
@@ -217,7 +226,7 @@ class JellyfinPlayer(xbmc.Player):
                     )
                     self._end_reason = "error"
                     if self.isPlaying():
-                        self.stop()
+                        self._stop_with_timeout()
                     break
             if started and xbmc.getCondVisibility("Window.IsActive(home)"):
                 # The user backed all the way out to Kodi's own native home
@@ -243,7 +252,7 @@ class JellyfinPlayer(xbmc.Player):
                         xbmc.LOGINFO,
                     )
                     self._end_reason = "stopped"
-                    self.stop()
+                    self._stop_with_timeout()
                     break
                 continue
             home_active_ticks = 0
@@ -270,7 +279,7 @@ class JellyfinPlayer(xbmc.Player):
                         self.skip_target_item_id = self._overlay_next_episode_id
                         self._end_reason = "ended"
                         if self.isPlaying():
-                            self.stop()
+                            self._stop_with_timeout()
                         break
         if self._overlay is not None:
             # Playback ended (naturally, by error, or via the Home-active
@@ -321,6 +330,25 @@ class JellyfinPlayer(xbmc.Player):
             return
         self._pending_next_episode = next_episode
 
+    def _stop_with_timeout(self):
+        """Best-effort stop(): runs on a throwaway daemon thread and only
+        waits up to STOP_TIMEOUT_SECONDS for it, so a wedged Kodi engine
+        (see STOP_TIMEOUT_SECONDS' comment) can't freeze the calling wait
+        loop forever. If it does time out, the daemon thread is simply
+        abandoned - it can't block script exit, and stop() may still
+        complete on its own eventually."""
+        thread = threading.Thread(target=self.stop, daemon=True)
+        thread.start()
+        thread.join(STOP_TIMEOUT_SECONDS)
+        if thread.is_alive():
+            xbmc.log(
+                f"{LOG_PREFIX} Player: stop() for {self._item_id!r} did not "
+                f"return within {STOP_TIMEOUT_SECONDS}s - Kodi's player may be "
+                "wedged (e.g. a stuck network reconnect); abandoning it rather "
+                "than freezing the addon",
+                xbmc.LOGWARNING,
+            )
+
     def _apply_stream_selection(self):
         try:
             if self._audio_stream_index is not None:
@@ -342,14 +370,17 @@ class JellyfinPlayer(xbmc.Player):
             )
 
     def onPlayBackStopped(self):
+        xbmc.log(f"{LOG_PREFIX} Player: onPlayBackStopped for {self._item_id!r}", xbmc.LOGINFO)
         self._end_reason = "stopped"
         self._stop_event.set()
 
     def onPlayBackEnded(self):
+        xbmc.log(f"{LOG_PREFIX} Player: onPlayBackEnded for {self._item_id!r}", xbmc.LOGINFO)
         self._end_reason = "ended"
         self._stop_event.set()
 
     def onPlayBackError(self):
+        xbmc.log(f"{LOG_PREFIX} Player: onPlayBackError for {self._item_id!r}", xbmc.LOGWARNING)
         self._end_reason = "error"
         self._stop_event.set()
 
