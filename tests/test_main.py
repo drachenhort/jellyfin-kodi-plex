@@ -104,9 +104,47 @@ def test_detail_loop_opens_a_similar_item_then_returns_to_the_original(monkeypat
     assert calls == ["item-1", "item-2", "item-1"]
 
 
-def test_run_refuses_to_start_a_second_instance(monkeypatch):
+def test_run_takes_over_when_previous_instance_stops_promptly(monkeypatch):
+    """A second launch asks the first to stop (STOP_REQUESTED_PROPERTY) -
+    once the "first instance" (simulated here) notices and clears
+    RUNNING_PROPERTY, the new launch proceeds rather than just refusing."""
     calls = []
     monkeypatch.setattr(main_mod, "_migrate_legacy_settings", lambda: calls.append("migrate"))
+    monkeypatch.setattr(main_mod, "_load_saved_client", lambda: None)
+    monkeypatch.setattr(main_mod, "_login", lambda: None)
+
+    home_window = xbmcgui.Window(main_mod.HOME_WINDOW_ID)
+    home_window.setProperty(main_mod.RUNNING_PROPERTY, "true")
+
+    real_wait_for_abort = xbmc.Monitor.waitForAbort
+
+    def fake_wait_for_abort(self, timeout=0):
+        # Simulate the stuck first instance noticing STOP_REQUESTED_PROPERTY
+        # on its own poll and freeing the slot, the same way
+        # WindowMixin._watch_abort() does for a real wedged instance.
+        if home_window.getProperty(main_mod.STOP_REQUESTED_PROPERTY) == "true":
+            home_window.clearProperty(main_mod.RUNNING_PROPERTY)
+        return real_wait_for_abort(self, timeout)
+
+    monkeypatch.setattr(xbmc.Monitor, "waitForAbort", fake_wait_for_abort)
+    try:
+        main_mod.run()
+    finally:
+        home_window.clearProperty(main_mod.RUNNING_PROPERTY)
+        home_window.clearProperty(main_mod.STOP_REQUESTED_PROPERTY)
+
+    assert calls == ["migrate"]
+
+
+def test_run_reclaims_the_slot_if_previous_instance_never_stops(monkeypatch):
+    """If the previous instance is genuinely wedged and never clears
+    RUNNING_PROPERTY, this launch reclaims the slot anyway after
+    STOP_WAIT_TIMEOUT_SECONDS rather than being refused forever."""
+    calls = []
+    monkeypatch.setattr(main_mod, "_migrate_legacy_settings", lambda: calls.append("migrate"))
+    monkeypatch.setattr(main_mod, "_load_saved_client", lambda: None)
+    monkeypatch.setattr(main_mod, "_login", lambda: None)
+    monkeypatch.setattr(main_mod, "STOP_WAIT_TIMEOUT_SECONDS", 0)
 
     home_window = xbmcgui.Window(main_mod.HOME_WINDOW_ID)
     home_window.setProperty(main_mod.RUNNING_PROPERTY, "true")
@@ -114,8 +152,9 @@ def test_run_refuses_to_start_a_second_instance(monkeypatch):
         main_mod.run()
     finally:
         home_window.clearProperty(main_mod.RUNNING_PROPERTY)
+        home_window.clearProperty(main_mod.STOP_REQUESTED_PROPERTY)
 
-    assert calls == []
+    assert calls == ["migrate"]
 
 
 def test_run_sets_and_clears_the_running_property_on_normal_exit(monkeypatch):

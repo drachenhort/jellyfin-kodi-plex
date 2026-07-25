@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.39 - 2026-07-25
+- Launching the addon while a previous instance is stuck no longer just shows "Already running" forever: it now asks the stuck instance to stop and, if it doesn't within 5s, reclaims the slot and starts fresh anyway
+
 ## 0.3.38 - 2026-07-25
 - Stop a wedged Kodi player engine (e.g. a stuck network reconnect) from freezing the whole addon: Player.stop() now runs with a bounded timeout instead of blocking the wait loop forever, and playback start/stop/error events are now logged for diagnosis
 

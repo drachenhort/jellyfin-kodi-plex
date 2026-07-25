@@ -24,6 +24,36 @@ import xbmcgui
 # easy to grep for as one group (e.g. `grep "script.jellyfin.plex" kodi.log`).
 LOG_PREFIX = "[script.jellyfin.plex]"
 
+# Window 10000 (Home) is one of Kodi's numbered system windows, whose
+# properties persist for the life of the Kodi process regardless of which
+# script or skin set them - used here purely as a cross-instance signal, not
+# for anything about the Home *window* itself. Kodi doesn't stop a script
+# addon from being launched again (e.g. re-selecting it from the Programs
+# menu, or a stray remote keypress) while a previous run is still on screen
+# - lib.main.run() uses RUNNING_PROPERTY to detect that and, rather than
+# just refusing to start, sets STOP_REQUESTED_PROPERTY to ask the stuck
+# instance to give up its slot. _watch_abort() below polls it the same way
+# it already polls Kodi's own shutdown-abort flag, closing whatever window
+# is open - see open()'s ScriptStopRequested handling for how that
+# unwinds the entire nested window-loop stack in one step.
+HOME_WINDOW_ID = 10000
+RUNNING_PROPERTY = "script.jellyfin.plex.running"
+STOP_REQUESTED_PROPERTY = "script.jellyfin.plex.stop_requested"
+
+
+def stop_requested():
+    return xbmcgui.Window(HOME_WINDOW_ID).getProperty(STOP_REQUESTED_PROPERTY) == "true"
+
+
+class ScriptStopRequested(Exception):
+    """Raised by WindowMixin.open() when this instance's window was closed
+    because a newer launch asked it to give up its single-instance slot
+    (see STOP_REQUESTED_PROPERTY) - propagates up through every nested
+    window loop in lib.main, exactly like the shutdown-abort RuntimeError
+    it's modelled on, so lib.main.run() can catch it exactly once at the
+    top level and exit cleanly instead of leaving a wedged instance behind
+    a permanently-refused "Already running" message."""
+
 ACTION_PREVIOUS_MENU = 10
 ACTION_NAV_BACK = 92
 BACK_ACTIONS = (ACTION_PREVIOUS_MENU, ACTION_NAV_BACK)
@@ -76,6 +106,7 @@ class WindowMixin(object):
         self.result = None
         self.closed_event = threading.Event()
         self.loading_done = threading.Event()
+        self._stop_requested = False
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -110,14 +141,26 @@ class WindowMixin(object):
         abort_watcher = threading.Thread(target=window._watch_abort, daemon=True)
         abort_watcher.start()
         window.doModal()
+        stop_was_requested = window._stop_requested
         result = window.result
         del window
+        if stop_was_requested:
+            raise ScriptStopRequested()
         return result
 
     def _watch_abort(self):
         monitor = xbmc.Monitor()
         while not self.closed_event.is_set():
             if monitor.waitForAbort(1):
+                self.result = None
+                self.close()
+                return
+            if stop_requested():
+                # A newer launch is waiting for this instance's single-
+                # instance slot (see STOP_REQUESTED_PROPERTY) - close
+                # whatever's on screen now rather than waiting for the user
+                # to notice and back out manually.
+                self._stop_requested = True
                 self.result = None
                 self.close()
                 return

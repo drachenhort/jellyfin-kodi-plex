@@ -19,7 +19,7 @@ import xbmcaddon
 import xbmcgui
 
 from lib.jellyfin import playback, library
-from lib.windows.kodigui import LOG_PREFIX
+from lib.windows.kodigui import LOG_PREFIX, stop_requested
 from lib.windows.next_episode_overlay import NextEpisodeOverlay
 
 ADDON = xbmcaddon.Addon()
@@ -162,9 +162,12 @@ class JellyfinPlayer(xbmc.Player):
         seconds_waiting_to_start = 0
         home_active_ticks = 0
         while True:
-            if monitor.waitForAbort(1):
+            if monitor.waitForAbort(1) or stop_requested():
                 # Kodi is telling the script to exit (shutdown, being
-                # force-killed to launch something else, etc.) - without
+                # force-killed to launch something else, etc.), or a newer
+                # launch of this same addon is asking this instance to give
+                # up its single-instance slot (see
+                # lib.windows.kodigui.STOP_REQUESTED_PROPERTY) - without
                 # this, Kodi's player keeps playing after our script (and
                 # its progress-reporting thread) is already gone.
                 self._end_reason = "stopped"

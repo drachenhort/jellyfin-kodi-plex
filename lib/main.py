@@ -21,7 +21,13 @@ from lib.jellyfin import client as client_mod
 from lib.windows.browse import BrowseWindow
 from lib.windows.detail import DetailWindow
 from lib.windows.home import HomeWindow
-from lib.windows.kodigui import LOG_PREFIX
+from lib.windows.kodigui import (
+    HOME_WINDOW_ID,
+    LOG_PREFIX,
+    RUNNING_PROPERTY,
+    STOP_REQUESTED_PROPERTY,
+    ScriptStopRequested,
+)
 from lib.windows.login import LoginWindow
 from lib.windows.next_episode import NextEpisodeWindow
 from lib.windows.search import SearchWindow
@@ -31,18 +37,21 @@ ADDON = xbmcaddon.Addon()
 ADDON_PATH = ADDON.getAddonInfo("path")
 ADDON_VERSION = ADDON.getAddonInfo("version")
 
-# Window 10000 (Home) is one of Kodi's numbered system windows, whose
-# properties persist for the life of the Kodi process regardless of which
-# script or skin set them - used here purely as a cross-instance lock, not
-# for anything about the Home *window* itself. Kodi doesn't stop a script
-# addon from being launched again (e.g. re-selecting it from the Programs
-# menu, or a stray remote keypress) while a previous run is still on
-# screen; without this guard, a second instance starts a second independent
-# window/navigation stack, and quitting one leaves the other running
-# underneath, which reads as "quitting doesn't work" - Back closes what's
-# on screen but the addon is still there.
-RUNNING_PROPERTY = "script.jellyfin.plex.running"
-HOME_WINDOW_ID = 10000
+# RUNNING_PROPERTY/STOP_REQUESTED_PROPERTY/HOME_WINDOW_ID and
+# ScriptStopRequested live in lib.windows.kodigui (imported above) since
+# WindowMixin._watch_abort() needs them too - see that module for the
+# single-instance design this implements. Without this guard, a second
+# instance starts a second independent window/navigation stack, and
+# quitting one leaves the other running underneath, which reads as
+# "quitting doesn't work" - Back closes what's on screen but the addon is
+# still there. STOP_WAIT_TIMEOUT_SECONDS below is how long a fresh launch
+# waits for a previous, possibly-wedged instance to notice
+# STOP_REQUESTED_PROPERTY and free the slot on its own before this launch
+# just reclaims it - a real device freeze (network stream wedged inside
+# Kodi's own player engine, see CHANGELOG v0.3.38) showed a stuck instance
+# can otherwise leave every future launch attempt permanently refused with
+# "Already running" until Kodi itself is restarted.
+STOP_WAIT_TIMEOUT_SECONDS = 5
 
 # Item types that are containers to drill down into rather than play.
 CONTAINER_TYPES = {"Series", "Season", "MusicArtist", "MusicAlbum", "BoxSet", "Folder"}
@@ -396,15 +405,43 @@ def _home_loop(client):
                 return new_client
 
 
+def _take_over_running_slot(home_window):
+    """A previous instance is still marked running - ask it to stop
+    (STOP_REQUESTED_PROPERTY) rather than just refusing to start, and wait
+    up to STOP_WAIT_TIMEOUT_SECONDS for it to notice and free the slot
+    itself. If it doesn't (genuinely wedged, e.g. blocked inside a Kodi
+    engine call our own code can't preempt), reclaim the slot anyway -
+    leaving the old instance's window loop to exit into a no-op the next
+    time it wakes up is far better than every future launch attempt being
+    refused forever."""
+    xbmc.log(
+        f"{LOG_PREFIX} Already running in another instance - asking it to "
+        "stop and taking over",
+        xbmc.LOGWARNING,
+    )
+    home_window.setProperty(STOP_REQUESTED_PROPERTY, "true")
+    monitor = xbmc.Monitor()
+    waited = 0.0
+    while home_window.getProperty(RUNNING_PROPERTY) == "true" and waited < STOP_WAIT_TIMEOUT_SECONDS:
+        if monitor.waitForAbort(0.5):
+            home_window.clearProperty(STOP_REQUESTED_PROPERTY)
+            return False
+        waited += 0.5
+    home_window.clearProperty(STOP_REQUESTED_PROPERTY)
+    if home_window.getProperty(RUNNING_PROPERTY) == "true":
+        xbmc.log(
+            f"{LOG_PREFIX} Previous instance did not stop within "
+            f"{STOP_WAIT_TIMEOUT_SECONDS}s - reclaiming the running slot anyway",
+            xbmc.LOGWARNING,
+        )
+    return True
+
+
 def run():
     home_window = xbmcgui.Window(HOME_WINDOW_ID)
     if home_window.getProperty(RUNNING_PROPERTY) == "true":
-        xbmc.log(
-            f"{LOG_PREFIX} Already running in another instance - refusing to start a second one",
-            xbmc.LOGWARNING,
-        )
-        xbmcgui.Dialog().notification("Jellyfin", "Already running")
-        return
+        if not _take_over_running_slot(home_window):
+            return
     home_window.setProperty(RUNNING_PROPERTY, "true")
     try:
         _migrate_legacy_settings()
@@ -414,6 +451,12 @@ def run():
         while client:
             try:
                 client = _home_loop(client)
+            except ScriptStopRequested:
+                # A newer launch is taking over this instance's slot (see
+                # _take_over_running_slot) - exit cleanly rather than
+                # reopening Home, the same way the shutdown-abort
+                # RuntimeError below is handled.
+                break
             except RuntimeError:
                 # WindowXML/Dialog construction can raise "maximum number
                 # of windows reached" if Kodi has begun tearing down for
