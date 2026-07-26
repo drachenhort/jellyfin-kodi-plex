@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.40 - 2026-07-26
+- The "Play Next Episode" overlay shown during end credits no longer auto-dismisses after 15s; it now stays up for the rest of the episode's playback so a slower viewer still has time to use it
+
 ## 0.3.39 - 2026-07-25
 - Launching the addon while a previous instance is stuck no longer just shows "Already running" forever: it now asks the stuck instance to stop and, if it doesn't within 5s, reclaims the slot and starts fresh anyway
 

@@ -3,7 +3,8 @@ the closing ~2-3 minutes of an Episode's playback so the last minute or two
 of end credits/outro can be skipped straight into the next episode.
 
 Deliberately much simpler than a full seek/scrub UI - just two buttons,
-auto-dismisses on its own without forcing any action - because an earlier,
+staying up without forcing any action until playback itself ends - because
+an earlier,
 more ambitious custom overlay shown *during* active video playback left
 Kodi's own video OSD unresponsive to remote input on a real device and had
 to be removed (see lib/player.py's module docstring). This one is shown via
@@ -23,8 +24,9 @@ overlay rendered fine but never received a single click).
 
 self.result once closed_event is set is one of:
   {"action": "play"}  — "Play Next Episode" was clicked
-  None                — "Dismiss" was clicked, or the auto-dismiss timer
-                         elapsed with no interaction
+  None                — "Dismiss" was clicked, playback ended before any
+                         interaction, or (if a finite auto_dismiss_seconds
+                         was passed) that timer elapsed with no interaction
 """
 
 import threading
@@ -32,7 +34,7 @@ import threading
 from lib.jellyfin import images
 from lib.windows.kodigui import ControlledDialog, placeholder_art
 
-AUTO_DISMISS_SECONDS = 15
+AUTO_DISMISS_SECONDS = None
 
 CTRL_THUMB = 600
 CTRL_EPISODE_NAME = 601
@@ -70,10 +72,15 @@ class NextEpisodeOverlay(ControlledDialog):
         self.getControl(CTRL_THUMB).setImage(thumb or placeholder_art(self.next_item))
 
     def _auto_dismiss(self):
-        # Non-intrusive by design: unlike NextEpisodeWindow's post-playback
-        # countdown, timing out here does *not* trigger playback - it just
-        # quietly goes away so it never forces an unwanted skip on someone
-        # who simply didn't notice it.
+        # Stays up for the rest of playback by default (auto_dismiss_seconds=None)
+        # so it doesn't vanish mid-credits before the episode actually ends -
+        # lib/player.py's wait loop tears it down itself once playback
+        # stops (see play_item()'s "Playback ended ... before the user
+        # reacted" handling). A finite auto_dismiss_seconds is still
+        # supported for callers/tests that want the old timeout behaviour.
+        if self.auto_dismiss_seconds is None:
+            self.closed_event.wait()
+            return
         if self.closed_event.wait(self.auto_dismiss_seconds):
             return
         self.result = None
