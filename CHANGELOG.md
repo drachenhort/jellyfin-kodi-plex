@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.41 - 2026-07-26
+- Fix the preferred audio language setting sometimes being ignored: a Play click landing right after item metadata loaded but before track info finished loading could start playback before the language preference was applied, falling back to the file's own default audio track
+
 ## 0.3.40 - 2026-07-26
 - The "Play Next Episode" overlay shown during end credits no longer auto-dismisses after 15s; it now stays up for the rest of the episode's playback so a slower viewer still has time to use it
 

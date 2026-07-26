@@ -120,6 +120,27 @@ def test_clicking_play_before_item_is_loaded_is_a_no_op(client):
     assert not window.closed
 
 
+def test_clicking_play_after_item_set_but_before_streams_loaded_is_a_no_op(client, monkeypatch):
+    monkeypatch.setattr(detail_mod.library, "get_item", lambda c, item_id, fields=None: {
+        "Id": "item-1", "Name": "Alien", "Type": "Movie", "UserData": {},
+    })
+    monkeypatch.setattr(detail_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(detail_mod.images, "backdrop_image_url", lambda *a, **k: None)
+
+    window = _make_window(client)
+    # Simulates a click landing between self.item being set and
+    # _load_streams() finishing (still on the same _load() background
+    # thread) - selected_audio_index would still be None here, so playing
+    # now would silently skip the preferred-audio-language selection.
+    window.item = {"Id": "item-1", "Name": "Alien", "Type": "Movie", "UserData": {}}
+    assert window.streams_loaded is False
+
+    window.handle_click(detail_mod.CTRL_PLAY_BUTTON)
+
+    assert window.result is None
+    assert not window.closed
+
+
 def test_play_click_after_load_includes_item_type_and_resume_ticks(client, monkeypatch):
     monkeypatch.setattr(detail_mod.library, "get_item", lambda c, item_id, fields=None: {
         "Id": "item-1", "Name": "Alien", "Type": "Movie",

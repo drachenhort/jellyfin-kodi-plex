@@ -111,12 +111,22 @@ class DetailWindow(ControlledWindow):
         # None for subtitles means "no subtitles", a valid, common choice.
         self.selected_audio_index = None
         self.selected_subtitle_index = None
+        # Guards Play/Resume specifically (see handle_click) against a
+        # click landing after self.item is set but before _load_streams()
+        # (run later in the same background thread) has applied the
+        # preferred-audio-language setting - without this, a fast click
+        # could start playback with selected_audio_index still None,
+        # silently falling through to the source's own default track
+        # instead of the user's preference.
+        self.streams_loaded = False
 
     def onInit(self):
         # The skin's defaultcontrol already focuses the Play button before
         # this even runs, so handle_click() below must cope with a click
-        # landing while self.item is still None - the fetch itself runs on
-        # a background thread (_load()) so it can't block the GUI thread.
+        # landing while self.item is still None, or while it's set but
+        # streams_loaded isn't yet (see that flag's comment) - the fetch
+        # itself runs on a background thread (_load()) so it can't block
+        # the GUI thread.
         self.getControl(CTRL_TITLE).setLabel("Loading…")
         threading.Thread(target=self._load, daemon=True).start()
         # Runs on its own thread, independent of _load() above - similar
@@ -224,6 +234,7 @@ class DetailWindow(ControlledWindow):
             )
         self._set_subtitle_button_label()
         self.getControl(CTRL_SUBTITLE_BUTTON).setVisible(bool(self.subtitle_streams))
+        self.streams_loaded = True
 
     @staticmethod
     def _find_stream_by_language(streams, language_code):
@@ -232,7 +243,6 @@ class DetailWindow(ControlledWindow):
         return next(
             (i for i, s in enumerate(streams) if (s.get("Language") or "").lower() == language_code), None
         )
-        self.getControl(CTRL_SUBTITLE_BUTTON).setVisible(bool(self.subtitle_streams))
 
     def _set_audio_button_label(self):
         if self.selected_audio_index is None:
@@ -275,8 +285,12 @@ class DetailWindow(ControlledWindow):
         if self.item is None:
             return
         if control_id == CTRL_PLAY_BUTTON:
+            if not self.streams_loaded:
+                return
             self._play()
         elif control_id == CTRL_PLAY_FROM_START_BUTTON:
+            if not self.streams_loaded:
+                return
             self._play(from_start=True)
         elif control_id == CTRL_WATCHED_BUTTON:
             threading.Thread(target=self._toggle_watched, daemon=True).start()
