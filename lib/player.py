@@ -18,9 +18,10 @@ import xbmc
 import xbmcaddon
 import xbmcgui
 
-from lib.jellyfin import playback, library
+from lib.jellyfin import playback, library, intro_skipper
 from lib.windows.kodigui import LOG_PREFIX, stop_requested
 from lib.windows.next_episode_overlay import NextEpisodeOverlay
+from lib.windows.skip_intro_overlay import SkipIntroOverlay
 
 ADDON = xbmcaddon.Addon()
 ADDON_PATH = ADDON.getAddonInfo("path")
@@ -53,6 +54,14 @@ def _max_streaming_bitrate():
         return int(ADDON.getSetting("max_streaming_bitrate_mbps")) * 1_000_000
     except (TypeError, ValueError):
         return None
+
+
+def _skip_intro_enabled():
+    """The addon's "Enable skip intro" setting (Playback settings) - whether
+    to query the server's optional Intro Skipper plugin and offer a "Skip
+    Intro" overlay at all. Defaults to enabled if unset (e.g. in tests that
+    don't stub ADDON.getSetting)."""
+    return ADDON.getSetting("enable_skip_intro") != "false"
 
 
 def _next_episode_overlay_remaining_seconds():
@@ -89,6 +98,11 @@ class JellyfinPlayer(xbmc.Player):
         self.skip_target_item_id = None
         self._resume_seconds = 0
         self._resume_seek_applied = False
+        self._intro_segment = None
+        self._intro_overlay = None
+        self._intro_lookup_attempted = False
+        self._intro_lookup_done = False
+        self._intro_overlay_dismissed = False
 
     def play_item(self, item_id, item_type=None, resume_ticks=0,
                   audio_stream_index=None, subtitle_stream_index=None):
@@ -130,6 +144,11 @@ class JellyfinPlayer(xbmc.Player):
         self.skip_target_item_id = None
         self._resume_seconds = resume_ticks / 10_000_000 if resume_ticks else 0
         self._resume_seek_applied = False
+        self._intro_segment = None
+        self._intro_overlay = None
+        self._intro_lookup_attempted = False
+        self._intro_lookup_done = False
+        self._intro_overlay_dismissed = False
 
         list_item = xbmcgui.ListItem(label=item.get("Name", "") if item else "", path=url)
         if item:
@@ -259,6 +278,38 @@ class JellyfinPlayer(xbmc.Player):
                     break
                 continue
             home_active_ticks = 0
+            if started and self._item_type == "Episode" and _skip_intro_enabled():
+                if not self._intro_lookup_attempted:
+                    self._maybe_look_up_intro_segment(item_id)
+                elif self._intro_lookup_done and self._intro_segment and not self._intro_overlay_dismissed:
+                    intro_start, intro_end = self._intro_segment
+                    try:
+                        current_time = self.getTime()
+                    except Exception:  # noqa: BLE001 - player may not be fully ready yet
+                        current_time = 0
+                    if self._intro_overlay is None and intro_start <= current_time < intro_end:
+                        self._intro_overlay = SkipIntroOverlay.show_overlay(ADDON_PATH)
+                    elif self._intro_overlay is not None:
+                        if self._intro_overlay.closed_event.is_set():
+                            overlay_result = self._intro_overlay.result
+                            self._intro_overlay = None
+                            self._intro_overlay_dismissed = True
+                            if overlay_result and overlay_result.get("action") == "skip":
+                                try:
+                                    self.seekTime(intro_end)
+                                except Exception as exc:  # noqa: BLE001 - better to keep playing than crash
+                                    xbmc.log(
+                                        f"{LOG_PREFIX} Player: skip-intro seek to "
+                                        f"{intro_end}s failed: {exc}",
+                                        xbmc.LOGWARNING,
+                                    )
+                        elif current_time >= intro_end:
+                            # Played past the segment without clicking Skip -
+                            # stop offering it rather than leaving a stale
+                            # button up over the rest of the episode.
+                            self._intro_overlay.close()
+                            self._intro_overlay = None
+                            self._intro_overlay_dismissed = True
             if started and self._item_type == "Episode":
                 if self._overlay is None and not self._overlay_attempted:
                     self._maybe_offer_next_episode(item_id)
@@ -291,8 +342,38 @@ class JellyfinPlayer(xbmc.Player):
             # left playing underneath it.
             self._overlay.close()
             self._overlay = None
+        if self._intro_overlay is not None:
+            self._intro_overlay.close()
+            self._intro_overlay = None
         self._finish()
         return self._end_reason
+
+    def _maybe_look_up_intro_segment(self, item_id):
+        """Kicks off the background lookup for the Intro Skipper segments
+        once, on entering the wait loop for an Episode - never re-attempted
+        after the first try, whether or not a segment actually turned up.
+        A separate seam from the thread-spawning itself (like
+        _maybe_offer_next_episode/_look_up_next_episode) so tests can
+        replace this one method to make the lookup synchronous instead of
+        needing to patch the `threading` module globally, which would also
+        turn the progress-reporting thread started earlier in play_item()
+        synchronous and hang the wait loop forever."""
+        self._intro_lookup_attempted = True
+        threading.Thread(
+            target=self._look_up_intro_segment, args=(item_id,), daemon=True,
+        ).start()
+
+    def _look_up_intro_segment(self, item_id):
+        # Runs on its own thread (network lookup, and a server without the
+        # Intro Skipper plugin installed 404s rather than erroring - see
+        # lib.jellyfin.intro_skipper's module docstring) so the wait loop
+        # above keeps ticking instead of stalling on it.
+        try:
+            segments = intro_skipper.get_segments(self.client, item_id)
+            self._intro_segment = intro_skipper.segment_bounds(segments, "Introduction")
+        except Exception:  # noqa: BLE001 - no skip-intro overlay is better than a crash
+            self._intro_segment = None
+        self._intro_lookup_done = True
 
     def _maybe_offer_next_episode(self, item_id):
         """Kicks off the background lookup for the "play next episode"

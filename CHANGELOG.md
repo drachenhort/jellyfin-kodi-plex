@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.42 - 2026-07-27
+- Add "Skip Intro" support: during an episode's opening credits, shows a Skip Intro overlay using intro segments detected by the server's optional Intro Skipper plugin (no effect on a server without that plugin); can be disabled via the new "Enable skip intro" Playback setting
+
 ## 0.3.41 - 2026-07-26
 - Fix the preferred audio language setting sometimes being ignored: a Play click landing right after item metadata loaded but before track info finished loading could start playback before the language preference was applied, falling back to the file's own default audio track
 

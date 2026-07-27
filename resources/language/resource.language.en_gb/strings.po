@@ -171,3 +171,11 @@ msgstr ""
 msgctxt "#30052"
 msgid "How much runtime must remain in an episode before the \"Play Next Episode\" overlay offers skipping ahead to the next one."
 msgstr ""
+
+msgctxt "#30053"
+msgid "Enable skip intro"
+msgstr ""
+
+msgctxt "#30054"
+msgid "Shows a \"Skip Intro\" button during an episode's opening credits, using intro segments detected by the server's Intro Skipper plugin (if installed). Has no effect on a server without that plugin."
+msgstr ""

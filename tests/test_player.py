@@ -596,6 +596,7 @@ def test_play_item_shows_overlay_from_the_wait_loop_once_lookup_is_pending(clien
     fake_requests = _fake_playback_responses()
     monkeypatch.setattr(client_mod, "requests", fake_requests)
     monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+    monkeypatch.setattr(player_mod, "_skip_intro_enabled", lambda: False)
 
     shown_from_main_thread = []
 
@@ -637,6 +638,7 @@ def test_play_item_skips_to_next_episode_via_overlay(client, monkeypatch):
     fake_requests = _fake_playback_responses()
     monkeypatch.setattr(client_mod, "requests", fake_requests)
     monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+    monkeypatch.setattr(player_mod, "_skip_intro_enabled", lambda: False)
 
     player = _make_player(client, isplayingvideo_sequence=[True, True, True, True])
     player.getTotalTime = lambda: 200.0
@@ -669,6 +671,7 @@ def test_play_item_dismissed_overlay_does_not_skip(client, monkeypatch):
     fake_requests = _fake_playback_responses()
     monkeypatch.setattr(client_mod, "requests", fake_requests)
     monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+    monkeypatch.setattr(player_mod, "_skip_intro_enabled", lambda: False)
 
     player = _make_player(client, isplayingvideo_sequence=[True, True, False])
     player.getTotalTime = lambda: 200.0
@@ -703,6 +706,7 @@ def test_play_item_closes_a_still_open_overlay_when_playback_ends_first(client, 
     fake_requests = _fake_playback_responses()
     monkeypatch.setattr(client_mod, "requests", fake_requests)
     monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+    monkeypatch.setattr(player_mod, "_skip_intro_enabled", lambda: False)
 
     player = _make_player(client, isplayingvideo_sequence=[True, True, False])
     player.getTotalTime = lambda: 200.0
@@ -766,6 +770,7 @@ def test_module_play_item_chains_into_the_overlay_skip_target(client, monkeypatc
     ])
     monkeypatch.setattr(client_mod, "requests", fake_requests)
     monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+    monkeypatch.setattr(player_mod, "_skip_intro_enabled", lambda: False)
 
     real_init = player_mod.JellyfinPlayer.__init__
     calls = []
@@ -831,3 +836,217 @@ def test_maybe_offer_next_episode_honors_the_configured_lead_time(client, monkey
     player._maybe_offer_next_episode("e1")
 
     assert player._overlay_attempted is False
+
+
+
+def test_skip_intro_enabled_defaults_to_true(monkeypatch):
+    monkeypatch.setattr(player_mod.ADDON, "getSetting", lambda setting_id: "")
+    assert player_mod._skip_intro_enabled() is True
+
+
+def test_skip_intro_enabled_honors_the_setting_when_disabled(monkeypatch):
+    monkeypatch.setattr(player_mod.ADDON, "getSetting", lambda setting_id: "false")
+    assert player_mod._skip_intro_enabled() is False
+
+
+class _FakeSkipIntroOverlay:
+    def __init__(self, result=None, closed=False):
+        self.closed_event = threading.Event()
+        if closed:
+            self.closed_event.set()
+        self.result = result
+        self.close_calls = 0
+
+    def close(self):
+        self.close_calls += 1
+        self.closed_event.set()
+
+
+def _stub_intro_lookup(player, segment):
+    """Replaces the background-thread lookup with a synchronous stand-in,
+    the same seam next-episode's tests use for _maybe_offer_next_episode -
+    avoids needing to patch the `threading` module globally, which would
+    also turn play_item()'s own progress-reporting thread synchronous and
+    hang the wait loop forever (that thread loops until stop_event fires)."""
+    def fake_lookup(item_id):
+        player._intro_lookup_attempted = True
+        player._intro_segment = segment
+        player._intro_lookup_done = True
+
+    player._maybe_look_up_intro_segment = fake_lookup
+
+
+def test_skip_intro_overlay_shown_within_the_intro_segment(client, monkeypatch):
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    fake_overlay = _FakeSkipIntroOverlay()
+    shown = []
+
+    def fake_show_overlay(addon_path, **kwargs):
+        shown.append(True)
+        return fake_overlay
+
+    monkeypatch.setattr(player_mod.SkipIntroOverlay, "show_overlay", staticmethod(fake_show_overlay))
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, True, False])
+    player.getTime = lambda: 5.0  # within the 0-30s intro segment
+    player._maybe_offer_next_episode = lambda item_id: None
+    _stub_intro_lookup(player, (0.0, 30.0))
+
+    player.play_item("e1", item_type="Episode")
+
+    assert shown == [True]
+
+
+def test_skip_intro_overlay_not_shown_outside_the_intro_segment(client, monkeypatch):
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    def fail_if_shown(addon_path, **kwargs):
+        raise AssertionError("must not show the overlay past the intro segment")
+
+    monkeypatch.setattr(player_mod.SkipIntroOverlay, "show_overlay", staticmethod(fail_if_shown))
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, True, False])
+    player.getTime = lambda: 120.0  # well past the 0-30s intro segment
+    player._maybe_offer_next_episode = lambda item_id: None
+    _stub_intro_lookup(player, (0.0, 30.0))
+
+    player.play_item("e1", item_type="Episode")
+
+
+def test_skip_intro_overlay_seeks_to_segment_end_when_clicked(client, monkeypatch):
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    fake_overlay = _FakeSkipIntroOverlay(result={"action": "skip"}, closed=True)
+    monkeypatch.setattr(
+        player_mod.SkipIntroOverlay, "show_overlay",
+        staticmethod(lambda addon_path, **kwargs: fake_overlay),
+    )
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, True, False])
+    player.getTime = lambda: 5.0
+    player._maybe_offer_next_episode = lambda item_id: None
+    _stub_intro_lookup(player, (0.0, 30.0))
+
+    player.play_item("e1", item_type="Episode")
+
+    assert player.seek_time_calls == [30.0]
+
+
+def test_skip_intro_overlay_dismissed_does_not_seek(client, monkeypatch):
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    fake_overlay = _FakeSkipIntroOverlay(result=None, closed=True)
+    monkeypatch.setattr(
+        player_mod.SkipIntroOverlay, "show_overlay",
+        staticmethod(lambda addon_path, **kwargs: fake_overlay),
+    )
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, True, False])
+    player.getTime = lambda: 5.0
+    player._maybe_offer_next_episode = lambda item_id: None
+    _stub_intro_lookup(player, (0.0, 30.0))
+
+    player.play_item("e1", item_type="Episode")
+
+    assert player.seek_time_calls == []
+
+
+def test_skip_intro_overlay_auto_closes_once_the_segment_is_passed(client, monkeypatch):
+    """No click before the intro ends - the overlay must be torn down
+    rather than left up over the rest of the episode."""
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    fake_overlay = _FakeSkipIntroOverlay()  # never clicked
+    monkeypatch.setattr(
+        player_mod.SkipIntroOverlay, "show_overlay",
+        staticmethod(lambda addon_path, **kwargs: fake_overlay),
+    )
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, True, True, False])
+    times = iter([5.0, 5.0, 35.0, 35.0])
+    player.getTime = lambda: next(times, 35.0)
+    player._maybe_offer_next_episode = lambda item_id: None
+    _stub_intro_lookup(player, (0.0, 30.0))
+
+    player.play_item("e1", item_type="Episode")
+
+    assert fake_overlay.close_calls >= 1
+    assert player.seek_time_calls == []
+
+
+def test_skip_intro_not_offered_when_disabled(client, monkeypatch):
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+    monkeypatch.setattr(player_mod, "_skip_intro_enabled", lambda: False)
+
+    def fail_if_looked_up(item_id):
+        raise AssertionError("must not look up intro segments when the setting is disabled")
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, False])
+    player.getTime = lambda: 5.0
+    player._maybe_offer_next_episode = lambda item_id: None
+    player._maybe_look_up_intro_segment = fail_if_looked_up
+
+    player.play_item("e1", item_type="Episode")
+
+
+def test_skip_intro_not_offered_when_no_segments_found(client, monkeypatch):
+    """Covers a server without the Intro Skipper plugin installed - the
+    client already turns a 404 into {} (see tests/test_intro_skipper.py),
+    and the player must simply not show anything in that case."""
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    def fail_if_shown(addon_path, **kwargs):
+        raise AssertionError("must not show the overlay with no detected segments")
+
+    monkeypatch.setattr(player_mod.SkipIntroOverlay, "show_overlay", staticmethod(fail_if_shown))
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, True, False])
+    player.getTime = lambda: 5.0
+    player._maybe_offer_next_episode = lambda item_id: None
+    _stub_intro_lookup(player, None)
+
+    player.play_item("e1", item_type="Episode")
+
+
+def test_look_up_intro_segment_uses_the_intro_skipper_client(client, monkeypatch):
+    """The one test that exercises the real _look_up_intro_segment/thread
+    seam end to end (not the play_item() wait loop) - confirms it wires up
+    lib.jellyfin.intro_skipper correctly."""
+    monkeypatch.setattr(
+        player_mod.intro_skipper, "get_segments",
+        lambda client, item_id: {"Introduction": {"Start": 1.0, "End": 21.0}},
+    )
+
+    player = player_mod.JellyfinPlayer(client)
+    player._look_up_intro_segment("e1")
+
+    assert player._intro_segment == (1.0, 21.0)
+    assert player._intro_lookup_done is True
+
+
+def test_look_up_intro_segment_handles_lookup_failure(client, monkeypatch):
+    def boom(client, item_id):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(player_mod.intro_skipper, "get_segments", boom)
+
+    player = player_mod.JellyfinPlayer(client)
+    player._look_up_intro_segment("e1")  # must not raise
+
+    assert player._intro_segment is None
+    assert player._intro_lookup_done is True

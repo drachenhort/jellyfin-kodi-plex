@@ -142,6 +142,11 @@
             <popup>true</popup>
           </control>
         </setting>
+        <setting id="enable_skip_intro" type="boolean" label="30053" help="30054">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
         <setting id="preferred_audio_language" type="string" label="30040" help="30042">
           <level>0</level>
           <default>eng</default>
