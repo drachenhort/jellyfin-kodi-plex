@@ -2,6 +2,10 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.43 - 2026-07-29
+- Fix a newly-scanned show/season sometimes not appearing in its library listing until an unrelated watched/unwatched change happened: returning to Home now drops the stale browse-level cache instead of only clearing it on a watched-state change
+- Fix Recently Added TV episodes sometimes listing out of order (e.g. S9E2, then E9, then E7, before finally E1) when a whole season was scanned in at once: episodes are now grouped by series (most-recently-added series first) and ordered ascending by season/episode within each series
+
 ## 0.3.42 - 2026-07-27
 - Add "Skip Intro" support: during an episode's opening credits, shows a Skip Intro overlay using intro segments detected by the server's optional Intro Skipper plugin (no effect on a server without that plugin); can be disabled via the new "Enable skip intro" Playback setting
 

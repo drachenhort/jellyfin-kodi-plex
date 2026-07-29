@@ -302,6 +302,27 @@ def test_get_resume_and_next_up_and_latest(client, monkeypatch):
     assert fake.calls[2]["url"].endswith("/Items/Latest")
 
 
+def test_get_latest_episodes_orders_each_series_by_season_and_episode(client, monkeypatch):
+    # A newly-scanned season doesn't get sequential DateCreated timestamps,
+    # so the raw API response can list an out-of-order batch like
+    # S9E2, E9, E7, E1 for the same show.
+    fake = FakeRequests([FakeResponse({"Items": [
+        {"Id": "e2", "SeriesId": "show1", "ParentIndexNumber": 9, "IndexNumber": 2},
+        {"Id": "e9", "SeriesId": "show1", "ParentIndexNumber": 9, "IndexNumber": 9},
+        {"Id": "other1", "SeriesId": "show2", "ParentIndexNumber": 1, "IndexNumber": 1},
+        {"Id": "e7", "SeriesId": "show1", "ParentIndexNumber": 9, "IndexNumber": 7},
+        {"Id": "e1", "SeriesId": "show1", "ParentIndexNumber": 9, "IndexNumber": 1},
+    ]})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    result = library.get_latest_episodes(client)
+
+    # show1 sorts first (its episodes appeared first/most-recently in the
+    # DateCreated-descending response), and within show1 episodes are
+    # ascending by episode number starting at 1.
+    assert [item["Id"] for item in result] == ["e1", "e2", "e7", "e9", "other1"]
+
+
 def test_get_next_episode_in_season_returns_the_following_episode(client, monkeypatch):
     fake = FakeRequests([
         FakeResponse({"Id": "e2", "Type": "Episode", "SeasonId": "season-1"}),

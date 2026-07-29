@@ -144,6 +144,13 @@ class HomeWindow(ControlledWindow):
         # case the user has already backed out while it was in flight.
         self.setFocusId(CTRL_LIBRARIES)
         self._update_playlists_toggle_label()
+        # Home is re-entered (onInit runs again) every time the user backs
+        # out to it, so this is the natural point to drop the browse-level
+        # cache - otherwise a show/season the server only just finished
+        # scanning in can be invisible in a library listing already cached
+        # from earlier this session until an unrelated watched-state change
+        # happens to clear it (see clear_browse_cache()'s docstring).
+        library.clear_browse_cache()
         self._load_started = time.time()
         self._update_loading_label()
         threading.Thread(target=self._load, daemon=True).start()

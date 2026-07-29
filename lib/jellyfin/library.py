@@ -135,15 +135,38 @@ def get_latest(client, parent_id=None, limit=20):
 
 
 def get_latest_episodes(client, parent_id=None, limit=20):
-    """Recently added episodes (TV libraries), newest-added first, listed
-    individually rather than grouped/deduplicated by series - two episodes
-    of the same show added recently both show up as separate items."""
+    """Recently added episodes (TV libraries), listed individually rather
+    than grouped/deduplicated by series - two episodes of the same show
+    added recently both show up as separate items."""
     result = get_items(
         client, parent_id=parent_id, limit=limit, sort_by="DateCreated",
         sort_order="Descending", include_item_types="Episode", recursive=True,
         fields=LISTING_ITEM_FIELDS,
     )
-    return result.get("Items", [])
+    return _order_latest_episodes(result.get("Items", []))
+
+
+def _order_latest_episodes(items):
+    """Groups episodes by series - most-recently-added series first, per the
+    DateCreated-descending fetch above - then lists each series' episodes in
+    ascending season/episode order. A whole season scanned in at once isn't
+    guaranteed to get sequential DateCreated timestamps (depends on
+    filesystem enumeration / metadata-fetch order), which otherwise shows up
+    as e.g. S9E2, then E9, then E7, before finally E1."""
+    groups = {}
+    series_order = []
+    for item in items:
+        series_id = item.get("SeriesId") or item.get("Id")
+        if series_id not in groups:
+            groups[series_id] = []
+            series_order.append(series_id)
+        groups[series_id].append(item)
+    ordered = []
+    for series_id in series_order:
+        group = groups[series_id]
+        group.sort(key=lambda i: (i.get("ParentIndexNumber") or 0, i.get("IndexNumber") or 0))
+        ordered.extend(group)
+    return ordered
 
 
 def get_next_episode_in_season(client, item_id):

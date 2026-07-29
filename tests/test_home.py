@@ -254,6 +254,25 @@ def test_onInit_sets_the_loading_label_to_zero_percent(client, monkeypatch):
     assert started.wait(2), "background thread never called get_views"
 
 
+def test_onInit_clears_the_browse_cache(client, monkeypatch):
+    # A show/season the server only just finished scanning in can be
+    # invisible in a library listing already cached from earlier this
+    # session - returning to Home is the natural point to drop that cache
+    # so browsing picks up newly-added items without needing an unrelated
+    # watched-state change to clear it first.
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    home_mod.library.cache_children(client, "parent1", "SortName", "Ascending", [{"Id": "stale"}])
+
+    window = _make_window(client, monkeypatch)
+    window.onInit()
+
+    assert home_mod.library.get_cached_children(client, "parent1", "SortName", "Ascending") is None
+
+
 def test_load_leaves_the_loading_indicator_alone_if_window_already_closed(client, monkeypatch):
     monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
 
