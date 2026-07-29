@@ -290,8 +290,9 @@ class HomeWindow(ControlledWindow):
         return latest
 
     def _latest_tv_episodes(self, views):
-        """Recently added TV: individual episodes, newest-added first, not
-        grouped/deduplicated by series."""
+        """Recently added TV: individual episodes, newest-added first, except
+        a season that got a whole batch of episodes added at once collapses
+        into a single block tile (see library.get_latest_episodes)."""
         latest = []
         for view in views:
             if view.get("CollectionType") != "tvshows":

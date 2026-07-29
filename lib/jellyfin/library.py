@@ -134,39 +134,73 @@ def get_latest(client, parent_id=None, limit=20):
     return result or []
 
 
+# A season contributing at least this many recently-added episodes collapses
+# into a single "Season" block item instead of showing each episode as its
+# own tile - avoids a big binge-added season flooding the whole row.
+SEASON_BLOCK_THRESHOLD = 3
+
+
 def get_latest_episodes(client, parent_id=None, limit=20):
-    """Recently added episodes (TV libraries), listed individually rather
-    than grouped/deduplicated by series - two episodes of the same show
-    added recently both show up as separate items."""
+    """Recently added episodes (TV libraries). A season that got several
+    episodes added at once collapses into a single block item (Type
+    "Season") rather than showing each episode as its own tile; a season
+    with just one or two new episodes still lists them individually."""
     result = get_items(
         client, parent_id=parent_id, limit=limit, sort_by="DateCreated",
         sort_order="Descending", include_item_types="Episode", recursive=True,
         fields=LISTING_ITEM_FIELDS,
     )
-    return _order_latest_episodes(result.get("Items", []))
+    return _group_latest_episodes(result.get("Items", []))
 
 
-def _order_latest_episodes(items):
-    """Groups episodes by series - most-recently-added series first, per the
-    DateCreated-descending fetch above - then lists each series' episodes in
-    ascending season/episode order. A whole season scanned in at once isn't
+def _group_latest_episodes(items):
+    """Groups episodes by season - most-recently-added season first, per the
+    DateCreated-descending fetch above - then orders each season's episodes
+    ascending by episode number. A whole season scanned in at once isn't
     guaranteed to get sequential DateCreated timestamps (depends on
     filesystem enumeration / metadata-fetch order), which otherwise shows up
-    as e.g. S9E2, then E9, then E7, before finally E1."""
+    as e.g. S9E2, then E9, then E7, before finally E1. A season with
+    SEASON_BLOCK_THRESHOLD or more episodes in the batch is collapsed into a
+    single season block item instead of listing each one."""
     groups = {}
-    series_order = []
+    season_order = []
     for item in items:
-        series_id = item.get("SeriesId") or item.get("Id")
-        if series_id not in groups:
-            groups[series_id] = []
-            series_order.append(series_id)
-        groups[series_id].append(item)
+        season_id = item.get("SeasonId") or item.get("Id")
+        if season_id not in groups:
+            groups[season_id] = []
+            season_order.append(season_id)
+        groups[season_id].append(item)
     ordered = []
-    for series_id in series_order:
-        group = groups[series_id]
+    for season_id in season_order:
+        group = groups[season_id]
         group.sort(key=lambda i: (i.get("ParentIndexNumber") or 0, i.get("IndexNumber") or 0))
-        ordered.extend(group)
+        if len(group) >= SEASON_BLOCK_THRESHOLD:
+            ordered.append(_season_block_item(group))
+        else:
+            ordered.extend(group)
     return ordered
+
+
+def _season_block_item(episodes):
+    """Synthetic "Season" item standing in for a batch of recently-added
+    episodes, so it opens (via the normal Series/Season/... container click
+    handling) straight to that season's episode list rather than playing a
+    single episode. Reuses UnplayedItemCount so the same unwatched-count
+    badge existing Season/Series tiles show applies here too."""
+    first = episodes[0]
+    season_number = first.get("ParentIndexNumber")
+    series_name = first.get("SeriesName") or ""
+    name = f"{series_name} - Season {season_number}" if season_number is not None else series_name
+    return {
+        "Id": first.get("SeasonId"),
+        "Type": "Season",
+        "Name": name,
+        "SeriesId": first.get("SeriesId"),
+        "SeriesName": series_name,
+        "SeriesPrimaryImageTag": first.get("SeriesPrimaryImageTag"),
+        "ParentIndexNumber": season_number,
+        "UserData": {"UnplayedItemCount": len(episodes)},
+    }
 
 
 def get_next_episode_in_season(client, item_id):

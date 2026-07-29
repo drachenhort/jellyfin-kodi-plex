@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.44 - 2026-07-29
+- A season that gets 3 or more episodes added at once now shows as a single "Show - Season N" block tile in Recently Added TV, instead of flooding the row with each individual episode; opening it goes straight to that season's episode list. A season with only 1-2 new episodes still lists them individually.
+
 ## 0.3.43 - 2026-07-29
 - Fix a newly-scanned show/season sometimes not appearing in its library listing until an unrelated watched/unwatched change happened: returning to Home now drops the stale browse-level cache instead of only clearing it on a watched-state change
 - Fix Recently Added TV episodes sometimes listing out of order (e.g. S9E2, then E9, then E7, before finally E1) when a whole season was scanned in at once: episodes are now grouped by series (most-recently-added series first) and ordered ascending by season/episode within each series

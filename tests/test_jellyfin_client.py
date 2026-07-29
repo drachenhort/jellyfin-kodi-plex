@@ -302,25 +302,51 @@ def test_get_resume_and_next_up_and_latest(client, monkeypatch):
     assert fake.calls[2]["url"].endswith("/Items/Latest")
 
 
-def test_get_latest_episodes_orders_each_series_by_season_and_episode(client, monkeypatch):
+def test_get_latest_episodes_orders_each_season_by_episode_number(client, monkeypatch):
     # A newly-scanned season doesn't get sequential DateCreated timestamps,
-    # so the raw API response can list an out-of-order batch like
-    # S9E2, E9, E7, E1 for the same show.
+    # so the raw API response can list an out-of-order batch like E2, E1 for
+    # the same season - below the block-collapse threshold, still listed
+    # individually but reordered ascending.
     fake = FakeRequests([FakeResponse({"Items": [
-        {"Id": "e2", "SeriesId": "show1", "ParentIndexNumber": 9, "IndexNumber": 2},
-        {"Id": "e9", "SeriesId": "show1", "ParentIndexNumber": 9, "IndexNumber": 9},
-        {"Id": "other1", "SeriesId": "show2", "ParentIndexNumber": 1, "IndexNumber": 1},
-        {"Id": "e7", "SeriesId": "show1", "ParentIndexNumber": 9, "IndexNumber": 7},
-        {"Id": "e1", "SeriesId": "show1", "ParentIndexNumber": 9, "IndexNumber": 1},
+        {"Id": "e2", "SeriesId": "show1", "SeasonId": "s1", "ParentIndexNumber": 9, "IndexNumber": 2},
+        {"Id": "other1", "SeriesId": "show2", "SeasonId": "s2", "ParentIndexNumber": 1, "IndexNumber": 1},
+        {"Id": "e1", "SeriesId": "show1", "SeasonId": "s1", "ParentIndexNumber": 9, "IndexNumber": 1},
     ]})])
     monkeypatch.setattr(client_mod, "requests", fake)
 
     result = library.get_latest_episodes(client)
 
-    # show1 sorts first (its episodes appeared first/most-recently in the
-    # DateCreated-descending response), and within show1 episodes are
+    # show1's season sorts first (its episode appeared first/most-recently
+    # in the DateCreated-descending response), and within it episodes are
     # ascending by episode number starting at 1.
-    assert [item["Id"] for item in result] == ["e1", "e2", "e7", "e9", "other1"]
+    assert [item["Id"] for item in result] == ["e1", "e2", "other1"]
+
+
+def test_get_latest_episodes_collapses_a_big_batch_into_a_season_block(client, monkeypatch):
+    # A whole new season scanned in at once (>= SEASON_BLOCK_THRESHOLD
+    # episodes) should show as one block, not flood the row with each
+    # individual episode.
+    fake = FakeRequests([FakeResponse({"Items": [
+        {"Id": "e2", "SeriesId": "show1", "SeriesName": "Rick and Morty", "SeasonId": "s1",
+         "SeriesPrimaryImageTag": "tag1", "ParentIndexNumber": 9, "IndexNumber": 2},
+        {"Id": "e9", "SeriesId": "show1", "SeriesName": "Rick and Morty", "SeasonId": "s1",
+         "SeriesPrimaryImageTag": "tag1", "ParentIndexNumber": 9, "IndexNumber": 9},
+        {"Id": "e7", "SeriesId": "show1", "SeriesName": "Rick and Morty", "SeasonId": "s1",
+         "SeriesPrimaryImageTag": "tag1", "ParentIndexNumber": 9, "IndexNumber": 7},
+        {"Id": "e1", "SeriesId": "show1", "SeriesName": "Rick and Morty", "SeasonId": "s1",
+         "SeriesPrimaryImageTag": "tag1", "ParentIndexNumber": 9, "IndexNumber": 1},
+    ]})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    result = library.get_latest_episodes(client)
+
+    assert len(result) == 1
+    block = result[0]
+    assert block["Type"] == "Season"
+    assert block["Id"] == "s1"
+    assert block["SeriesId"] == "show1"
+    assert block["Name"] == "Rick and Morty - Season 9"
+    assert block["UserData"]["UnplayedItemCount"] == 4
 
 
 def test_get_next_episode_in_season_returns_the_following_episode(client, monkeypatch):
