@@ -85,6 +85,18 @@
             <popup>true</popup>
           </control>
         </setting>
+        <setting id="season_block_threshold" type="integer" label="30055" help="30056">
+          <level>0</level>
+          <default>3</default>
+          <constraints>
+            <minimum>2</minimum>
+            <maximum>20</maximum>
+            <step>1</step>
+          </constraints>
+          <control type="slider" format="integer">
+            <popup>true</popup>
+          </control>
+        </setting>
       </group>
     </category>
     <category id="library" label="30020">

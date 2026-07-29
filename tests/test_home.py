@@ -13,6 +13,7 @@ import threading
 import xbmcaddon
 
 import lib.windows.home as home_mod
+from lib.jellyfin import library
 
 
 def _make_window(client, monkeypatch, hide_playlists_setting=None, select_control_id=None, select_item_id=None,
@@ -75,7 +76,7 @@ def test_home_libraries_row_excludes_playlists_and_orders_music_last(client, mon
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window = _make_window(client, monkeypatch)
     window._load()
@@ -120,7 +121,7 @@ def test_recently_added_music_empty_when_no_music_library(client, monkeypatch):
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window = _make_window(client, monkeypatch)
     window._load()
@@ -139,7 +140,7 @@ def test_recently_added_tv_lists_episodes_individually_not_grouped_by_series(cli
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
 
-    def fake_get_latest_episodes(c, parent_id=None, limit=10):
+    def fake_get_latest_episodes(c, parent_id=None, limit=10, block_threshold=3):
         if parent_id == "lib-tv":
             return [
                 {"Id": "ep-1", "Name": "S01E02", "Type": "Episode", "SeriesId": "series-1", "SeriesName": "Show A"},
@@ -169,7 +170,7 @@ def test_recently_added_tv_tiles_show_series_poster_not_episode_thumb(client, mo
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
 
-    def fake_get_latest_episodes(c, parent_id=None, limit=10):
+    def fake_get_latest_episodes(c, parent_id=None, limit=10, block_threshold=3):
         if parent_id == "lib-tv":
             return [{
                 "Id": "ep-1", "Name": "S01E02", "Type": "Episode", "SeriesId": "series-1",
@@ -194,7 +195,7 @@ def test_load_hides_the_loading_indicator_once_everything_has_fetched(client, mo
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window = _make_window(client, monkeypatch)
     assert window.getControl(home_mod.CTRL_LOADING).visible is True
@@ -211,7 +212,7 @@ def test_load_marks_loading_done_once_everything_has_fetched(client, monkeypatch
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window = _make_window(client, monkeypatch)
     assert not window.loading_done.is_set()
@@ -238,7 +239,7 @@ def test_onInit_sets_the_loading_label_to_zero_percent(client, monkeypatch):
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window = _make_window(client, monkeypatch)
     window.onInit()
@@ -264,7 +265,7 @@ def test_onInit_clears_the_browse_cache(client, monkeypatch):
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
     home_mod.library.cache_children(client, "parent1", "SortName", "Ascending", [{"Id": "stale"}])
 
     window = _make_window(client, monkeypatch)
@@ -301,7 +302,7 @@ def test_oninit_loads_in_a_background_thread_not_the_caller(client, monkeypatch)
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window = _make_window(client, monkeypatch)
     window.onInit()  # must return without waiting for slow_get_views
@@ -348,7 +349,7 @@ def test_a_slow_or_broken_hub_row_does_not_blank_the_others(client, monkeypatch)
         return [{"Id": "movie-1", "Name": "Alien", "Type": "Movie"}] if parent_id == "lib-movies" else []
 
     monkeypatch.setattr(home_mod.library, "get_latest", flaky_get_latest)
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window = _make_window(client, monkeypatch)
     window._load()
@@ -381,7 +382,7 @@ def test_load_reselects_the_given_hub_row_item_once_it_arrives(client, monkeypat
         return []
 
     monkeypatch.setattr(home_mod.library, "get_latest", fake_get_latest)
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window = _make_window(
         client, monkeypatch,
@@ -403,7 +404,7 @@ def test_load_reselects_a_library_tile_once_it_arrives(client, monkeypatch):
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window = _make_window(
         client, monkeypatch,
@@ -421,7 +422,7 @@ def test_load_leaves_default_focus_when_no_selection_to_restore(client, monkeypa
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window = _make_window(client, monkeypatch)
     window._load()
@@ -449,7 +450,7 @@ def test_disabled_hub_row_is_never_fetched_or_populated(client, monkeypatch):
     monkeypatch.setattr(home_mod.library, "get_next_up", fail_if_called)
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window = _make_window(client, monkeypatch, extra_settings={home_mod.SHOW_NEXT_UP_SETTING: "false"})
     window._load()
@@ -462,7 +463,7 @@ def test_disabled_hub_row_still_counts_as_a_completed_loading_step(client, monke
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window = _make_window(client, monkeypatch, extra_settings={home_mod.SHOW_NEXT_UP_SETTING: "false"})
     window._load()
@@ -475,7 +476,7 @@ def test_enabled_hub_rows_still_populate_when_a_sibling_row_is_disabled(client, 
     monkeypatch.setattr(home_mod.library, "get_views", lambda c: views)
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     def fake_get_latest(c, parent_id=None, limit=10):
         if parent_id == "lib-movies":
@@ -522,7 +523,7 @@ def test_clicking_toggle_reveals_playlists_and_persists_setting(client, monkeypa
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window = _make_window(client, monkeypatch)
     window._load()
@@ -543,7 +544,7 @@ def test_clicking_toggle_again_hides_playlists_again(client, monkeypatch):
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window = _make_window(client, monkeypatch, hide_playlists_setting="false")
     window._load()
@@ -576,7 +577,7 @@ def test_clicking_settings_opens_the_native_settings_dialog(client, monkeypatch)
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window.handle_click(home_mod.CTRL_SETTINGS)
 
@@ -598,7 +599,7 @@ def test_settings_dialog_picks_up_a_setting_changed_while_it_was_open(client, mo
     monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3: [])
 
     window.handle_click(home_mod.CTRL_SETTINGS)
 
@@ -635,7 +636,7 @@ def test_hide_watched_recently_added_movies_filters_played_items(client, monkeyp
     unwatched = {"Id": "m1", "Name": "Unwatched", "UserData": {"Played": False}}
     watched = {"Id": "m2", "Name": "Watched", "UserData": {"Played": True}}
     monkeypatch.setattr(home_mod.library, "get_views", lambda c: views)
-    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [unwatched, watched])
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10, block_threshold=3: [unwatched, watched])
 
     window = _make_window(
         client, monkeypatch,
@@ -650,7 +651,7 @@ def test_hide_watched_recently_added_tv_filters_played_episodes(client, monkeypa
     views = [{"Id": "lib-tv", "Name": "Serien", "CollectionType": "tvshows"}]
     unwatched = {"Id": "e1", "Name": "Unwatched", "UserData": {"Played": False}}
     watched = {"Id": "e2", "Name": "Watched", "UserData": {"Played": True}}
-    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=10: [unwatched, watched])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=10, block_threshold=3: [unwatched, watched])
 
     window = _make_window(
         client, monkeypatch,
@@ -665,7 +666,7 @@ def test_hide_watched_recently_added_music_filters_played_tracks(client, monkeyp
     views = [{"Id": "lib-music", "Name": "Musik", "CollectionType": "music"}]
     unwatched = {"Id": "t1", "Name": "Unwatched", "UserData": {"Played": False}}
     watched = {"Id": "t2", "Name": "Watched", "UserData": {"Played": True}}
-    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [unwatched, watched])
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10, block_threshold=3: [unwatched, watched])
 
     window = _make_window(
         client, monkeypatch,
@@ -720,3 +721,37 @@ def test_recently_added_item_limit_setting_invalid_falls_back_to_default(client,
         extra_settings={home_mod.RECENTLY_ADDED_ITEM_LIMIT_SETTING: ""},
     )
     assert window.recently_added_item_limit == home_mod.DEFAULT_RECENTLY_ADDED_ITEM_LIMIT
+
+
+# -- Season block threshold (addon setting) -----------------------------------
+
+def test_season_block_threshold_defaults_to_library_default(client, monkeypatch):
+    window = _make_window(client, monkeypatch)
+    assert window.season_block_threshold == library.SEASON_BLOCK_THRESHOLD
+
+
+def test_season_block_threshold_setting_is_passed_to_get_latest_episodes(client, monkeypatch):
+    views = [{"Id": "lib-tv", "Name": "TV", "CollectionType": "tvshows"}]
+    seen_thresholds = []
+
+    def fake_get_latest_episodes(c, parent_id=None, limit=10, block_threshold=3):
+        seen_thresholds.append(block_threshold)
+        return []
+
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", fake_get_latest_episodes)
+
+    window = _make_window(
+        client, monkeypatch,
+        extra_settings={home_mod.SEASON_BLOCK_THRESHOLD_SETTING: "5"},
+    )
+    window._latest_tv_episodes(views)
+
+    assert seen_thresholds == [5]
+
+
+def test_season_block_threshold_setting_invalid_falls_back_to_default(client, monkeypatch):
+    window = _make_window(
+        client, monkeypatch,
+        extra_settings={home_mod.SEASON_BLOCK_THRESHOLD_SETTING: ""},
+    )
+    assert window.season_block_threshold == library.SEASON_BLOCK_THRESHOLD

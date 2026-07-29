@@ -37,6 +37,16 @@ def _recently_added_item_limit():
         return DEFAULT_RECENTLY_ADDED_ITEM_LIMIT
 
 
+def _season_block_threshold():
+    """The addon's "Group new episodes into a season block after" setting -
+    falls back to library.SEASON_BLOCK_THRESHOLD if unset or not a valid
+    int."""
+    try:
+        return int(ADDON.getSetting(SEASON_BLOCK_THRESHOLD_SETTING))
+    except (TypeError, ValueError):
+        return library.SEASON_BLOCK_THRESHOLD
+
+
 HIDE_PLAYLISTS_SETTING = "hide_playlists"
 SHOW_CONTINUE_WATCHING_SETTING = "show_continue_watching"
 SHOW_NEXT_UP_SETTING = "show_next_up"
@@ -48,6 +58,7 @@ HIDE_WATCHED_RECENTLY_ADDED_TV_SETTING = "hide_watched_recently_added_tv"
 HIDE_WATCHED_RECENTLY_ADDED_MUSIC_SETTING = "hide_watched_recently_added_music"
 RECENTLY_ADDED_ITEM_LIMIT_SETTING = "recently_added_item_limit"
 DEFAULT_RECENTLY_ADDED_ITEM_LIMIT = 10
+SEASON_BLOCK_THRESHOLD_SETTING = "season_block_threshold"
 
 CTRL_LIBRARIES = 200
 CTRL_CONTINUE_WATCHING = 201
@@ -122,6 +133,7 @@ class HomeWindow(ControlledWindow):
         self.hide_watched_recently_added_tv = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_TV_SETTING) == "true"
         self.hide_watched_recently_added_music = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_MUSIC_SETTING) == "true"
         self.recently_added_item_limit = _recently_added_item_limit()
+        self.season_block_threshold = _season_block_threshold()
         self.loaded_steps = 0
         # Which item (if any) to re-select once its row is loaded, e.g.
         # because Home is being shown again after the user backed out of
@@ -297,7 +309,10 @@ class HomeWindow(ControlledWindow):
         for view in views:
             if view.get("CollectionType") != "tvshows":
                 continue
-            latest.extend(library.get_latest_episodes(self.client, parent_id=view.get("Id"), limit=self.recently_added_item_limit))
+            latest.extend(library.get_latest_episodes(
+                self.client, parent_id=view.get("Id"), limit=self.recently_added_item_limit,
+                block_threshold=self.season_block_threshold,
+            ))
         if self.hide_watched_recently_added_tv:
             latest = [item for item in latest if not (item.get("UserData") or {}).get("Played")]
         return latest
@@ -403,6 +418,7 @@ class HomeWindow(ControlledWindow):
         self.hide_watched_recently_added_tv = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_TV_SETTING) == "true"
         self.hide_watched_recently_added_music = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_MUSIC_SETTING) == "true"
         self.recently_added_item_limit = _recently_added_item_limit()
+        self.season_block_threshold = _season_block_threshold()
         self._update_playlists_toggle_label()
         # A settings-driven refresh re-fetches every row from scratch (the
         # simplest way to correctly pick up a newly-enabled row, which was

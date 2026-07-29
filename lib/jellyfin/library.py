@@ -140,27 +140,27 @@ def get_latest(client, parent_id=None, limit=20):
 SEASON_BLOCK_THRESHOLD = 3
 
 
-def get_latest_episodes(client, parent_id=None, limit=20):
-    """Recently added episodes (TV libraries). A season that got several
-    episodes added at once collapses into a single block item (Type
-    "Season") rather than showing each episode as its own tile; a season
-    with just one or two new episodes still lists them individually."""
+def get_latest_episodes(client, parent_id=None, limit=20, block_threshold=SEASON_BLOCK_THRESHOLD):
+    """Recently added episodes (TV libraries). A season that got at least
+    `block_threshold` episodes added at once collapses into a single block
+    item (Type "Season") rather than showing each episode as its own tile;
+    a season with fewer new episodes still lists them individually."""
     result = get_items(
         client, parent_id=parent_id, limit=limit, sort_by="DateCreated",
         sort_order="Descending", include_item_types="Episode", recursive=True,
         fields=LISTING_ITEM_FIELDS,
     )
-    return _group_latest_episodes(result.get("Items", []))
+    return _group_latest_episodes(result.get("Items", []), block_threshold)
 
 
-def _group_latest_episodes(items):
+def _group_latest_episodes(items, block_threshold=SEASON_BLOCK_THRESHOLD):
     """Groups episodes by season - most-recently-added season first, per the
     DateCreated-descending fetch above - then orders each season's episodes
     ascending by episode number. A whole season scanned in at once isn't
     guaranteed to get sequential DateCreated timestamps (depends on
     filesystem enumeration / metadata-fetch order), which otherwise shows up
     as e.g. S9E2, then E9, then E7, before finally E1. A season with
-    SEASON_BLOCK_THRESHOLD or more episodes in the batch is collapsed into a
+    `block_threshold` or more episodes in the batch is collapsed into a
     single season block item instead of listing each one."""
     groups = {}
     season_order = []
@@ -174,7 +174,7 @@ def _group_latest_episodes(items):
     for season_id in season_order:
         group = groups[season_id]
         group.sort(key=lambda i: (i.get("ParentIndexNumber") or 0, i.get("IndexNumber") or 0))
-        if len(group) >= SEASON_BLOCK_THRESHOLD:
+        if len(group) >= block_threshold:
             ordered.append(_season_block_item(group))
         else:
             ordered.extend(group)

@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.45 - 2026-07-29
+- The Recently Added TV season-block threshold (added in 0.3.44) is now a Home setting ("Group new episodes into a season block after", default 3, range 2-20) instead of a fixed value
+
 ## 0.3.44 - 2026-07-29
 - A season that gets 3 or more episodes added at once now shows as a single "Show - Season N" block tile in Recently Added TV, instead of flooding the row with each individual episode; opening it goes straight to that season's episode list. A season with only 1-2 new episodes still lists them individually.
 
