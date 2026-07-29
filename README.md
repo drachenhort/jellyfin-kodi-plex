@@ -82,9 +82,16 @@ next episode without waiting for natural end.
 
 Milestone 2 (in progress): expanding the addon's Settings into real user-facing configuration —
 per-hub-row Home show/hide toggles, hide-watched toggles for Recently Added rows, a configurable
-Recently Added item limit, default library sort order, server request timeout, max streaming
-bitrate, the "Play Next Episode" overlay's lead time (Playback settings), and a Settings button on
-the Home screen next to Servers/Search.
+Recently Added item limit, a season-block threshold that collapses a big batch of newly-added
+episodes into a single tile in Recently Added TV instead of one per episode, default library sort
+order, server request timeout, max streaming bitrate, the "Play Next Episode" overlay's lead time
+(Playback settings), and a Settings button on the Home screen next to Servers/Search.
+
+During an episode's opening credits, a "Skip Intro" button lets you jump straight past them,
+powered by the [Intro Skipper](https://intro-skipper.org) Jellyfin server plugin's intro-segment
+detection — full credit to that project for making this possible. It has no effect on a server
+without Intro Skipper installed, and can be turned off via the "Enable skip intro" Playback
+setting.
 
 The TV/Music drill-down works by fetching each item's direct children non-recursively
 (`lib/windows/browse.py` is reused at every level: a library's top-level items, a series'

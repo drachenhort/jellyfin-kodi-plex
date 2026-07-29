@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.48 - 2026-07-29
+- Credit [Intro Skipper](https://intro-skipper.org) in the README: the "Skip Intro" support added in 0.3.42 relies entirely on that Jellyfin server plugin's intro-segment detection
+
 ## 0.3.47 - 2026-07-29
 - Fix "Hide watched Recently Added TV" not working correctly against the new season-block tiles: it now filters watched episodes before grouping into a block instead of after, so a fully-watched batch is hidden entirely and a partially-watched block's episode count only reflects its still-unwatched episodes
 

@@ -89,10 +89,18 @@ Episode erscheint zusätzlich ein kleines, nicht-modales „Nächste Episode abs
 
 Meilenstein 2 (in Arbeit): Erweiterung der Addon-Einstellungen zu echter, benutzerseitiger Konfiguration —
 Ein-/Ausblenden-Schalter pro Hub-Zeile auf dem Startbildschirm, „Gesehene ausblenden"-Schalter für die
-„Kürzlich hinzugefügt"-Zeilen, eine einstellbare Obergrenze für „Kürzlich hinzugefügt"-Einträge, die
+„Kürzlich hinzugefügt"-Zeilen, eine einstellbare Obergrenze für „Kürzlich hinzugefügt"-Einträge, ein
+Schwellenwert, ab dem ein größerer Schwung neu hinzugefügter Episoden in „Kürzlich hinzugefügt (TV)"
+statt einzelner Kacheln pro Episode zu einer einzigen Sammel-Kachel zusammengefasst wird, die
 Standard-Sortierreihenfolge der Bibliothek, das Server-Timeout, die maximale Streaming-Bitrate, den
 Vorlauf des „Nächste Episode abspielen"-Overlays (unter Wiedergabe) sowie eine Settings-Schaltfläche
 auf dem Startbildschirm neben Server/Suche.
+
+Während des Vorspanns einer Episode blendet ein „Intro überspringen"-Button ein, mit dem sich der
+Vorspann direkt überspringen lässt — ermöglicht durch die Intro-Erkennung des Jellyfin-Server-Plugins
+[Intro Skipper](https://intro-skipper.org), dem dafür der volle Dank gebührt. Auf einem Server ohne
+Intro Skipper hat die Funktion keinerlei Effekt und lässt sich zudem über die Wiedergabe-Einstellung
+„Intro überspringen aktivieren" abschalten.
 
 Der TV-/Musik-Drilldown funktioniert, indem die direkten Kindelemente jedes Objekts nicht-rekursiv abgerufen werden
 (`lib/windows/browse.py` wird auf jeder Ebene wiederverwendet: die Top-Level-Elemente einer Bibliothek, die Staffeln
