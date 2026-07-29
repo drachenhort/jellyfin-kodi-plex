@@ -140,7 +140,8 @@ def get_latest(client, parent_id=None, limit=20):
 SEASON_BLOCK_THRESHOLD = 3
 
 
-def get_latest_episodes(client, parent_id=None, limit=20, block_threshold=SEASON_BLOCK_THRESHOLD):
+def get_latest_episodes(client, parent_id=None, limit=20, block_threshold=SEASON_BLOCK_THRESHOLD,
+                         hide_watched=False):
     """Recently added episodes (TV libraries), as up to `limit` tiles. A
     season that got at least `block_threshold` episodes added at once
     collapses into a single block item (Type "Season") rather than showing
@@ -151,13 +152,22 @@ def get_latest_episodes(client, parent_id=None, limit=20, block_threshold=SEASON
     _episode_fetch_limit()) since one big season dump can itself contain
     `limit`-or-more episodes - fetching only `limit` raw episodes would let
     that single season's batch crowd out every other show's recently added
-    episodes, even though it only ends up costing the row one tile."""
+    episodes, even though it only ends up costing the row one tile.
+
+    `hide_watched`, when set, drops watched episodes before grouping rather
+    than after: a synthetic season block has no Played flag of its own to
+    filter on, so filtering post-grouping would never hide an
+    already-fully-watched batch, and a partially-watched batch would still
+    count its watched episodes in the block's episode tally."""
     result = get_items(
         client, parent_id=parent_id, limit=_episode_fetch_limit(limit, block_threshold),
         sort_by="DateCreated", sort_order="Descending", include_item_types="Episode",
         recursive=True, fields=LISTING_ITEM_FIELDS,
     )
-    return _group_latest_episodes(result.get("Items", []), block_threshold)[:limit]
+    items = result.get("Items", [])
+    if hide_watched:
+        items = [item for item in items if not (item.get("UserData") or {}).get("Played")]
+    return _group_latest_episodes(items, block_threshold)[:limit]
 
 
 def _episode_fetch_limit(limit, block_threshold):

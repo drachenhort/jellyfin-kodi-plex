@@ -304,7 +304,11 @@ class HomeWindow(ControlledWindow):
     def _latest_tv_episodes(self, views):
         """Recently added TV: individual episodes, newest-added first, except
         a season that got a whole batch of episodes added at once collapses
-        into a single block tile (see library.get_latest_episodes)."""
+        into a single block tile (see library.get_latest_episodes). Watched
+        episodes are dropped before that grouping happens (rather than
+        filtered from the final list), so a block's episode tally only ever
+        counts its still-unwatched episodes and a fully-watched batch is
+        hidden entirely instead of showing an empty-looking block."""
         latest = []
         for view in views:
             if view.get("CollectionType") != "tvshows":
@@ -312,9 +316,8 @@ class HomeWindow(ControlledWindow):
             latest.extend(library.get_latest_episodes(
                 self.client, parent_id=view.get("Id"), limit=self.recently_added_item_limit,
                 block_threshold=self.season_block_threshold,
+                hide_watched=self.hide_watched_recently_added_tv,
             ))
-        if self.hide_watched_recently_added_tv:
-            latest = [item for item in latest if not (item.get("UserData") or {}).get("Played")]
         return latest
 
     def _populate(self, control_id, items, is_library=False):

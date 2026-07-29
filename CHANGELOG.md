@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.47 - 2026-07-29
+- Fix "Hide watched Recently Added TV" not working correctly against the new season-block tiles: it now filters watched episodes before grouping into a block instead of after, so a fully-watched batch is hidden entirely and a partially-watched block's episode count only reflects its still-unwatched episodes
+
 ## 0.3.46 - 2026-07-29
 - Fix Recently Added TV silently dropping other shows' episodes after a large batch-added season: it only fetched "item limit" raw episodes before grouping, so one season alone reaching that many episodes crowded out every other show even though it collapses to a single tile. Now fetches a wider raw batch and caps the result at the item limit only after grouping.
 

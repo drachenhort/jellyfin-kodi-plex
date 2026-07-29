@@ -349,6 +349,34 @@ def test_get_latest_episodes_collapses_a_big_batch_into_a_season_block(client, m
     assert block["UserData"]["UnplayedItemCount"] == 4
 
 
+def test_get_latest_episodes_hide_watched_drops_played_episodes_before_grouping(client, monkeypatch):
+    # A season block has no Played flag of its own to filter on, so
+    # hide_watched has to drop watched episodes before grouping rather than
+    # after: a fully-watched batch must disappear entirely, and a
+    # partially-watched batch's block must only count its unwatched ones.
+    fake = FakeRequests([FakeResponse({"Items": [
+        {"Id": "e1", "SeriesId": "show1", "SeriesName": "Show A", "SeasonId": "s1",
+         "ParentIndexNumber": 1, "IndexNumber": 1, "UserData": {"Played": True}},
+        {"Id": "e2", "SeriesId": "show1", "SeriesName": "Show A", "SeasonId": "s1",
+         "ParentIndexNumber": 1, "IndexNumber": 2, "UserData": {"Played": False}},
+        {"Id": "e3", "SeriesId": "show1", "SeriesName": "Show A", "SeasonId": "s1",
+         "ParentIndexNumber": 1, "IndexNumber": 3, "UserData": {"Played": False}},
+        {"Id": "e4", "SeriesId": "show2", "SeriesName": "Show B", "SeasonId": "s2",
+         "ParentIndexNumber": 1, "IndexNumber": 1, "UserData": {"Played": True}},
+    ]})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    result = library.get_latest_episodes(client, block_threshold=2, hide_watched=True)
+
+    # show1's fully-watched episode (e1) is excluded, leaving 2 unwatched
+    # episodes - still enough to hit block_threshold=2, so it collapses to
+    # a block whose count reflects only those 2. show2's only episode was
+    # watched, so it drops out of the results entirely.
+    assert len(result) == 1
+    assert result[0]["Id"] == "s1"
+    assert result[0]["UserData"]["UnplayedItemCount"] == 2
+
+
 def test_get_latest_episodes_requests_more_than_limit_raw_episodes(client, monkeypatch):
     # A single season dumping `limit`-or-more episodes at once must not
     # starve the raw fetch and crowd out every other show's recently added
