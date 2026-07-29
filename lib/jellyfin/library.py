@@ -41,6 +41,13 @@ def get_views(client):
     return views
 
 
+def is_played(item):
+    """Whether a Jellyfin item dict has been marked watched, per its
+    UserData.Played flag - shared by every "hide watched" filter (Recently
+    Added Movies/TV/Music) so they all read the same field the same way."""
+    return bool((item.get("UserData") or {}).get("Played"))
+
+
 def get_items(client, parent_id=None, start_index=0, limit=50, sort_by="SortName",
               sort_order="Ascending", include_item_types=None, recursive=True,
               search_term=None, fields=LISTING_ITEM_FIELDS):
@@ -166,17 +173,21 @@ def get_latest_episodes(client, parent_id=None, limit=20, block_threshold=SEASON
     )
     items = result.get("Items", [])
     if hide_watched:
-        items = [item for item in items if not (item.get("UserData") or {}).get("Played")]
+        items = [item for item in items if not is_played(item)]
     return _group_latest_episodes(items, block_threshold)[:limit]
 
 
 def _episode_fetch_limit(limit, block_threshold):
-    """How many raw episodes to request so that, even if a single season
-    accounts for as many as `limit` blocks' worth of episodes, there's still
-    enough left in the batch to surface `limit` distinct shows/seasons.
-    Capped to keep a very large "item limit" setting from turning into a
-    huge request."""
-    return min(max(limit * block_threshold * 10, 100), 500)
+    """How many raw episodes to request so that `limit` distinct season
+    groups can still be found even in the worst case: every one of them
+    sitting right at `block_threshold` episodes, since that's the point
+    where a season "costs" the most raw episodes (block_threshold of them)
+    per single tile it ends up producing - `limit * block_threshold` raw
+    episodes is therefore enough to guarantee `limit` tiles are found.
+    Doubled for slack against ties/uneven distributions, with a floor so a
+    small "item limit" setting doesn't undersize the fetch, and a cap so a
+    large one doesn't turn into a huge request."""
+    return min(max(limit * block_threshold * 2, 50), 500)
 
 
 def _group_latest_episodes(items, block_threshold=SEASON_BLOCK_THRESHOLD):
@@ -191,6 +202,10 @@ def _group_latest_episodes(items, block_threshold=SEASON_BLOCK_THRESHOLD):
     groups = {}
     season_order = []
     for item in items:
+        # Falls back to the episode's own Id on the rare item missing
+        # SeasonId, making it a "group" of one that can never reach
+        # block_threshold - it just stays an individual tile rather than
+        # being dropped or crashing the grouping below.
         season_id = item.get("SeasonId") or item.get("Id")
         if season_id not in groups:
             groups[season_id] = []

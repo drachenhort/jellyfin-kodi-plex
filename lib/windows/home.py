@@ -296,9 +296,9 @@ class HomeWindow(ControlledWindow):
                 continue
             latest.extend(library.get_latest(self.client, parent_id=view.get("Id"), limit=self.recently_added_item_limit))
         if collection_type == "movies" and self.hide_watched_recently_added_movies:
-            latest = [item for item in latest if not (item.get("UserData") or {}).get("Played")]
+            latest = [item for item in latest if not library.is_played(item)]
         if collection_type == "music" and self.hide_watched_recently_added_music:
-            latest = [item for item in latest if not (item.get("UserData") or {}).get("Played")]
+            latest = [item for item in latest if not library.is_played(item)]
         return latest
 
     def _latest_tv_episodes(self, views):

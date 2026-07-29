@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.49 - 2026-07-29
+- Internal cleanup of the Recently Added TV code (no user-facing change): the "hide watched" check is now a shared `library.is_played()` helper instead of three copies of the same inline lookup, and the raw-episode over-fetch heuristic behind season-block grouping is derived from an explained worst-case bound instead of an unexplained x10 multiplier, reducing the default request size
+
 ## 0.3.48 - 2026-07-29
 - Credit [Intro Skipper](https://intro-skipper.org) in the README: the "Skip Intro" support added in 0.3.42 relies entirely on that Jellyfin server plugin's intro-segment detection
 

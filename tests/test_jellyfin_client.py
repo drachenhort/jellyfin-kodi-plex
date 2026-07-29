@@ -410,6 +410,18 @@ def test_get_latest_episodes_still_surfaces_other_shows_after_a_big_batch(client
     assert [item["Id"] for item in result] == ["s1", "other1"]
 
 
+def test_is_played_true_for_played_item():
+    assert library.is_played({"UserData": {"Played": True}}) is True
+
+
+def test_is_played_false_for_unplayed_item():
+    assert library.is_played({"UserData": {"Played": False}}) is False
+
+
+def test_is_played_false_when_userdata_missing():
+    assert library.is_played({}) is False
+
+
 def test_get_next_episode_in_season_returns_the_following_episode(client, monkeypatch):
     fake = FakeRequests([
         FakeResponse({"Id": "e2", "Type": "Episode", "SeasonId": "season-1"}),
