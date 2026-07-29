@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.46 - 2026-07-29
+- Fix Recently Added TV silently dropping other shows' episodes after a large batch-added season: it only fetched "item limit" raw episodes before grouping, so one season alone reaching that many episodes crowded out every other show even though it collapses to a single tile. Now fetches a wider raw batch and caps the result at the item limit only after grouping.
+
 ## 0.3.45 - 2026-07-29
 - The Recently Added TV season-block threshold (added in 0.3.44) is now a Home setting ("Group new episodes into a season block after", default 3, range 2-20) instead of a fixed value
 

@@ -141,16 +141,32 @@ SEASON_BLOCK_THRESHOLD = 3
 
 
 def get_latest_episodes(client, parent_id=None, limit=20, block_threshold=SEASON_BLOCK_THRESHOLD):
-    """Recently added episodes (TV libraries). A season that got at least
-    `block_threshold` episodes added at once collapses into a single block
-    item (Type "Season") rather than showing each episode as its own tile;
-    a season with fewer new episodes still lists them individually."""
+    """Recently added episodes (TV libraries), as up to `limit` tiles. A
+    season that got at least `block_threshold` episodes added at once
+    collapses into a single block item (Type "Season") rather than showing
+    each episode as its own tile; a season with fewer new episodes still
+    lists them individually.
+
+    The raw API fetch pulls in more than `limit` episodes (see
+    _episode_fetch_limit()) since one big season dump can itself contain
+    `limit`-or-more episodes - fetching only `limit` raw episodes would let
+    that single season's batch crowd out every other show's recently added
+    episodes, even though it only ends up costing the row one tile."""
     result = get_items(
-        client, parent_id=parent_id, limit=limit, sort_by="DateCreated",
-        sort_order="Descending", include_item_types="Episode", recursive=True,
-        fields=LISTING_ITEM_FIELDS,
+        client, parent_id=parent_id, limit=_episode_fetch_limit(limit, block_threshold),
+        sort_by="DateCreated", sort_order="Descending", include_item_types="Episode",
+        recursive=True, fields=LISTING_ITEM_FIELDS,
     )
-    return _group_latest_episodes(result.get("Items", []), block_threshold)
+    return _group_latest_episodes(result.get("Items", []), block_threshold)[:limit]
+
+
+def _episode_fetch_limit(limit, block_threshold):
+    """How many raw episodes to request so that, even if a single season
+    accounts for as many as `limit` blocks' worth of episodes, there's still
+    enough left in the batch to surface `limit` distinct shows/seasons.
+    Capped to keep a very large "item limit" setting from turning into a
+    huge request."""
+    return min(max(limit * block_threshold * 10, 100), 500)
 
 
 def _group_latest_episodes(items, block_threshold=SEASON_BLOCK_THRESHOLD):

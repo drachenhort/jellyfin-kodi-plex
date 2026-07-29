@@ -349,6 +349,39 @@ def test_get_latest_episodes_collapses_a_big_batch_into_a_season_block(client, m
     assert block["UserData"]["UnplayedItemCount"] == 4
 
 
+def test_get_latest_episodes_requests_more_than_limit_raw_episodes(client, monkeypatch):
+    # A single season dumping `limit`-or-more episodes at once must not
+    # starve the raw fetch and crowd out every other show's recently added
+    # episodes - even though that season only costs the row one tile, the
+    # API request behind it has to look past just the first `limit` items.
+    fake = FakeRequests([FakeResponse({"Items": []})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    library.get_latest_episodes(client, limit=10, block_threshold=3)
+
+    assert fake.calls[0]["params"]["Limit"] > 10
+
+
+def test_get_latest_episodes_still_surfaces_other_shows_after_a_big_batch(client, monkeypatch):
+    # Regression test: 10 Rick and Morty episodes (one big batch, collapses
+    # to a single block) followed by another show's episode further down
+    # the DateCreated-descending list must still show up as its own tile,
+    # not get cut off because the big batch ate the whole raw fetch.
+    rick_and_morty_episodes = [
+        {"Id": f"e{n}", "SeriesId": "show1", "SeriesName": "Rick and Morty", "SeasonId": "s1",
+         "ParentIndexNumber": 9, "IndexNumber": n}
+        for n in range(1, 11)
+    ]
+    other_show_episode = {"Id": "other1", "SeriesId": "show2", "SeriesName": "Other Show",
+                           "SeasonId": "s2", "ParentIndexNumber": 1, "IndexNumber": 1}
+    fake = FakeRequests([FakeResponse({"Items": rick_and_morty_episodes + [other_show_episode]})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    result = library.get_latest_episodes(client, limit=10, block_threshold=3)
+
+    assert [item["Id"] for item in result] == ["s1", "other1"]
+
+
 def test_get_next_episode_in_season_returns_the_following_episode(client, monkeypatch):
     fake = FakeRequests([
         FakeResponse({"Id": "e2", "Type": "Episode", "SeasonId": "season-1"}),
