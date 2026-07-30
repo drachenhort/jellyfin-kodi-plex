@@ -51,20 +51,21 @@
     </control>
 
     <control type="panel" id="301">
-      <posx>80</posx>
+      <posx>67</posx>
       <posy>90</posy>
-      <width>1760</width>
+      <width>1786</width>
       <height>720</height>
       <onup>302</onup>
       <itemgap>20</itemgap>
-      <!-- Every child in both layouts below is offset +20 from its natural
-           position, reserving a 20px blank margin at the very top and
-           bottom of the panel's own box (grown by 60 total to make room) -
-           that's exactly the zoom overflow's reach, so the focused-cell
-           grow in focusedlayout no longer gets clipped by the panel's own
-           viewport edge for posters in the first/last visible row. -->
+      <!-- Every child in both layouts below is offset +20/+13 from its
+           natural position, reserving a blank margin around all four edges
+           of the panel's own box (grown to make room) that's exactly the
+           zoom overflow's reach, so the focused-cell grow in focusedlayout
+           no longer gets clipped by the panel's own viewport edge for
+           posters in the first/last visible row or the first/last column. -->
       <itemlayout width="220" height="330">
         <control type="image">
+          <posx>13</posx>
           <posy>20</posy>
           <width>220</width>
           <height>330</height>
@@ -72,6 +73,7 @@
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
         <control type="image">
+          <posx>13</posx>
           <posy>294</posy>
           <width>220</width>
           <height>56</height>
@@ -79,7 +81,7 @@
           <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
         </control>
         <control type="label">
-          <posx>10</posx>
+          <posx>23</posx>
           <posy>298</posy>
           <width>200</width>
           <height>20</height>
@@ -88,7 +90,7 @@
           <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
         </control>
         <control type="image">
-          <posx>172</posx>
+          <posx>185</posx>
           <posy>28</posy>
           <width>40</width>
           <height>40</height>
@@ -96,7 +98,7 @@
           <visible>ListItem.Property(watched)</visible>
         </control>
         <control type="image">
-          <posx>8</posx>
+          <posx>21</posx>
           <posy>28</posy>
           <width>64</width>
           <height>40</height>
@@ -104,7 +106,7 @@
           <visible>!String.IsEmpty(ListItem.Property(unwatched_count))</visible>
         </control>
         <control type="label">
-          <posx>8</posx>
+          <posx>21</posx>
           <posy>28</posy>
           <width>64</width>
           <height>40</height>
@@ -123,14 +125,14 @@
            the whole panel instead of just the focused cell. -->
       <focusedlayout width="246" height="370">
         <control type="image">
-          <posx>-13</posx>
+          <posx>0</posx>
           <posy>0</posy>
           <width>246</width>
           <height>370</height>
           <texture border="10">focus-highlight.png</texture>
         </control>
         <control type="image">
-          <posx>-10</posx>
+          <posx>3</posx>
           <posy>4</posy>
           <width>240</width>
           <height>363</height>
@@ -138,14 +140,14 @@
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
         <control type="image">
-          <posx>-10</posx>
+          <posx>3</posx>
           <posy>300</posy>
           <width>240</width>
           <height>70</height>
           <texture>focus-turquoise.png</texture>
         </control>
         <control type="label">
-          <posx>1</posx>
+          <posx>14</posx>
           <posy>306</posy>
           <width>217</width>
           <height>24</height>
@@ -154,7 +156,7 @@
           <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
         </control>
         <control type="label">
-          <posx>-13</posx>
+          <posx>0</posx>
           <posy>332</posy>
           <width>246</width>
           <height>38</height>
@@ -166,21 +168,21 @@
              the panel's own viewport edge (e.g. the top row), so the bottom
              one guarantees the selection is always visible somewhere. -->
         <control type="image">
-          <posx>90</posx>
+          <posx>103</posx>
           <posy>0</posy>
           <width>40</width>
           <height>25</height>
           <texture>focus-arrow.png</texture>
         </control>
         <control type="image">
-          <posx>90</posx>
+          <posx>103</posx>
           <posy>370</posy>
           <width>40</width>
           <height>25</height>
           <texture flipy="true">focus-arrow.png</texture>
         </control>
         <control type="image">
-          <posx>175</posx>
+          <posx>188</posx>
           <posy>32</posy>
           <width>45</width>
           <height>45</height>
@@ -188,7 +190,7 @@
           <visible>ListItem.Property(watched)</visible>
         </control>
         <control type="image">
-          <posx>-4</posx>
+          <posx>9</posx>
           <posy>32</posy>
           <width>72</width>
           <height>45</height>
@@ -196,7 +198,7 @@
           <visible>!String.IsEmpty(ListItem.Property(unwatched_count))</visible>
         </control>
         <control type="label">
-          <posx>-4</posx>
+          <posx>9</posx>
           <posy>32</posy>
           <width>72</width>
           <height>45</height>

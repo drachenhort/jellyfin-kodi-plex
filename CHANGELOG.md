@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.53 - 2026-07-30
+- Same fix as 0.3.52, applied to the library grid's left/right edges: the leftmost and rightmost columns' zoom overflow (13px each side) was getting clipped by the panel's own horizontal viewport bounds, cutting off part of the title (e.g. a leading digit) or the selection border. Grew the panel's width by a matching 13px margin on both sides and shifted all grid content right to compensate
+
 ## 0.3.52 - 2026-07-30
 - Fix two clipping issues in the library grid's poster zoom (0.3.51): the selection marker and, on further testing, the ratings/title text could get cut off for posters in the grid's top or bottom row, since the enlarged poster overflows past the panel's own viewport there with no row above/below to bleed into. Grew the grid's viewport by a 20px margin on both edges (shifting all grid content down to compensate) so the overflow always has room, and added a second selection marker below the poster (mirrored via `flipy`) so it's visible even when the top one would be clipped
 
