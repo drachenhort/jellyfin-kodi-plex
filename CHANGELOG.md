@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.58 - 2026-07-30
+- Revert the movie/show title centering on the item detail screen from 0.3.57 - left-aligned reads better there. The library grid and Search screen's focused poster title centering is unaffected
+
 ## 0.3.57 - 2026-07-30
 - Center the movie/show title label on the item detail screen, and center focused poster titles in the library grid and Search screen's result rows (short titles like "29" were hugging the left edge of the highlight bar)
 
