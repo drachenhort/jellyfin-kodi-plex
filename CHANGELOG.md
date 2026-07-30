@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.55 - 2026-07-30
+- Focused-item titles and ratings text that are too long for their box (e.g. "28 Years Later: The Bone Temple") now scroll instead of truncating with "...", in the library grid, the Search screen's result rows, and every Home screen hub row (Continue Watching, Next Up, Recently Added Movies/TV/Music)
+
 ## 0.3.54 - 2026-07-30
 - Extend the poster-zoom clipping fix (0.3.52/0.3.53) to the Search screen's Movies/TV Shows/Music result rows: switched from the container-level Focus/UnFocus animation to the same bigger-focusedlayout-box technique as the library grid, with matching margins on all four edges and a mirrored top/bottom selection marker (every item in these single-row lists is effectively a top/bottom edge case). Zoom is 110% here (vs 112% in the grid) since the gap above these rows is a few px tighter
 

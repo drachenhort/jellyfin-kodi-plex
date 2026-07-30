@@ -154,6 +154,7 @@
           <font>font12</font>
           <label>$INFO[ListItem.Property(ratings_text)]</label>
           <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
+          <scroll>true</scroll>
         </control>
         <control type="label">
           <posx>0</posx>
@@ -162,6 +163,7 @@
           <height>38</height>
           <font>font12</font>
           <label>$INFO[ListItem.Label]</label>
+          <scroll>true</scroll>
         </control>
         <!-- Top and bottom copies of the same marker: whichever grid row
              the focused poster is in, the top arrow can end up clipped by

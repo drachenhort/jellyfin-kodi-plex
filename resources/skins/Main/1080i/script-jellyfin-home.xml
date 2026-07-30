@@ -164,6 +164,7 @@
               <height>30</height>
               <font>font12</font>
               <label>$INFO[ListItem.Label]</label>
+              <scroll>true</scroll>
             </control>
             <control type="image">
               <posx>102</posx>
@@ -257,6 +258,7 @@
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(ratings_text)]</label>
+              <scroll>true</scroll>
             </control>
             <control type="image">
               <posx>112</posx>
@@ -401,6 +403,7 @@
               <height>20</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(series_name)]</label>
+              <scroll>true</scroll>
             </control>
             <control type="label">
               <posx>13</posx>
@@ -417,6 +420,7 @@
               <height>20</height>
               <font>font12</font>
               <label>$INFO[ListItem.Title]</label>
+              <scroll>true</scroll>
             </control>
             <control type="label">
               <posx>13</posx>
@@ -425,6 +429,7 @@
               <height>20</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(ratings_text)]</label>
+              <scroll>true</scroll>
             </control>
             <control type="image">
               <posx>112</posx>
@@ -537,6 +542,7 @@
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Label]</label>
+              <scroll>true</scroll>
             </control>
             <control type="image">
               <posx>112</posx>
@@ -630,6 +636,7 @@
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(series_name)]</label>
+              <scroll>true</scroll>
             </control>
             <control type="label">
               <posx>13</posx>
@@ -638,6 +645,7 @@
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Label]</label>
+              <scroll>true</scroll>
             </control>
             <control type="image">
               <posx>112</posx>
@@ -709,6 +717,7 @@
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(series_name)]</label>
+              <scroll>true</scroll>
             </control>
             <control type="label">
               <posx>13</posx>
@@ -717,6 +726,7 @@
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Label]</label>
+              <scroll>true</scroll>
             </control>
             <control type="label">
               <posx>13</posx>
