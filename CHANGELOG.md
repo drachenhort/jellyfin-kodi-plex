@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.54 - 2026-07-30
+- Extend the poster-zoom clipping fix (0.3.52/0.3.53) to the Search screen's Movies/TV Shows/Music result rows: switched from the container-level Focus/UnFocus animation to the same bigger-focusedlayout-box technique as the library grid, with matching margins on all four edges and a mirrored top/bottom selection marker (every item in these single-row lists is effectively a top/bottom edge case). Zoom is 110% here (vs 112% in the grid) since the gap above these rows is a few px tighter
+
 ## 0.3.53 - 2026-07-30
 - Same fix as 0.3.52, applied to the library grid's left/right edges: the leftmost and rightmost columns' zoom overflow (13px each side) was getting clipped by the panel's own horizontal viewport bounds, cutting off part of the title (e.g. a leading digit) or the selection border. Grew the panel's width by a matching 13px margin on both sides and shifted all grid content right to compensate
 
