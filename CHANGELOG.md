@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.50 - 2026-07-30
+- Poster grids (library browsing, search results) now zoom the focused item to 112% on selection, matching the Home screen's hub rows - makes the selected poster clearly stand out and read at a larger, sharper size, addressing posters looking low-res when small and unfocused
+
 ## 0.3.49 - 2026-07-29
 - Internal cleanup of the Recently Added TV code (no user-facing change): the "hide watched" check is now a shared `library.is_played()` helper instead of three copies of the same inline lookup, and the raw-episode over-fetch heuristic behind season-block grouping is derived from an explained worst-case bound instead of an unexplained x10 multiplier, reducing the default request size
 

@@ -164,6 +164,8 @@
           <itemgap>15</itemgap>
           <onup>505</onup>
           <ondown>509</ondown>
+          <animation effect="zoom" start="100" end="112" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
+          <animation effect="zoom" start="112" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
           <itemlayout width="133" height="200">
             <control type="image">
               <width>133</width>
@@ -247,6 +249,8 @@
           <itemgap>15</itemgap>
           <onup>508</onup>
           <ondown>510</ondown>
+          <animation effect="zoom" start="100" end="112" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
+          <animation effect="zoom" start="112" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
           <itemlayout width="133" height="200">
             <control type="image">
               <width>133</width>
@@ -330,6 +334,8 @@
           <itemgap>15</itemgap>
           <onup>509</onup>
           <ondown>510</ondown>
+          <animation effect="zoom" start="100" end="112" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
+          <animation effect="zoom" start="112" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
           <itemlayout width="133" height="200">
             <control type="image">
               <width>133</width>

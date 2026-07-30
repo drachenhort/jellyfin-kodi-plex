@@ -57,6 +57,8 @@
       <height>660</height>
       <onup>302</onup>
       <itemgap>20</itemgap>
+      <animation effect="zoom" start="100" end="112" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
+      <animation effect="zoom" start="112" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
       <itemlayout width="220" height="330">
         <control type="image">
           <width>220</width>
