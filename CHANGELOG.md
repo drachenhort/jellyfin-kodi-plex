@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.57 - 2026-07-30
+- Center the movie/show title label on the item detail screen, and center focused poster titles in the library grid and Search screen's result rows (short titles like "29" were hugging the left edge of the highlight bar)
+
 ## 0.3.56 - 2026-07-30
 - Add an optional clock (hours and minutes) to the top right of the Home screen, next to Search - two new Home settings, "Show clock" and "Use 24-hour clock" (default: both on). The clock text is formatted in Python and ticked every second via a Window property rather than a skin-only $INFO[System.Time] label, since Kodi's time-format tokens don't actually control 12- vs 24-hour display (that follows the OS/Kodi regional locale regardless of the format string given) - only Python-side formatting could honor the setting
 
