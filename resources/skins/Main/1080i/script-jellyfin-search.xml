@@ -244,6 +244,7 @@
               <width>127</width>
               <height>31</height>
               <font>font12</font>
+              <align>center</align>
               <label>$INFO[ListItem.Label]</label>
               <scroll>true</scroll>
             </control>
@@ -340,6 +341,7 @@
               <width>127</width>
               <height>31</height>
               <font>font12</font>
+              <align>center</align>
               <label>$INFO[ListItem.Label]</label>
               <scroll>true</scroll>
             </control>
@@ -436,6 +438,7 @@
               <width>127</width>
               <height>31</height>
               <font>font12</font>
+              <align>center</align>
               <label>$INFO[ListItem.Label]</label>
               <scroll>true</scroll>
             </control>
