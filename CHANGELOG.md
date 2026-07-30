@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.52 - 2026-07-30
+- Fix two clipping issues in the library grid's poster zoom (0.3.51): the selection marker and, on further testing, the ratings/title text could get cut off for posters in the grid's top or bottom row, since the enlarged poster overflows past the panel's own viewport there with no row above/below to bleed into. Grew the grid's viewport by a 20px margin on both edges (shifting all grid content down to compensate) so the overflow always has room, and added a second selection marker below the poster (mirrored via `flipy`) so it's visible even when the top one would be clipped
+
 ## 0.3.51 - 2026-07-30
 - Fix the library browsing poster grid's zoom-on-focus (added in 0.3.50): it was scaling the entire grid, not just the selected poster, because a Panel control's Focus/UnFocus animation applies to the whole container rather than the individual focused cell (unlike the single-row Home/Search lists, where that pattern works correctly). Replaced with a bigger, centered `focusedlayout` box, which grows only the one focused poster
 

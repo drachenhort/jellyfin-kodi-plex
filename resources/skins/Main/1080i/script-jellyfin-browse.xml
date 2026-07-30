@@ -52,20 +52,27 @@
 
     <control type="panel" id="301">
       <posx>80</posx>
-      <posy>130</posy>
+      <posy>90</posy>
       <width>1760</width>
-      <height>660</height>
+      <height>720</height>
       <onup>302</onup>
       <itemgap>20</itemgap>
+      <!-- Every child in both layouts below is offset +20 from its natural
+           position, reserving a 20px blank margin at the very top and
+           bottom of the panel's own box (grown by 60 total to make room) -
+           that's exactly the zoom overflow's reach, so the focused-cell
+           grow in focusedlayout no longer gets clipped by the panel's own
+           viewport edge for posters in the first/last visible row. -->
       <itemlayout width="220" height="330">
         <control type="image">
+          <posy>20</posy>
           <width>220</width>
           <height>330</height>
           <aspectratio>scale</aspectratio>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
         <control type="image">
-          <posy>274</posy>
+          <posy>294</posy>
           <width>220</width>
           <height>56</height>
           <texture>gradient-overlay.png</texture>
@@ -73,7 +80,7 @@
         </control>
         <control type="label">
           <posx>10</posx>
-          <posy>278</posy>
+          <posy>298</posy>
           <width>200</width>
           <height>20</height>
           <font>font12</font>
@@ -82,7 +89,7 @@
         </control>
         <control type="image">
           <posx>172</posx>
-          <posy>8</posy>
+          <posy>28</posy>
           <width>40</width>
           <height>40</height>
           <texture>watched-badge.png</texture>
@@ -90,7 +97,7 @@
         </control>
         <control type="image">
           <posx>8</posx>
-          <posy>8</posy>
+          <posy>28</posy>
           <width>64</width>
           <height>40</height>
           <texture>unwatched-badge.png</texture>
@@ -98,7 +105,7 @@
         </control>
         <control type="label">
           <posx>8</posx>
-          <posy>8</posy>
+          <posy>28</posy>
           <width>64</width>
           <height>40</height>
           <font>font12</font>
@@ -117,14 +124,14 @@
       <focusedlayout width="246" height="370">
         <control type="image">
           <posx>-13</posx>
-          <posy>-20</posy>
+          <posy>0</posy>
           <width>246</width>
           <height>370</height>
           <texture border="10">focus-highlight.png</texture>
         </control>
         <control type="image">
           <posx>-10</posx>
-          <posy>-16</posy>
+          <posy>4</posy>
           <width>240</width>
           <height>363</height>
           <aspectratio>scale</aspectratio>
@@ -132,38 +139,49 @@
         </control>
         <control type="image">
           <posx>-10</posx>
-          <posy>287</posy>
+          <posy>300</posy>
           <width>240</width>
-          <height>63</height>
+          <height>70</height>
           <texture>focus-turquoise.png</texture>
         </control>
         <control type="label">
           <posx>1</posx>
-          <posy>292</posy>
+          <posy>306</posy>
           <width>217</width>
-          <height>22</height>
+          <height>24</height>
           <font>font12</font>
           <label>$INFO[ListItem.Property(ratings_text)]</label>
           <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
         </control>
         <control type="label">
           <posx>-13</posx>
-          <posy>316</posy>
+          <posy>332</posy>
           <width>246</width>
-          <height>34</height>
+          <height>38</height>
           <font>font12</font>
           <label>$INFO[ListItem.Label]</label>
         </control>
+        <!-- Top and bottom copies of the same marker: whichever grid row
+             the focused poster is in, the top arrow can end up clipped by
+             the panel's own viewport edge (e.g. the top row), so the bottom
+             one guarantees the selection is always visible somewhere. -->
         <control type="image">
           <posx>90</posx>
-          <posy>-20</posy>
+          <posy>0</posy>
           <width>40</width>
           <height>25</height>
           <texture>focus-arrow.png</texture>
         </control>
         <control type="image">
+          <posx>90</posx>
+          <posy>370</posy>
+          <width>40</width>
+          <height>25</height>
+          <texture flipy="true">focus-arrow.png</texture>
+        </control>
+        <control type="image">
           <posx>175</posx>
-          <posy>12</posy>
+          <posy>32</posy>
           <width>45</width>
           <height>45</height>
           <texture>watched-badge.png</texture>
@@ -171,7 +189,7 @@
         </control>
         <control type="image">
           <posx>-4</posx>
-          <posy>12</posy>
+          <posy>32</posy>
           <width>72</width>
           <height>45</height>
           <texture>unwatched-badge.png</texture>
@@ -179,7 +197,7 @@
         </control>
         <control type="label">
           <posx>-4</posx>
-          <posy>12</posy>
+          <posy>32</posy>
           <width>72</width>
           <height>45</height>
           <font>font12</font>
