@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.51 - 2026-07-30
+- Fix the library browsing poster grid's zoom-on-focus (added in 0.3.50): it was scaling the entire grid, not just the selected poster, because a Panel control's Focus/UnFocus animation applies to the whole container rather than the individual focused cell (unlike the single-row Home/Search lists, where that pattern works correctly). Replaced with a bigger, centered `focusedlayout` box, which grows only the one focused poster
+
 ## 0.3.50 - 2026-07-30
 - Poster grids (library browsing, search results) now zoom the focused item to 112% on selection, matching the Home screen's hub rows - makes the selected poster clearly stand out and read at a larger, sharper size, addressing posters looking low-res when small and unfocused
 

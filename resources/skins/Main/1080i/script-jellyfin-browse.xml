@@ -57,8 +57,6 @@
       <height>660</height>
       <onup>302</onup>
       <itemgap>20</itemgap>
-      <animation effect="zoom" start="100" end="112" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
-      <animation effect="zoom" start="112" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
       <itemlayout width="220" height="330">
         <control type="image">
           <width>220</width>
@@ -110,71 +108,80 @@
           <visible>!String.IsEmpty(ListItem.Property(unwatched_count))</visible>
         </control>
       </itemlayout>
-      <focusedlayout width="220" height="330">
+      <!-- Grows the focused cell to 112% via a bigger focusedlayout box
+           (centered over the itemlayout footprint below with negative
+           posx/posy), rather than a container-level Focus/UnFocus zoom
+           animation - Panel controls (this is a multi-row/column grid,
+           unlike the single-row Home/Search lists) apply that animation to
+           the whole panel instead of just the focused cell. -->
+      <focusedlayout width="246" height="370">
         <control type="image">
-          <width>220</width>
-          <height>330</height>
+          <posx>-13</posx>
+          <posy>-20</posy>
+          <width>246</width>
+          <height>370</height>
           <texture border="10">focus-highlight.png</texture>
         </control>
         <control type="image">
-          <posx>3</posx>
-          <posy>3</posy>
-          <width>214</width>
-          <height>324</height>
+          <posx>-10</posx>
+          <posy>-16</posy>
+          <width>240</width>
+          <height>363</height>
           <aspectratio>scale</aspectratio>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
         <control type="image">
-          <posx>3</posx>
-          <posy>274</posy>
-          <width>214</width>
-          <height>56</height>
+          <posx>-10</posx>
+          <posy>287</posy>
+          <width>240</width>
+          <height>63</height>
           <texture>focus-turquoise.png</texture>
         </control>
         <control type="label">
-          <posx>13</posx>
-          <posy>278</posy>
-          <width>194</width>
-          <height>20</height>
+          <posx>1</posx>
+          <posy>292</posy>
+          <width>217</width>
+          <height>22</height>
           <font>font12</font>
           <label>$INFO[ListItem.Property(ratings_text)]</label>
           <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
         </control>
         <control type="label">
-          <posy>300</posy>
-          <width>220</width>
-          <height>30</height>
+          <posx>-13</posx>
+          <posy>316</posy>
+          <width>246</width>
+          <height>34</height>
           <font>font12</font>
           <label>$INFO[ListItem.Label]</label>
         </control>
         <control type="image">
-          <posx>92</posx>
-          <posy>0</posy>
-          <width>36</width>
-          <height>22</height>
+          <posx>90</posx>
+          <posy>-20</posy>
+          <width>40</width>
+          <height>25</height>
           <texture>focus-arrow.png</texture>
         </control>
         <control type="image">
-          <posx>168</posx>
-          <posy>28</posy>
-          <width>40</width>
-          <height>40</height>
+          <posx>175</posx>
+          <posy>12</posy>
+          <width>45</width>
+          <height>45</height>
           <texture>watched-badge.png</texture>
           <visible>ListItem.Property(watched)</visible>
         </control>
         <control type="image">
-          <posx>8</posx>
-          <posy>28</posy>
-          <width>64</width>
-          <height>40</height>
+          <posx>-4</posx>
+          <posy>12</posy>
+          <width>72</width>
+          <height>45</height>
           <texture>unwatched-badge.png</texture>
           <visible>!String.IsEmpty(ListItem.Property(unwatched_count))</visible>
         </control>
         <control type="label">
-          <posx>8</posx>
-          <posy>28</posy>
-          <width>64</width>
-          <height>40</height>
+          <posx>-4</posx>
+          <posy>12</posy>
+          <width>72</width>
+          <height>45</height>
           <font>font12</font>
           <align>center</align>
           <aligny>center</aligny>
