@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.56 - 2026-07-30
+- Add an optional clock (hours and minutes) to the top right of the Home screen, next to Search - two new Home settings, "Show clock" and "Use 24-hour clock" (default: both on). The clock text is formatted in Python and ticked every second via a Window property rather than a skin-only $INFO[System.Time] label, since Kodi's time-format tokens don't actually control 12- vs 24-hour display (that follows the OS/Kodi regional locale regardless of the format string given) - only Python-side formatting could honor the setting
+
 ## 0.3.55 - 2026-07-30
 - Focused-item titles and ratings text that are too long for their box (e.g. "28 Years Later: The Bone Temple") now scroll instead of truncating with "...", in the library grid, the Search screen's result rows, and every Home screen hub row (Continue Watching, Next Up, Recently Added Movies/TV/Music)
 

@@ -506,6 +506,40 @@ def test_hide_playlists_defaults_to_true_when_setting_unset(client, monkeypatch)
     assert window.hide_playlists is True
 
 
+def test_clock_settings_default_to_shown_and_24_hour(client, monkeypatch):
+    window = _make_window(client, monkeypatch)
+    assert window.show_clock is True
+    assert window.clock_24_hour is True
+
+
+def test_clock_settings_read_persisted_values(client, monkeypatch):
+    window = _make_window(
+        client, monkeypatch,
+        extra_settings={home_mod.SHOW_CLOCK_SETTING: "false", home_mod.CLOCK_24_HOUR_SETTING: "false"},
+    )
+    assert window.show_clock is False
+    assert window.clock_24_hour is False
+
+
+def test_oninit_sets_clock_window_properties(client, monkeypatch):
+    window = _make_window(
+        client, monkeypatch,
+        extra_settings={home_mod.CLOCK_24_HOUR_SETTING: "false"},
+    )
+    window.onInit()
+    assert window.getProperty("show_clock") == "true"
+    assert window.getProperty("clock_24_hour") == ""
+
+
+def test_oninit_clears_clock_property_when_clock_disabled(client, monkeypatch):
+    window = _make_window(
+        client, monkeypatch,
+        extra_settings={home_mod.SHOW_CLOCK_SETTING: "false"},
+    )
+    window.onInit()
+    assert window.getProperty("show_clock") == ""
+
+
 def test_hide_playlists_reads_persisted_setting(client, monkeypatch):
     window = _make_window(client, monkeypatch, hide_playlists_setting="false")
     assert window.hide_playlists is False

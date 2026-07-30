@@ -76,6 +76,24 @@
       <onup>204</onup>
     </control>
 
+    <!-- Kodi's System.Time infolabel format tokens don't actually switch
+         between 12/24-hour (that follows the OS/Kodi regional locale
+         setting regardless of the format string) - only whether an am/pm
+         suffix is appended. So the clock_24_hour setting couldn't be
+         honored via a skin-only $INFO label; HomeWindow ticks this Window
+         property with a plain Python-formatted string instead (see
+         HomeWindow._tick_clock), independent of locale. -->
+    <control type="label">
+      <posx>1835</posx>
+      <posy>45</posy>
+      <width>110</width>
+      <height>50</height>
+      <font>font16</font>
+      <align>left</align>
+      <aligny>center</aligny>
+      <label>$INFO[Window.Property(clock_text)]</label>
+      <visible>String.IsEqual(Window.Property(show_clock),true)</visible>
+    </control>
 
     <!-- Rows are stacked in a grouplist so it scrolls to keep the focused
          row visible instead of every row having to be squeezed to fit a

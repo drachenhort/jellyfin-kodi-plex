@@ -97,6 +97,16 @@
             <popup>true</popup>
           </control>
         </setting>
+        <setting id="show_clock" type="boolean" label="30057" help="30058">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="clock_24_hour" type="boolean" label="30059" help="30060">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
       </group>
     </category>
     <category id="library" label="30020">

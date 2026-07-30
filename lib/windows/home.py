@@ -59,6 +59,8 @@ HIDE_WATCHED_RECENTLY_ADDED_MUSIC_SETTING = "hide_watched_recently_added_music"
 RECENTLY_ADDED_ITEM_LIMIT_SETTING = "recently_added_item_limit"
 DEFAULT_RECENTLY_ADDED_ITEM_LIMIT = 10
 SEASON_BLOCK_THRESHOLD_SETTING = "season_block_threshold"
+SHOW_CLOCK_SETTING = "show_clock"
+CLOCK_24_HOUR_SETTING = "clock_24_hour"
 
 CTRL_LIBRARIES = 200
 CTRL_CONTINUE_WATCHING = 201
@@ -134,6 +136,8 @@ class HomeWindow(ControlledWindow):
         self.hide_watched_recently_added_music = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_MUSIC_SETTING) == "true"
         self.recently_added_item_limit = _recently_added_item_limit()
         self.season_block_threshold = _season_block_threshold()
+        self.show_clock = ADDON.getSetting(SHOW_CLOCK_SETTING) != "false"
+        self.clock_24_hour = ADDON.getSetting(CLOCK_24_HOUR_SETTING) != "false"
         self.loaded_steps = 0
         # Which item (if any) to re-select once its row is loaded, e.g.
         # because Home is being shown again after the user backed out of
@@ -156,6 +160,7 @@ class HomeWindow(ControlledWindow):
         # case the user has already backed out while it was in flight.
         self.setFocusId(CTRL_LIBRARIES)
         self._update_playlists_toggle_label()
+        self._update_clock_properties()
         # Home is re-entered (onInit runs again) every time the user backs
         # out to it, so this is the natural point to drop the browse-level
         # cache - otherwise a show/season the server only just finished
@@ -167,6 +172,7 @@ class HomeWindow(ControlledWindow):
         self._update_loading_label()
         threading.Thread(target=self._load, daemon=True).start()
         threading.Thread(target=self._tick_progress, daemon=True).start()
+        threading.Thread(target=self._tick_clock, daemon=True).start()
 
     def _update_loading_label(self):
         # Shows both: a simulated percentage that keeps visibly climbing
@@ -391,6 +397,37 @@ class HomeWindow(ControlledWindow):
     def _update_playlists_toggle_label(self):
         self.getControl(CTRL_PLAYLISTS_TOGGLE).setLabel("Show Playlists" if self.hide_playlists else "Hide Playlists")
 
+    def _update_clock_properties(self):
+        # Only the visibility toggle is a Window property set once here -
+        # the ticking clock text itself is clock_text, updated once a
+        # second by _tick_clock() on a background thread (started from
+        # onInit, alongside _tick_progress).
+        self.setProperty("show_clock", "true" if self.show_clock else "")
+        self._update_clock_text()
+
+    def _update_clock_text(self):
+        # Kodi's System.Time infolabel format tokens don't actually control
+        # 12- vs 24-hour (that follows the OS/Kodi regional locale setting
+        # regardless of the format string given), so honoring clock_24_hour
+        # means formatting the time in Python instead of relying on a skin
+        # $INFO label. strftime's %-I (no leading zero) isn't supported on
+        # Windows, hence the manual lstrip("0") instead.
+        now = time.localtime()
+        if self.clock_24_hour:
+            text = time.strftime("%H:%M", now)
+        else:
+            text = time.strftime("%I:%M %p", now).lstrip("0")
+        self.setProperty("clock_text", text)
+
+    def _tick_clock(self):
+        # Event.wait(timeout) rather than xbmc.sleep(1000): it returns
+        # immediately once the window closes instead of waiting out the
+        # full second, and (unlike xbmc.sleep, a no-op in the test stub)
+        # it's a real wait even under pytest, so this doesn't spin the CPU
+        # for as long as Home stays open in a test that calls onInit().
+        while not self.closed_event.wait(timeout=1.0):
+            self._update_clock_text()
+
     def _toggle_playlists_visibility(self):
         if self.views is None:
             return
@@ -422,7 +459,10 @@ class HomeWindow(ControlledWindow):
         self.hide_watched_recently_added_music = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_MUSIC_SETTING) == "true"
         self.recently_added_item_limit = _recently_added_item_limit()
         self.season_block_threshold = _season_block_threshold()
+        self.show_clock = ADDON.getSetting(SHOW_CLOCK_SETTING) != "false"
+        self.clock_24_hour = ADDON.getSetting(CLOCK_24_HOUR_SETTING) != "false"
         self._update_playlists_toggle_label()
+        self._update_clock_properties()
         # A settings-driven refresh re-fetches every row from scratch (the
         # simplest way to correctly pick up a newly-enabled row, which was
         # never fetched the first time around) - same background-thread

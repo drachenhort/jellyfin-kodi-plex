@@ -187,3 +187,19 @@ msgstr ""
 msgctxt "#30056"
 msgid "When a season gets at least this many new episodes at once, Recently Added TV shows a single \"Show - Season N\" tile for the whole batch instead of one tile per episode."
 msgstr ""
+
+msgctxt "#30057"
+msgid "Show clock"
+msgstr ""
+
+msgctxt "#30058"
+msgid "Shows the current time (hours and minutes) at the top right of the Home screen, next to Search."
+msgstr ""
+
+msgctxt "#30059"
+msgid "Use 24-hour clock"
+msgstr ""
+
+msgctxt "#30060"
+msgid "Shows the clock as 24-hour (13:05) instead of 12-hour with AM/PM (1:05 PM)."
+msgstr ""
