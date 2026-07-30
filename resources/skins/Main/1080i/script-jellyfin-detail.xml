@@ -31,8 +31,6 @@
       <width>1400</width>
       <height>60</height>
       <font>font37</font>
-      <align>center</align>
-      <aligny>center</aligny>
       <label></label>
     </control>
     <control type="label" id="403">
