@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.59 - 2026-07-31
+- Fix zoom-on-focus for the Home screen's Recently Added Movies/TV rows: the container-level Focus/UnFocus animation was scaling the whole row on focus, not just the hovered poster (same root cause fixed for the library grid in 0.3.51 and Search's rows in 0.3.54). Switched both rows to the same bigger-focusedlayout-box technique with mirrored top/bottom selection markers, so only the individual focused item zooms
+
 ## 0.3.58 - 2026-07-30
 - Revert the movie/show title centering on the item detail screen from 0.3.57 - left-aligned reads better there. The library grid and Search screen's focused poster title centering is unaffected
 
