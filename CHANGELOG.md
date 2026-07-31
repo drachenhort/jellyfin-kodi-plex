@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.65 - 2026-07-31
+- Fix Home showing multiple rows' selected items as "focused" (zoomed, orange border) simultaneously right after the addon starts, before anything was actually selected: a List control renders its remembered selection with focusedlayout regardless of whether that control currently has real input focus, so every row's default item-0 selection showed the focused look at once. Gated the focus-only visuals (border, arrows, zoom, scrolling labels) behind `Control.HasFocus(id)` on the Libraries row and Recently Added Movies/TV/Next Up, so only the row genuinely holding input focus shows them
+
 ## 0.3.64 - 2026-07-31
 - Actually fix the leftmost-item clipping on Recently Added Movies/TV and Next Up (0.3.59-0.3.63 kept widening the list's margin without success): pixel-level inspection showed the focused border's left edge simply wasn't rendering at all - not "clipped a bit", entirely absent, regardless of how much margin the list was given. Root cause: Kodi can't scroll a horizontal list to a negative offset, so a focused item's left-side zoom overflow is unrenderable for that list's first item no matter what. Confirmed this also affects the already-shipped Search screen's leftmost result, so it's a Kodi limitation, not something introduced here. Redesigned all three rows so the focused box only grows rightward and vertically, never leftward - eliminates the need for negative scroll entirely. Verified via pixel analysis (not just eyeballing) that all four border edges render solid on the leftmost item in each row
 

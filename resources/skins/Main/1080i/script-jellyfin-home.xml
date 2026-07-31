@@ -163,10 +163,17 @@
             </control>
           </itemlayout>
           <focusedlayout width="240" height="135">
+            <!-- A List control renders its selected item with focusedlayout
+                 regardless of whether the control itself currently has
+                 input focus, so without this every row's remembered
+                 selection would show as "focused" simultaneously - only the
+                 border/arrow (the actual focus cue) are gated here since
+                 the poster/label look the same either way. -->
             <control type="image">
               <width>240</width>
               <height>135</height>
               <texture border="10">focus-highlight.png</texture>
+              <visible>Control.HasFocus(200)</visible>
             </control>
             <control type="image">
               <posx>3</posx>
@@ -190,6 +197,7 @@
               <width>36</width>
               <height>22</height>
               <texture>focus-arrow.png</texture>
+              <visible>Control.HasFocus(200)</visible>
             </control>
           </focusedlayout>
         </control>
@@ -264,11 +272,51 @@
             </control>
           </itemlayout>
           <focusedlayout width="288" height="430">
+            <!-- A List renders its selected item with focusedlayout
+                 regardless of whether the control itself has real input
+                 focus, so without these conditions every row's remembered
+                 selection would show zoomed simultaneously on Home. When
+                 not truly focused, show a plain copy of itemlayout's
+                 compact look instead (same posx/posy/size as itemlayout,
+                 since both layouts share the same per-item origin). -->
+            <control type="image">
+              <posy>30</posy>
+              <width>257</width>
+              <height>387</height>
+              <aspectratio>scale</aspectratio>
+              <texture>$INFO[ListItem.Art(thumb)]</texture>
+              <visible>!Control.HasFocus(203)</visible>
+            </control>
+            <control type="image">
+              <posy>337</posy>
+              <width>257</width>
+              <height>80</height>
+              <texture>gradient-overlay.png</texture>
+              <visible>!Control.HasFocus(203)</visible>
+            </control>
+            <control type="label">
+              <posx>10</posx>
+              <posy>383</posy>
+              <width>237</width>
+              <height>24</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Property(ratings_text)]</label>
+              <visible>!Control.HasFocus(203)</visible>
+            </control>
+            <control type="image">
+              <posx>209</posx>
+              <posy>38</posy>
+              <width>40</width>
+              <height>40</height>
+              <texture>watched-badge.png</texture>
+              <visible>!Control.HasFocus(203) + ListItem.Property(watched)</visible>
+            </control>
             <control type="image">
               <posy>10</posy>
               <width>288</width>
               <height>430</height>
               <texture border="10">focus-highlight.png</texture>
+              <visible>Control.HasFocus(203)</visible>
             </control>
             <control type="image">
               <posx>3</posx>
@@ -277,6 +325,7 @@
               <height>424</height>
               <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
+              <visible>Control.HasFocus(203)</visible>
             </control>
             <control type="image">
               <posx>3</posx>
@@ -284,6 +333,7 @@
               <width>282</width>
               <height>80</height>
               <texture>focus-turquoise.png</texture>
+              <visible>Control.HasFocus(203)</visible>
             </control>
             <control type="label">
               <posx>13</posx>
@@ -293,6 +343,7 @@
               <font>font12</font>
               <label>$INFO[ListItem.Property(ratings_text)]</label>
               <scroll>true</scroll>
+              <visible>Control.HasFocus(203)</visible>
             </control>
             <control type="image">
               <posx>126</posx>
@@ -300,6 +351,7 @@
               <width>36</width>
               <height>22</height>
               <texture>focus-arrow.png</texture>
+              <visible>Control.HasFocus(203)</visible>
             </control>
             <control type="image">
               <posx>126</posx>
@@ -307,6 +359,7 @@
               <width>36</width>
               <height>22</height>
               <texture flipy="true">focus-arrow.png</texture>
+              <visible>Control.HasFocus(203)</visible>
             </control>
             <control type="image">
               <posx>236</posx>
@@ -314,7 +367,7 @@
               <width>40</width>
               <height>40</height>
               <texture>watched-badge.png</texture>
-              <visible>ListItem.Property(watched)</visible>
+              <visible>Control.HasFocus(203) + ListItem.Property(watched)</visible>
             </control>
           </focusedlayout>
         </control>
@@ -418,83 +471,66 @@
             </control>
           </itemlayout>
           <focusedlayout width="288" height="430">
+            <!-- See Recently Added Movies above for why these Control.HasFocus
+                 conditions are needed. -->
             <control type="image">
-              <posy>10</posy>
-              <width>288</width>
-              <height>430</height>
-              <texture border="10">focus-highlight.png</texture>
-            </control>
-            <control type="image">
-              <posx>3</posx>
-              <posy>13</posy>
-              <width>282</width>
-              <height>424</height>
+              <posy>30</posy>
+              <width>257</width>
+              <height>387</height>
               <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
+              <visible>!Control.HasFocus(205)</visible>
             </control>
             <control type="image">
-              <posx>3</posx>
-              <posy>349</posy>
-              <width>282</width>
+              <posy>329</posy>
+              <width>257</width>
               <height>88</height>
-              <texture>focus-turquoise.png</texture>
+              <texture>gradient-overlay.png</texture>
+              <visible>!Control.HasFocus(205)</visible>
             </control>
             <control type="label">
-              <posx>13</posx>
-              <posy>353</posy>
-              <width>262</width>
+              <posx>10</posx>
+              <posy>333</posy>
+              <width>237</width>
               <height>20</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(series_name)]</label>
-              <scroll>true</scroll>
+              <visible>!Control.HasFocus(205)</visible>
             </control>
             <control type="label">
-              <posx>13</posx>
-              <posy>373</posy>
-              <width>262</width>
+              <posx>10</posx>
+              <posy>353</posy>
+              <width>237</width>
               <height>20</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(episode_code)]</label>
+              <visible>!Control.HasFocus(205)</visible>
             </control>
             <control type="label">
-              <posx>13</posx>
-              <posy>393</posy>
-              <width>262</width>
+              <posx>10</posx>
+              <posy>373</posy>
+              <width>237</width>
               <height>20</height>
               <font>font12</font>
               <label>$INFO[ListItem.Title]</label>
-              <scroll>true</scroll>
+              <visible>!Control.HasFocus(205)</visible>
             </control>
             <control type="label">
-              <posx>13</posx>
-              <posy>413</posy>
-              <width>262</width>
+              <posx>10</posx>
+              <posy>393</posy>
+              <width>237</width>
               <height>20</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(ratings_text)]</label>
-              <scroll>true</scroll>
+              <visible>!Control.HasFocus(205)</visible>
             </control>
             <control type="image">
-              <posx>126</posx>
-              <posy>10</posy>
-              <width>36</width>
-              <height>22</height>
-              <texture>focus-arrow.png</texture>
-            </control>
-            <control type="image">
-              <posx>126</posx>
-              <posy>418</posy>
-              <width>36</width>
-              <height>22</height>
-              <texture flipy="true">focus-arrow.png</texture>
-            </control>
-            <control type="image">
-              <posx>236</posx>
+              <posx>209</posx>
               <posy>38</posy>
               <width>40</width>
               <height>40</height>
               <texture>watched-badge.png</texture>
-              <visible>ListItem.Property(watched)</visible>
+              <visible>!Control.HasFocus(205) + ListItem.Property(watched)</visible>
             </control>
             <control type="image">
               <posx>8</posx>
@@ -502,7 +538,7 @@
               <width>64</width>
               <height>40</height>
               <texture>unwatched-badge.png</texture>
-              <visible>!String.IsEmpty(ListItem.Property(unwatched_count))</visible>
+              <visible>!Control.HasFocus(205) + !String.IsEmpty(ListItem.Property(unwatched_count))</visible>
             </control>
             <control type="label">
               <posx>8</posx>
@@ -513,7 +549,113 @@
               <align>center</align>
               <aligny>center</aligny>
               <label>$INFO[ListItem.Property(unwatched_count)]</label>
-              <visible>!String.IsEmpty(ListItem.Property(unwatched_count))</visible>
+              <visible>!Control.HasFocus(205) + !String.IsEmpty(ListItem.Property(unwatched_count))</visible>
+            </control>
+            <control type="image">
+              <posy>10</posy>
+              <width>288</width>
+              <height>430</height>
+              <texture border="10">focus-highlight.png</texture>
+              <visible>Control.HasFocus(205)</visible>
+            </control>
+            <control type="image">
+              <posx>3</posx>
+              <posy>13</posy>
+              <width>282</width>
+              <height>424</height>
+              <aspectratio>scale</aspectratio>
+              <texture>$INFO[ListItem.Art(thumb)]</texture>
+              <visible>Control.HasFocus(205)</visible>
+            </control>
+            <control type="image">
+              <posx>3</posx>
+              <posy>349</posy>
+              <width>282</width>
+              <height>88</height>
+              <texture>focus-turquoise.png</texture>
+              <visible>Control.HasFocus(205)</visible>
+            </control>
+            <control type="label">
+              <posx>13</posx>
+              <posy>353</posy>
+              <width>262</width>
+              <height>20</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Property(series_name)]</label>
+              <scroll>true</scroll>
+              <visible>Control.HasFocus(205)</visible>
+            </control>
+            <control type="label">
+              <posx>13</posx>
+              <posy>373</posy>
+              <width>262</width>
+              <height>20</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Property(episode_code)]</label>
+              <visible>Control.HasFocus(205)</visible>
+            </control>
+            <control type="label">
+              <posx>13</posx>
+              <posy>393</posy>
+              <width>262</width>
+              <height>20</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Title]</label>
+              <scroll>true</scroll>
+              <visible>Control.HasFocus(205)</visible>
+            </control>
+            <control type="label">
+              <posx>13</posx>
+              <posy>413</posy>
+              <width>262</width>
+              <height>20</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Property(ratings_text)]</label>
+              <scroll>true</scroll>
+              <visible>Control.HasFocus(205)</visible>
+            </control>
+            <control type="image">
+              <posx>126</posx>
+              <posy>10</posy>
+              <width>36</width>
+              <height>22</height>
+              <texture>focus-arrow.png</texture>
+              <visible>Control.HasFocus(205)</visible>
+            </control>
+            <control type="image">
+              <posx>126</posx>
+              <posy>418</posy>
+              <width>36</width>
+              <height>22</height>
+              <texture flipy="true">focus-arrow.png</texture>
+              <visible>Control.HasFocus(205)</visible>
+            </control>
+            <control type="image">
+              <posx>236</posx>
+              <posy>38</posy>
+              <width>40</width>
+              <height>40</height>
+              <texture>watched-badge.png</texture>
+              <visible>Control.HasFocus(205) + ListItem.Property(watched)</visible>
+            </control>
+            <control type="image">
+              <posx>8</posx>
+              <posy>38</posy>
+              <width>64</width>
+              <height>40</height>
+              <texture>unwatched-badge.png</texture>
+              <visible>Control.HasFocus(205) + !String.IsEmpty(ListItem.Property(unwatched_count))</visible>
+            </control>
+            <control type="label">
+              <posx>8</posx>
+              <posy>38</posy>
+              <width>64</width>
+              <height>40</height>
+              <font>font12</font>
+              <align>center</align>
+              <aligny>center</aligny>
+              <label>$INFO[ListItem.Property(unwatched_count)]</label>
+              <visible>Control.HasFocus(205) + !String.IsEmpty(ListItem.Property(unwatched_count))</visible>
             </control>
           </focusedlayout>
         </control>
@@ -664,11 +806,47 @@
             </control>
           </itemlayout>
           <focusedlayout width="288" height="430">
+            <!-- See Recently Added Movies above for why these Control.HasFocus
+                 conditions are needed. -->
+            <control type="image">
+              <posy>30</posy>
+              <width>257</width>
+              <height>387</height>
+              <aspectratio>scale</aspectratio>
+              <texture>$INFO[ListItem.Art(thumb)]</texture>
+              <visible>!Control.HasFocus(202)</visible>
+            </control>
+            <control type="image">
+              <posy>369</posy>
+              <width>257</width>
+              <height>48</height>
+              <texture>gradient-overlay.png</texture>
+              <visible>!Control.HasFocus(202)</visible>
+            </control>
+            <control type="label">
+              <posx>10</posx>
+              <posy>369</posy>
+              <width>237</width>
+              <height>24</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Property(series_name)]</label>
+              <visible>!Control.HasFocus(202)</visible>
+            </control>
+            <control type="label">
+              <posx>10</posx>
+              <posy>393</posy>
+              <width>237</width>
+              <height>24</height>
+              <font>font12</font>
+              <label>$INFO[ListItem.Label]</label>
+              <visible>!Control.HasFocus(202)</visible>
+            </control>
             <control type="image">
               <posy>10</posy>
               <width>288</width>
               <height>430</height>
               <texture border="10">focus-highlight.png</texture>
+              <visible>Control.HasFocus(202)</visible>
             </control>
             <control type="image">
               <posx>3</posx>
@@ -677,6 +855,7 @@
               <height>424</height>
               <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
+              <visible>Control.HasFocus(202)</visible>
             </control>
             <control type="image">
               <posx>3</posx>
@@ -684,6 +863,7 @@
               <width>282</width>
               <height>48</height>
               <texture>focus-turquoise.png</texture>
+              <visible>Control.HasFocus(202)</visible>
             </control>
             <control type="label">
               <posx>13</posx>
@@ -693,6 +873,7 @@
               <font>font12</font>
               <label>$INFO[ListItem.Property(series_name)]</label>
               <scroll>true</scroll>
+              <visible>Control.HasFocus(202)</visible>
             </control>
             <control type="label">
               <posx>13</posx>
@@ -702,6 +883,7 @@
               <font>font12</font>
               <label>$INFO[ListItem.Label]</label>
               <scroll>true</scroll>
+              <visible>Control.HasFocus(202)</visible>
             </control>
             <control type="image">
               <posx>126</posx>
@@ -709,6 +891,7 @@
               <width>36</width>
               <height>22</height>
               <texture>focus-arrow.png</texture>
+              <visible>Control.HasFocus(202)</visible>
             </control>
           </focusedlayout>
         </control>
