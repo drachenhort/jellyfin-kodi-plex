@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.62 - 2026-07-31
+- Apply the same per-item zoom fix (0.3.59-0.3.61) to the Home screen's Next Up row: it still used the old container-level Focus/UnFocus animation, so it zoomed the whole row instead of just the hovered item, with the same clipping issues once converted. Next Up's focused state shows a below-poster title card (series + episode name) rather than an overlay on the poster itself, so its margins are sized for that taller content. Verified live against a real Kodi install
+
 ## 0.3.61 - 2026-07-31
 - Fix the remaining clipping on the Home screen's Recently Added Movies/TV rows (0.3.60 fixed top/bottom, but left/right was still cropped for the leftmost/rightmost item's zoom, cutting off e.g. the "T" in "TMDb"): the focused frame's horizontal position was still negative relative to the list control's own clip box, the same root cause as the vertical fix, just on the other axis. Widened the horizontal margin and, while at it, sized unfocused posters a few px smaller than the focused box (257x387 vs 288x430) so the focused item stands out more clearly against its neighbors. Verified live against a real Kodi install, leftmost/rightmost/middle items all check out
 

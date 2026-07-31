@@ -617,99 +617,108 @@
 
       <control type="group">
         <width>1760</width>
-        <height>480</height>
+        <height>560</height>
         <visible>Integer.IsGreater(Container(202).NumItems,0)</visible>
         <control type="label">
           <posx>0</posx>
-          <posy>0</posy>
+          <posy>20</posy>
           <width>1760</width>
           <height>30</height>
           <font>font16</font>
           <label>Next Up</label>
         </control>
+        <!-- Same margin-and-shift technique as Recently Added Movies/TV
+             above (see that list's comment): a bigger focusedlayout box
+             instead of a container-level Focus/UnFocus animation, with the
+             list's own declared box grown on every edge so the zoom (and
+             this row's below-poster title card, taller than the other
+             rows') can't clip against the list control's own clip bounds. -->
         <control type="list" id="202">
-          <posx>0</posx>
-          <posy>40</posy>
-          <width>1760</width>
-          <height>440</height>
+          <posx>-26</posx>
+          <posy>50</posy>
+          <width>1812</width>
+          <height>500</height>
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
           <onup>207</onup>
           <ondown>201</ondown>
-          <animation effect="zoom" start="100" end="108" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
-          <animation effect="zoom" start="108" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
-          <itemlayout width="260" height="390">
+          <itemlayout width="257" height="387">
             <control type="image">
-              <width>260</width>
-              <height>390</height>
+              <posx>26</posx>
+              <posy>30</posy>
+              <width>257</width>
+              <height>387</height>
               <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="image">
-              <posy>342</posy>
-              <width>260</width>
+              <posx>26</posx>
+              <posy>369</posy>
+              <width>257</width>
               <height>48</height>
               <texture>gradient-overlay.png</texture>
             </control>
             <control type="label">
-              <posx>10</posx>
-              <posy>342</posy>
-              <width>240</width>
+              <posx>36</posx>
+              <posy>369</posy>
+              <width>237</width>
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(series_name)]</label>
             </control>
             <control type="label">
-              <posx>10</posx>
-              <posy>366</posy>
-              <width>240</width>
+              <posx>36</posx>
+              <posy>393</posy>
+              <width>237</width>
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Label]</label>
             </control>
           </itemlayout>
-          <focusedlayout width="260" height="390">
+          <focusedlayout width="288" height="430">
             <control type="image">
-              <width>260</width>
-              <height>390</height>
+              <posx>10</posx>
+              <posy>10</posy>
+              <width>288</width>
+              <height>430</height>
               <texture border="10">focus-highlight.png</texture>
             </control>
             <control type="image">
-              <posx>3</posx>
-              <posy>3</posy>
-              <width>254</width>
-              <height>384</height>
+              <posx>13</posx>
+              <posy>13</posy>
+              <width>282</width>
+              <height>424</height>
               <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="image">
-              <posx>3</posx>
-              <posy>392</posy>
-              <width>254</width>
+              <posx>13</posx>
+              <posy>442</posy>
+              <width>282</width>
               <height>48</height>
               <texture>focus-turquoise.png</texture>
             </control>
             <control type="label">
-              <posx>13</posx>
-              <posy>392</posy>
-              <width>234</width>
+              <posx>23</posx>
+              <posy>442</posy>
+              <width>262</width>
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(series_name)]</label>
               <scroll>true</scroll>
             </control>
             <control type="label">
-              <posx>13</posx>
-              <posy>416</posy>
-              <width>234</width>
+              <posx>23</posx>
+              <posy>466</posy>
+              <width>262</width>
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Label]</label>
               <scroll>true</scroll>
             </control>
             <control type="image">
-              <posx>112</posx>
-              <posy>0</posy>
+              <posx>136</posx>
+              <posy>10</posy>
               <width>36</width>
               <height>22</height>
               <texture>focus-arrow.png</texture>
