@@ -634,9 +634,9 @@
              this row's below-poster title card, taller than the other
              rows') can't clip against the list control's own clip bounds. -->
         <control type="list" id="202">
-          <posx>-26</posx>
+          <posx>-36</posx>
           <posy>50</posy>
-          <width>1812</width>
+          <width>1832</width>
           <height>500</height>
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
@@ -644,7 +644,7 @@
           <ondown>201</ondown>
           <itemlayout width="257" height="387">
             <control type="image">
-              <posx>26</posx>
+              <posx>36</posx>
               <posy>30</posy>
               <width>257</width>
               <height>387</height>
@@ -652,14 +652,14 @@
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="image">
-              <posx>26</posx>
+              <posx>36</posx>
               <posy>369</posy>
               <width>257</width>
               <height>48</height>
               <texture>gradient-overlay.png</texture>
             </control>
             <control type="label">
-              <posx>36</posx>
+              <posx>46</posx>
               <posy>369</posy>
               <width>237</width>
               <height>24</height>
@@ -667,7 +667,7 @@
               <label>$INFO[ListItem.Property(series_name)]</label>
             </control>
             <control type="label">
-              <posx>36</posx>
+              <posx>46</posx>
               <posy>393</posy>
               <width>237</width>
               <height>24</height>
@@ -677,14 +677,14 @@
           </itemlayout>
           <focusedlayout width="288" height="430">
             <control type="image">
-              <posx>10</posx>
+              <posx>20</posx>
               <posy>10</posy>
               <width>288</width>
               <height>430</height>
               <texture border="10">focus-highlight.png</texture>
             </control>
             <control type="image">
-              <posx>13</posx>
+              <posx>23</posx>
               <posy>13</posy>
               <width>282</width>
               <height>424</height>
@@ -692,14 +692,14 @@
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="image">
-              <posx>13</posx>
+              <posx>23</posx>
               <posy>442</posy>
               <width>282</width>
               <height>48</height>
               <texture>focus-turquoise.png</texture>
             </control>
             <control type="label">
-              <posx>23</posx>
+              <posx>33</posx>
               <posy>442</posy>
               <width>262</width>
               <height>24</height>
@@ -708,7 +708,7 @@
               <scroll>true</scroll>
             </control>
             <control type="label">
-              <posx>23</posx>
+              <posx>33</posx>
               <posy>466</posy>
               <width>262</width>
               <height>24</height>
@@ -717,7 +717,7 @@
               <scroll>true</scroll>
             </control>
             <control type="image">
-              <posx>136</posx>
+              <posx>146</posx>
               <posy>10</posy>
               <width>36</width>
               <height>22</height>

@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.63 - 2026-07-31
+- Widen the Next Up row's horizontal zoom margin further (0.3.62's left/right buffer wasn't quite enough - the leftmost item's focus border could still be cropped on the left)
+
 ## 0.3.62 - 2026-07-31
 - Apply the same per-item zoom fix (0.3.59-0.3.61) to the Home screen's Next Up row: it still used the old container-level Focus/UnFocus animation, so it zoomed the whole row instead of just the hovered item, with the same clipping issues once converted. Next Up's focused state shows a below-poster title card (series + episode name) rather than an overlay on the poster itself, so its margins are sized for that taller content. Verified live against a real Kodi install
 
