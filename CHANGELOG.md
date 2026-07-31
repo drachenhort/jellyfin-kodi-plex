@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.61 - 2026-07-31
+- Fix the remaining clipping on the Home screen's Recently Added Movies/TV rows (0.3.60 fixed top/bottom, but left/right was still cropped for the leftmost/rightmost item's zoom, cutting off e.g. the "T" in "TMDb"): the focused frame's horizontal position was still negative relative to the list control's own clip box, the same root cause as the vertical fix, just on the other axis. Widened the horizontal margin and, while at it, sized unfocused posters a few px smaller than the focused box (257x387 vs 288x430) so the focused item stands out more clearly against its neighbors. Verified live against a real Kodi install, leftmost/rightmost/middle items all check out
+
 ## 0.3.60 - 2026-07-31
 - Fix clipping introduced by 0.3.59's per-item zoom fix on the Home screen's Recently Added Movies/TV rows: the focused item's bigger box now overflowed past each row's own reserved height, and since these rows sit in a vertically-scrolling grouplist (which clips its content to the visible viewport), the top/bottom of the zoomed poster and its ratings text could get cropped. Grew each row's box by 20px top/bottom and shifted its label/list down to compensate, matching the margin technique already used for the library grid's top/bottom row clipping (0.3.52). Verified live against a real Kodi install
 
