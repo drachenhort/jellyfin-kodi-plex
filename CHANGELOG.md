@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.60 - 2026-07-31
+- Fix clipping introduced by 0.3.59's per-item zoom fix on the Home screen's Recently Added Movies/TV rows: the focused item's bigger box now overflowed past each row's own reserved height, and since these rows sit in a vertically-scrolling grouplist (which clips its content to the visible viewport), the top/bottom of the zoomed poster and its ratings text could get cropped. Grew each row's box by 20px top/bottom and shifted its label/list down to compensate, matching the margin technique already used for the library grid's top/bottom row clipping (0.3.52). Verified live against a real Kodi install
+
 ## 0.3.59 - 2026-07-31
 - Fix zoom-on-focus for the Home screen's Recently Added Movies/TV rows: the container-level Focus/UnFocus animation was scaling the whole row on focus, not just the hovered poster (same root cause fixed for the library grid in 0.3.51 and Search's rows in 0.3.54). Switched both rows to the same bigger-focusedlayout-box technique with mirrored top/bottom selection markers, so only the individual focused item zooms
 
