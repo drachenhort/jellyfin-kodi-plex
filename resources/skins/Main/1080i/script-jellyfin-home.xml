@@ -207,30 +207,26 @@
           <font>font16</font>
           <label>Recently Added Movies</label>
         </control>
-        <!-- Same margin-and-shift technique as the library grid and Search
-             screen (see script-jellyfin-search.xml, list 508): the focused
-             item's zoom is now a bigger focusedlayout box rather than a
-             container-level Focus/UnFocus animation, so it can't clip the
-             leftmost/rightmost poster's title or selection markers against
-             the row's own horizontal bounds. The list's own declared box is
-             also grown by 30px top/bottom (posy raised, height increased)
-             since Kodi clips a list's rendered content - including the
-             focused item's zoom overflow - to the list control's own
-             posy/height, not its parent group's. Autoscroll likewise sizes
-             each row from the list's own declared box, so growing only the
-             enclosing group (tried in 0.3.60) left the list's real clip
-             region unchanged and the zoom still got cropped top/bottom.
-             itemlayout's contents are shifted +30 to compensate, keeping the
-             unfocused row's visual position unchanged; the poster's top
-             overflow when focused needs to clear the row's own label above
-             it too, hence posy=50 rather than just 20. Unfocused posters are
-             also sized a few px smaller than the focused box (257x387 vs
-             288x430) so the focused item visibly "pops" against its
-             neighbors. -->
+        <!-- The focused item's zoom is a bigger focusedlayout box rather
+             than a container-level Focus/UnFocus animation, so it can't
+             zoom the whole row - just the hovered poster. The box only
+             grows rightward/vertically, never leftward: Kodi can't scroll a
+             horizontal list to a negative offset, so any leftward overflow
+             on the list's first item is unrenderable no matter how much
+             margin the list control is given (confirmed this also affects
+             the already-shipped Search screen's leftmost result - it's a
+             Kodi limitation, not a margin-sizing bug). The list's own
+             declared box is grown 30px top/bottom (posy raised, height
+             increased) since Kodi clips a list's content - including zoom
+             overflow - to the list control's own posy/height, not its
+             parent group's; growing only the enclosing group (tried in
+             0.3.60) left the list's real clip region unchanged. Unfocused
+             posters are sized a few px smaller than the focused box
+             (257x387 vs 288x430) so the focused item visibly "pops". -->
         <control type="list" id="203">
-          <posx>-26</posx>
+          <posx>0</posx>
           <posy>50</posy>
-          <width>1812</width>
+          <width>1801</width>
           <height>460</height>
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
@@ -238,7 +234,6 @@
           <ondown>205</ondown>
           <itemlayout width="257" height="387">
             <control type="image">
-              <posx>26</posx>
               <posy>30</posy>
               <width>257</width>
               <height>387</height>
@@ -246,14 +241,13 @@
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="image">
-              <posx>26</posx>
               <posy>337</posy>
               <width>257</width>
               <height>80</height>
               <texture>gradient-overlay.png</texture>
             </control>
             <control type="label">
-              <posx>36</posx>
+              <posx>10</posx>
               <posy>383</posy>
               <width>237</width>
               <height>24</height>
@@ -261,7 +255,7 @@
               <label>$INFO[ListItem.Property(ratings_text)]</label>
             </control>
             <control type="image">
-              <posx>235</posx>
+              <posx>209</posx>
               <posy>38</posy>
               <width>40</width>
               <height>40</height>
@@ -271,14 +265,13 @@
           </itemlayout>
           <focusedlayout width="288" height="430">
             <control type="image">
-              <posx>10</posx>
               <posy>10</posy>
               <width>288</width>
               <height>430</height>
               <texture border="10">focus-highlight.png</texture>
             </control>
             <control type="image">
-              <posx>13</posx>
+              <posx>3</posx>
               <posy>13</posy>
               <width>282</width>
               <height>424</height>
@@ -286,14 +279,14 @@
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="image">
-              <posx>13</posx>
+              <posx>3</posx>
               <posy>357</posy>
               <width>282</width>
               <height>80</height>
               <texture>focus-turquoise.png</texture>
             </control>
             <control type="label">
-              <posx>23</posx>
+              <posx>13</posx>
               <posy>403</posy>
               <width>262</width>
               <height>24</height>
@@ -302,21 +295,21 @@
               <scroll>true</scroll>
             </control>
             <control type="image">
-              <posx>136</posx>
+              <posx>126</posx>
               <posy>10</posy>
               <width>36</width>
               <height>22</height>
               <texture>focus-arrow.png</texture>
             </control>
             <control type="image">
-              <posx>136</posx>
+              <posx>126</posx>
               <posy>418</posy>
               <width>36</width>
               <height>22</height>
               <texture flipy="true">focus-arrow.png</texture>
             </control>
             <control type="image">
-              <posx>260</posx>
+              <posx>236</posx>
               <posy>38</posy>
               <width>40</width>
               <height>40</height>
@@ -342,9 +335,9 @@
         <!-- Same margin-and-shift technique as Recently Added Movies above
              (see that list's comment) so this row's zoom can't clip either. -->
         <control type="list" id="205">
-          <posx>-26</posx>
+          <posx>0</posx>
           <posy>50</posy>
-          <width>1812</width>
+          <width>1801</width>
           <height>460</height>
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
@@ -352,7 +345,6 @@
           <ondown>207</ondown>
           <itemlayout width="257" height="387">
             <control type="image">
-              <posx>26</posx>
               <posy>30</posy>
               <width>257</width>
               <height>387</height>
@@ -360,14 +352,13 @@
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="image">
-              <posx>26</posx>
               <posy>329</posy>
               <width>257</width>
               <height>88</height>
               <texture>gradient-overlay.png</texture>
             </control>
             <control type="label">
-              <posx>36</posx>
+              <posx>10</posx>
               <posy>333</posy>
               <width>237</width>
               <height>20</height>
@@ -375,7 +366,7 @@
               <label>$INFO[ListItem.Property(series_name)]</label>
             </control>
             <control type="label">
-              <posx>36</posx>
+              <posx>10</posx>
               <posy>353</posy>
               <width>237</width>
               <height>20</height>
@@ -383,7 +374,7 @@
               <label>$INFO[ListItem.Property(episode_code)]</label>
             </control>
             <control type="label">
-              <posx>36</posx>
+              <posx>10</posx>
               <posy>373</posy>
               <width>237</width>
               <height>20</height>
@@ -391,7 +382,7 @@
               <label>$INFO[ListItem.Title]</label>
             </control>
             <control type="label">
-              <posx>36</posx>
+              <posx>10</posx>
               <posy>393</posy>
               <width>237</width>
               <height>20</height>
@@ -399,7 +390,7 @@
               <label>$INFO[ListItem.Property(ratings_text)]</label>
             </control>
             <control type="image">
-              <posx>235</posx>
+              <posx>209</posx>
               <posy>38</posy>
               <width>40</width>
               <height>40</height>
@@ -407,7 +398,7 @@
               <visible>ListItem.Property(watched)</visible>
             </control>
             <control type="image">
-              <posx>34</posx>
+              <posx>8</posx>
               <posy>38</posy>
               <width>64</width>
               <height>40</height>
@@ -415,7 +406,7 @@
               <visible>!String.IsEmpty(ListItem.Property(unwatched_count))</visible>
             </control>
             <control type="label">
-              <posx>34</posx>
+              <posx>8</posx>
               <posy>38</posy>
               <width>64</width>
               <height>40</height>
@@ -428,14 +419,13 @@
           </itemlayout>
           <focusedlayout width="288" height="430">
             <control type="image">
-              <posx>10</posx>
               <posy>10</posy>
               <width>288</width>
               <height>430</height>
               <texture border="10">focus-highlight.png</texture>
             </control>
             <control type="image">
-              <posx>13</posx>
+              <posx>3</posx>
               <posy>13</posy>
               <width>282</width>
               <height>424</height>
@@ -443,14 +433,14 @@
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="image">
-              <posx>13</posx>
+              <posx>3</posx>
               <posy>349</posy>
               <width>282</width>
               <height>88</height>
               <texture>focus-turquoise.png</texture>
             </control>
             <control type="label">
-              <posx>23</posx>
+              <posx>13</posx>
               <posy>353</posy>
               <width>262</width>
               <height>20</height>
@@ -459,7 +449,7 @@
               <scroll>true</scroll>
             </control>
             <control type="label">
-              <posx>23</posx>
+              <posx>13</posx>
               <posy>373</posy>
               <width>262</width>
               <height>20</height>
@@ -467,7 +457,7 @@
               <label>$INFO[ListItem.Property(episode_code)]</label>
             </control>
             <control type="label">
-              <posx>23</posx>
+              <posx>13</posx>
               <posy>393</posy>
               <width>262</width>
               <height>20</height>
@@ -476,7 +466,7 @@
               <scroll>true</scroll>
             </control>
             <control type="label">
-              <posx>23</posx>
+              <posx>13</posx>
               <posy>413</posy>
               <width>262</width>
               <height>20</height>
@@ -485,21 +475,21 @@
               <scroll>true</scroll>
             </control>
             <control type="image">
-              <posx>136</posx>
+              <posx>126</posx>
               <posy>10</posy>
               <width>36</width>
               <height>22</height>
               <texture>focus-arrow.png</texture>
             </control>
             <control type="image">
-              <posx>136</posx>
+              <posx>126</posx>
               <posy>418</posy>
               <width>36</width>
               <height>22</height>
               <texture flipy="true">focus-arrow.png</texture>
             </control>
             <control type="image">
-              <posx>260</posx>
+              <posx>236</posx>
               <posy>38</posy>
               <width>40</width>
               <height>40</height>
@@ -634,9 +624,9 @@
              this row's below-poster title card, taller than the other
              rows') can't clip against the list control's own clip bounds. -->
         <control type="list" id="202">
-          <posx>-36</posx>
+          <posx>0</posx>
           <posy>50</posy>
-          <width>1832</width>
+          <width>1801</width>
           <height>500</height>
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
@@ -644,7 +634,6 @@
           <ondown>201</ondown>
           <itemlayout width="257" height="387">
             <control type="image">
-              <posx>36</posx>
               <posy>30</posy>
               <width>257</width>
               <height>387</height>
@@ -652,14 +641,13 @@
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="image">
-              <posx>36</posx>
               <posy>369</posy>
               <width>257</width>
               <height>48</height>
               <texture>gradient-overlay.png</texture>
             </control>
             <control type="label">
-              <posx>46</posx>
+              <posx>10</posx>
               <posy>369</posy>
               <width>237</width>
               <height>24</height>
@@ -667,7 +655,7 @@
               <label>$INFO[ListItem.Property(series_name)]</label>
             </control>
             <control type="label">
-              <posx>46</posx>
+              <posx>10</posx>
               <posy>393</posy>
               <width>237</width>
               <height>24</height>
@@ -677,14 +665,13 @@
           </itemlayout>
           <focusedlayout width="288" height="430">
             <control type="image">
-              <posx>20</posx>
               <posy>10</posy>
               <width>288</width>
               <height>430</height>
               <texture border="10">focus-highlight.png</texture>
             </control>
             <control type="image">
-              <posx>23</posx>
+              <posx>3</posx>
               <posy>13</posy>
               <width>282</width>
               <height>424</height>
@@ -692,14 +679,14 @@
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
             <control type="image">
-              <posx>23</posx>
+              <posx>3</posx>
               <posy>442</posy>
               <width>282</width>
               <height>48</height>
               <texture>focus-turquoise.png</texture>
             </control>
             <control type="label">
-              <posx>33</posx>
+              <posx>13</posx>
               <posy>442</posy>
               <width>262</width>
               <height>24</height>
@@ -708,7 +695,7 @@
               <scroll>true</scroll>
             </control>
             <control type="label">
-              <posx>33</posx>
+              <posx>13</posx>
               <posy>466</posy>
               <width>262</width>
               <height>24</height>
@@ -717,7 +704,7 @@
               <scroll>true</scroll>
             </control>
             <control type="image">
-              <posx>146</posx>
+              <posx>126</posx>
               <posy>10</posy>
               <width>36</width>
               <height>22</height>

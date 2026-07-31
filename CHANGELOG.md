@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.64 - 2026-07-31
+- Actually fix the leftmost-item clipping on Recently Added Movies/TV and Next Up (0.3.59-0.3.63 kept widening the list's margin without success): pixel-level inspection showed the focused border's left edge simply wasn't rendering at all - not "clipped a bit", entirely absent, regardless of how much margin the list was given. Root cause: Kodi can't scroll a horizontal list to a negative offset, so a focused item's left-side zoom overflow is unrenderable for that list's first item no matter what. Confirmed this also affects the already-shipped Search screen's leftmost result, so it's a Kodi limitation, not something introduced here. Redesigned all three rows so the focused box only grows rightward and vertically, never leftward - eliminates the need for negative scroll entirely. Verified via pixel analysis (not just eyeballing) that all four border edges render solid on the leftmost item in each row
+
 ## 0.3.63 - 2026-07-31
 - Widen the Next Up row's horizontal zoom margin further (0.3.62's left/right buffer wasn't quite enough - the leftmost item's focus border could still be cropped on the left)
 
