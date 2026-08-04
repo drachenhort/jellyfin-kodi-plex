@@ -361,6 +361,41 @@ def test_a_slow_or_broken_hub_row_does_not_blank_the_others(client, monkeypatch)
     assert [li.getLabel() for li in movies_row.items] == ["Alien"]
 
 
+def test_a_broken_populate_step_does_not_blank_the_others_or_hang_loading(client, monkeypatch):
+    """The fetch (get_resume) can succeed while the populate step still fails
+    - _populate_episode_aware makes its own network call (get_items_by_ids)
+    for season art. Previously only the fetch call was guarded, so a
+    populate-time failure killed the whole background _load() thread
+    silently, leaving every row after Continue Watching unpopulated and the
+    loading overlay stuck on screen forever."""
+    views = [{"Id": "lib-movies", "Name": "Movies", "CollectionType": "movies"}]
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: views)
+    monkeypatch.setattr(
+        home_mod.library, "get_resume",
+        lambda c: [{"Id": "ep-1", "Name": "Ep 1", "Type": "Episode", "SeasonId": "season-1"}],
+    )
+    monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [
+        {"Id": "movie-1", "Name": "Alien", "Type": "Movie"}
+    ] if parent_id == "lib-movies" else [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3, hide_watched=False: [])
+
+    def broken_get_items_by_ids(c, ids):
+        raise RuntimeError("Read timed out")
+
+    monkeypatch.setattr(home_mod.library, "get_items_by_ids", broken_get_items_by_ids)
+
+    window = _make_window(client, monkeypatch)
+    window._load()
+
+    assert not window.closed
+    assert window.getControl(home_mod.CTRL_CONTINUE_WATCHING).items == []
+    movies_row = window.getControl(home_mod.CTRL_RECENTLY_ADDED_MOVIES)
+    assert [li.getLabel() for li in movies_row.items] == ["Alien"]
+    assert window.loading_done.is_set()
+    assert window.getControl(home_mod.CTRL_LOADING).visible is False
+
+
 # -- Restoring selection after Back ------------------------------------------
 
 def test_load_reselects_the_given_hub_row_item_once_it_arrives(client, monkeypatch):

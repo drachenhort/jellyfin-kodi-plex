@@ -105,9 +105,10 @@ def test_detail_loop_opens_a_similar_item_then_returns_to_the_original(monkeypat
 
 
 def test_run_takes_over_when_previous_instance_stops_promptly(monkeypatch):
-    """A second launch asks the first to stop (STOP_REQUESTED_PROPERTY) -
-    once the "first instance" (simulated here) notices and clears
-    RUNNING_PROPERTY, the new launch proceeds rather than just refusing."""
+    """A second launch asks the first to stop (STOP_REQUESTED_PROPERTY, set to
+    the first instance's own INSTANCE_TOKEN_PROPERTY value) - once the "first
+    instance" (simulated here) notices and clears RUNNING_PROPERTY, the new
+    launch proceeds rather than just refusing."""
     calls = []
     monkeypatch.setattr(main_mod, "_migrate_legacy_settings", lambda: calls.append("migrate"))
     monkeypatch.setattr(main_mod, "_load_saved_client", lambda: None)
@@ -115,14 +116,15 @@ def test_run_takes_over_when_previous_instance_stops_promptly(monkeypatch):
 
     home_window = xbmcgui.Window(main_mod.HOME_WINDOW_ID)
     home_window.setProperty(main_mod.RUNNING_PROPERTY, "true")
+    home_window.setProperty(main_mod.INSTANCE_TOKEN_PROPERTY, "old-instance-token")
 
     real_wait_for_abort = xbmc.Monitor.waitForAbort
 
     def fake_wait_for_abort(self, timeout=0):
         # Simulate the stuck first instance noticing STOP_REQUESTED_PROPERTY
-        # on its own poll and freeing the slot, the same way
-        # WindowMixin._watch_abort() does for a real wedged instance.
-        if home_window.getProperty(main_mod.STOP_REQUESTED_PROPERTY) == "true":
+        # targeted at its own token on its own poll and freeing the slot, the
+        # same way WindowMixin._watch_abort() does for a real wedged instance.
+        if home_window.getProperty(main_mod.STOP_REQUESTED_PROPERTY) == "old-instance-token":
             home_window.clearProperty(main_mod.RUNNING_PROPERTY)
         return real_wait_for_abort(self, timeout)
 
@@ -132,6 +134,7 @@ def test_run_takes_over_when_previous_instance_stops_promptly(monkeypatch):
     finally:
         home_window.clearProperty(main_mod.RUNNING_PROPERTY)
         home_window.clearProperty(main_mod.STOP_REQUESTED_PROPERTY)
+        home_window.clearProperty(main_mod.INSTANCE_TOKEN_PROPERTY)
 
     assert calls == ["migrate"]
 
@@ -139,7 +142,10 @@ def test_run_takes_over_when_previous_instance_stops_promptly(monkeypatch):
 def test_run_reclaims_the_slot_if_previous_instance_never_stops(monkeypatch):
     """If the previous instance is genuinely wedged and never clears
     RUNNING_PROPERTY, this launch reclaims the slot anyway after
-    STOP_WAIT_TIMEOUT_SECONDS rather than being refused forever."""
+    STOP_WAIT_TIMEOUT_SECONDS rather than being refused forever - and must
+    leave STOP_REQUESTED_PROPERTY targeted at the old instance's token rather
+    than erasing it, so a wedged instance that unwedges later still notices
+    it should stop instead of running on concurrently with the new instance."""
     calls = []
     monkeypatch.setattr(main_mod, "_migrate_legacy_settings", lambda: calls.append("migrate"))
     monkeypatch.setattr(main_mod, "_load_saved_client", lambda: None)
@@ -148,11 +154,14 @@ def test_run_reclaims_the_slot_if_previous_instance_never_stops(monkeypatch):
 
     home_window = xbmcgui.Window(main_mod.HOME_WINDOW_ID)
     home_window.setProperty(main_mod.RUNNING_PROPERTY, "true")
+    home_window.setProperty(main_mod.INSTANCE_TOKEN_PROPERTY, "wedged-instance-token")
     try:
         main_mod.run()
+        assert home_window.getProperty(main_mod.STOP_REQUESTED_PROPERTY) == "wedged-instance-token"
     finally:
         home_window.clearProperty(main_mod.RUNNING_PROPERTY)
         home_window.clearProperty(main_mod.STOP_REQUESTED_PROPERTY)
+        home_window.clearProperty(main_mod.INSTANCE_TOKEN_PROPERTY)
 
     assert calls == ["migrate"]
 
@@ -211,6 +220,32 @@ def test_run_treats_window_limit_runtime_error_as_a_clean_exit_when_aborting(mon
 
     monkeypatch.setattr(main_mod, "_home_loop", fake_home_loop)
     monkeypatch.setattr(xbmc, "Monitor", _AbortMonitor)
+
+    main_mod.run()  # must not raise
+
+    assert calls == ["some-client"]  # never retried
+    assert home_window.getProperty(main_mod.RUNNING_PROPERTY) == ""
+
+
+def test_run_survives_an_unexpected_exception_from_the_navigation_loop(monkeypatch):
+    """An unforeseen bug in any nested window (e.g. HomeWindow/DetailWindow's
+    onInit crashing on unexpected server metadata) must end the script
+    cleanly instead of propagating out of run() uncaught and killing the
+    whole addon process - the same failure mode fixed in v0.3.66 for
+    _offer_next_episode, but for the navigation loop itself."""
+    home_window = xbmcgui.Window(main_mod.HOME_WINDOW_ID)
+    home_window.clearProperty(main_mod.RUNNING_PROPERTY)
+
+    monkeypatch.setattr(main_mod, "_migrate_legacy_settings", lambda: None)
+    monkeypatch.setattr(main_mod, "_load_saved_client", lambda: "some-client")
+
+    calls = []
+
+    def fake_home_loop(client):
+        calls.append(client)
+        raise KeyError("SeasonId")
+
+    monkeypatch.setattr(main_mod, "_home_loop", fake_home_loop)
 
     main_mod.run()  # must not raise
 

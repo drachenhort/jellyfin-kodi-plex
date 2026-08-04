@@ -258,13 +258,13 @@ class HomeWindow(ControlledWindow):
                 return
             try:
                 items = self._timed(label, fetch, *args, **kwargs)
+                if self.closed_event.is_set():
+                    return
+                (populate or self._populate)(control_id, items)
+                self._maybe_restore_selection(control_id, items)
             except Exception as exc:  # noqa: BLE001 - one slow/broken row shouldn't blank the rest of Home
                 xbmc.log(f"{LOG_PREFIX} Home: {label} failed, leaving that row empty: {exc}", xbmc.LOGWARNING)
                 return
-            if self.closed_event.is_set():
-                return
-            (populate or self._populate)(control_id, items)
-            self._maybe_restore_selection(control_id, items)
         finally:
             # Counts as a completed step (for the loading overlay's "N of
             # TOTAL_LOAD_STEPS" count) whether the fetch succeeded, failed,

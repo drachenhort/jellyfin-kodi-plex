@@ -23,10 +23,12 @@ from lib.windows.detail import DetailWindow
 from lib.windows.home import HomeWindow
 from lib.windows.kodigui import (
     HOME_WINDOW_ID,
+    INSTANCE_TOKEN_PROPERTY,
     LOG_PREFIX,
     RUNNING_PROPERTY,
     STOP_REQUESTED_PROPERTY,
     ScriptStopRequested,
+    set_own_token,
 )
 from lib.windows.login import LoginWindow
 from lib.windows.next_episode import NextEpisodeWindow
@@ -415,27 +417,36 @@ def _home_loop(client):
 
 def _take_over_running_slot(home_window):
     """A previous instance is still marked running - ask it to stop
-    (STOP_REQUESTED_PROPERTY) rather than just refusing to start, and wait
-    up to STOP_WAIT_TIMEOUT_SECONDS for it to notice and free the slot
-    itself. If it doesn't (genuinely wedged, e.g. blocked inside a Kodi
-    engine call our own code can't preempt), reclaim the slot anyway -
-    leaving the old instance's window loop to exit into a no-op the next
-    time it wakes up is far better than every future launch attempt being
-    refused forever."""
+    (STOP_REQUESTED_PROPERTY, targeted at its INSTANCE_TOKEN_PROPERTY value)
+    rather than just refusing to start, and wait up to
+    STOP_WAIT_TIMEOUT_SECONDS for it to notice and free the slot itself. If
+    it doesn't (genuinely wedged, e.g. blocked inside a Kodi engine call our
+    own code can't preempt), reclaim the slot anyway - leaving the old
+    instance's window loop to exit into a no-op the next time it wakes up is
+    far better than every future launch attempt being refused forever.
+
+    STOP_REQUESTED_PROPERTY is deliberately never cleared here: it's set to
+    the *old* instance's token, and this (new) instance's own stop_requested()
+    checks compare against its own, different token (set later in run() via
+    set_own_token()), so they never match it. That means a wedged old
+    instance that only unwedges well after our wait timeout still correctly
+    sees the request and stops itself, instead of the flag having already
+    been erased out from under it - which previously let both instances run
+    on concurrently.
+    """
+    old_token = home_window.getProperty(INSTANCE_TOKEN_PROPERTY)
     xbmc.log(
         f"{LOG_PREFIX} Already running in another instance - asking it to "
         "stop and taking over",
         xbmc.LOGWARNING,
     )
-    home_window.setProperty(STOP_REQUESTED_PROPERTY, "true")
+    home_window.setProperty(STOP_REQUESTED_PROPERTY, old_token)
     monitor = xbmc.Monitor()
     waited = 0.0
     while home_window.getProperty(RUNNING_PROPERTY) == "true" and waited < STOP_WAIT_TIMEOUT_SECONDS:
         if monitor.waitForAbort(0.5):
-            home_window.clearProperty(STOP_REQUESTED_PROPERTY)
             return False
         waited += 0.5
-    home_window.clearProperty(STOP_REQUESTED_PROPERTY)
     if home_window.getProperty(RUNNING_PROPERTY) == "true":
         xbmc.log(
             f"{LOG_PREFIX} Previous instance did not stop within "
@@ -450,12 +461,20 @@ def run():
     if home_window.getProperty(RUNNING_PROPERTY) == "true":
         if not _take_over_running_slot(home_window):
             return
+    own_token = str(uuid.uuid4())
+    set_own_token(own_token)
+    home_window.setProperty(INSTANCE_TOKEN_PROPERTY, own_token)
     home_window.setProperty(RUNNING_PROPERTY, "true")
     try:
         _migrate_legacy_settings()
         client = _load_saved_client()
         if not client:
-            client = _login()
+            try:
+                client = _login()
+            except Exception as exc:  # noqa: BLE001 - a login-screen crash must not kill the addon silently
+                xbmc.log(f"{LOG_PREFIX} Login failed unexpectedly: {exc}", xbmc.LOGERROR)
+                xbmcgui.Dialog().notification("Jellyfin", f"Unexpected error: {exc}")
+                client = None
         while client:
             try:
                 client = _home_loop(client)
@@ -477,6 +496,13 @@ def run():
                 # bug elsewhere should still surface.
                 if not xbmc.Monitor().abortRequested():
                     raise
+                break
+            except Exception as exc:  # noqa: BLE001 - any other bug (e.g. a window's onInit crashing on
+                # unexpected server metadata) must end the script cleanly instead of killing the whole
+                # process uncaught and silently dropping the user to Kodi's own home screen - see the
+                # v0.3.66 fix for the same failure mode in _offer_next_episode.
+                xbmc.log(f"{LOG_PREFIX} Unexpected error in navigation loop: {exc}", xbmc.LOGERROR)
+                xbmcgui.Dialog().notification("Jellyfin", f"Unexpected error: {exc}")
                 break
     finally:
         # Always clears, even on an unhandled exception - a permanent

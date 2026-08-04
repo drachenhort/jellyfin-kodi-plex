@@ -39,10 +39,28 @@ LOG_PREFIX = "[script.jellyfin.plex]"
 HOME_WINDOW_ID = 10000
 RUNNING_PROPERTY = "script.jellyfin.plex.running"
 STOP_REQUESTED_PROPERTY = "script.jellyfin.plex.stop_requested"
+INSTANCE_TOKEN_PROPERTY = "script.jellyfin.plex.instance_token"
+
+# Set once per process by lib.main.run() via set_own_token(). STOP_REQUESTED_PROPERTY
+# holds the *target* instance's token rather than a plain boolean, so a fresh launch
+# never has to clear it again once the takeover is decided (lib.main._take_over_running_slot
+# used to clear it unconditionally after its wait timeout, which could erase the request
+# before a genuinely wedged old instance ever got to see it, letting both instances run
+# on afterwards). Comparing tokens instead means the request stays correctly targeted at
+# the old instance for as long as it takes that instance to notice, while a new instance's
+# own stop_requested() checks never match its own token.
+_own_token = None
+
+
+def set_own_token(token):
+    global _own_token
+    _own_token = token
 
 
 def stop_requested():
-    return xbmcgui.Window(HOME_WINDOW_ID).getProperty(STOP_REQUESTED_PROPERTY) == "true"
+    if _own_token is None:
+        return False
+    return xbmcgui.Window(HOME_WINDOW_ID).getProperty(STOP_REQUESTED_PROPERTY) == _own_token
 
 
 class ScriptStopRequested(Exception):

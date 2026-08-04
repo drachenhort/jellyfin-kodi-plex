@@ -2,6 +2,8 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.67 - 2026-08-04
+- Fix three more ways the addon could crash the whole script process instead of failing gracefully (found via a full code review after the 0.3.66 fix): (1) every window-opening call in the navigation loop (Home/Login/Browse/Search/Servers) was unguarded - any unforeseen exception (e.g. an onInit crash on unexpected server metadata) now gets caught, logged and notified instead of killing the process and silently dropping the user to Kodi's own home screen; (2) Home's background loader only guarded the network fetch for each hub row, not the populate step that follows it (Continue Watching/Next Up's season-art lookup makes its own network call) - a populate failure used to kill the loading thread outright, leaving the "Loading library..." overlay stuck on screen forever; (3) the single-instance takeover logic could clear its stop-request flag before a genuinely wedged previous instance ever saw it, letting two instances end up running concurrently - replaced the shared boolean flag with a per-instance token so the request stays correctly targeted at the old instance for as long as it takes to notice
 ## 0.3.66 - 2026-08-04
 - Fix addon crashing to Kodi's own home screen after an episode finished playing: the post-playback "offer next episode" lookup (`get_next_episode_in_season`) and the Up Next prompt window's `open()` call were unguarded, so any transient failure there (server timeout, unusual episode metadata) was an uncaught exception that killed the whole script process instead of just the auto-play-next feature. Wrapped both in try/except, matching the existing guard already in place around the next episode's own `play_item()` call
 
