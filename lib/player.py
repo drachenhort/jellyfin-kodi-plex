@@ -157,9 +157,15 @@ class JellyfinPlayer(xbmc.Player):
         if self._resume_seconds:
             list_item.setProperty("StartOffset", str(self._resume_seconds))
 
-        playback.report_playback_start(
-            self.client, item_id, play_session_id, position_ticks=resume_ticks
-        )
+        try:
+            playback.report_playback_start(
+                self.client, item_id, play_session_id, position_ticks=resume_ticks
+            )
+        except Exception as exc:  # noqa: BLE001 - the server "now playing" report is
+            # nice-to-have, not critical - a failure here must not abort the whole
+            # play_queue() (play_item() would otherwise propagate past just this
+            # item to whichever caller started the queue).
+            xbmc.log(f"{LOG_PREFIX} Player: report_playback_start failed for {item_id!r}: {exc}", xbmc.LOGWARNING)
         self.play(url, list_item)
 
         self._stop_event.clear()
@@ -498,9 +504,17 @@ class JellyfinPlayer(xbmc.Player):
         except Exception:  # noqa: BLE001 - player may already be torn down
             pass
         position_ticks = self._last_position_ticks
-        playback.report_playback_stopped(
-            self.client, self._item_id, self._play_session_id, position_ticks
-        )
+        try:
+            playback.report_playback_stopped(
+                self.client, self._item_id, self._play_session_id, position_ticks
+            )
+        except Exception as exc:  # noqa: BLE001 - a transient network failure on this final
+            # report must not surface as "Playback failed" for an item that actually played
+            # to completion, nor abort the "Up Next" chain by leaving status() != "ended".
+            xbmc.log(
+                f"{LOG_PREFIX} Player: report_playback_stopped failed for {self._item_id!r}: {exc}",
+                xbmc.LOGWARNING,
+            )
         # Reporting playback stopped is what makes Jellyfin update watched
         # state (played flag, resume position) server-side - any cached
         # browse listing's UserData is now potentially stale.

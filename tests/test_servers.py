@@ -65,6 +65,20 @@ def test_upsert_does_not_mutate_a_different_entry():
     assert server_id not in ("s2",)
 
 
+def test_upsert_tolerates_an_existing_entry_missing_server_url():
+    """A hand-edited settings.xml or a corrupted write could leave an entry
+    without a server_url key - upsert() must skip past it rather than
+    raising an uncaught KeyError that would crash the whole addon."""
+    malformed = {"id": "s0", "name": "Corrupted"}
+    new_list, server_id = servers.upsert([malformed], {
+        "name": "Tower", "server_url": "http://a:8096",
+        "access_token": "tok", "user_id": "u1",
+    })
+    assert malformed in new_list
+    assert len(new_list) == 2
+    assert server_id != "s0"
+
+
 def test_remove_filters_by_id():
     server_list = [{"id": "s1"}, {"id": "s2"}]
     assert servers.remove(server_list, "s1") == [{"id": "s2"}]

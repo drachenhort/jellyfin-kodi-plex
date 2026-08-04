@@ -1,6 +1,21 @@
+import json
+
 import lib.jellyfin.client as client_mod
 from lib.jellyfin import auth, images, library, playback
 from tests.fakes import FakeRequests, FakeResponse
+
+
+class _MalformedJsonResponse:
+    """A 200 response whose body isn't valid JSON - e.g. a captive portal or
+    misconfigured reverse proxy answering with an HTML error page."""
+
+    def __init__(self):
+        self.status_code = 200
+        self.text = "<html>not json</html>"
+        self.content = self.text.encode()
+
+    def json(self):
+        raise json.JSONDecodeError("Expecting value", self.text, 0)
 
 
 def test_auth_header_without_token(anon_client):
@@ -46,6 +61,21 @@ def test_requests_use_a_constructor_provided_timeout(monkeypatch):
     custom_client.get("/System/Info/Public")
 
     assert fake.calls[0]["timeout"] == 15
+
+
+def test_malformed_json_body_raises_jellyfin_api_error(client, monkeypatch):
+    """A malformed-but-200 body must surface as JellyfinApiError (caught by
+    callers matching except (JellyfinApiError, RequestException)), not as a
+    raw json.JSONDecodeError (a ValueError subclass, not a RequestException)
+    that would slip past that fallback handling uncaught."""
+    fake = FakeRequests([_MalformedJsonResponse()])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    try:
+        client.get("/System/Info/Public")
+        assert False, "expected JellyfinApiError"
+    except client_mod.JellyfinApiError:
+        pass
 
 
 def test_authenticate_by_name_sets_token_and_user(anon_client, monkeypatch):

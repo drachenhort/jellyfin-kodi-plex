@@ -70,3 +70,18 @@ def test_discover_servers_no_replies(monkeypatch):
     _install_fake_socket(monkeypatch, [])
 
     assert discovery.discover_servers(timeout=0.01) == []
+
+
+def test_discover_servers_returns_empty_list_when_broadcast_fails(monkeypatch):
+    """A network that blocks UDP broadcast (or has no broadcast-capable
+    interface) must read as "no servers found", not raise an unhandled
+    OSError out of the login screen's discovery thread."""
+    fake = _install_fake_socket(monkeypatch, [])
+
+    def broken_sendto(data, address):
+        raise OSError("Network is unreachable")
+
+    fake.sendto = broken_sendto
+
+    assert discovery.discover_servers(timeout=0.01) == []
+    assert fake.closed

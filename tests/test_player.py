@@ -156,6 +156,50 @@ def test_play_item_clears_the_browse_cache_on_finish(client, monkeypatch):
     assert library_mod.get_cached_children(client, "parent-1", "SortName", "Ascending") is None
 
 
+def test_play_item_survives_a_failed_playback_start_report(client, monkeypatch):
+    """report_playback_start is a "now playing" notification, not critical to
+    actually playing - a transient failure there (e.g. a 500) must not abort
+    playback before it even starts. This matters most for play_queue(),
+    where such an exception would otherwise abort the whole queue rather
+    than just this one item."""
+    fake_requests = FakeRequests([
+        FakeResponse({"Name": "Test Item"}),  # get_item
+        FakeResponse({"MediaSources": [{"Id": "ms-1", "Container": "mkv"}]}),  # PlaybackInfo
+        FakeResponse(status_code=500, text="boom"),  # report_playback_start fails
+        FakeResponse(None),  # report_playback_stopped (via _finish())
+    ])
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    player = _make_player(client, isplayingvideo_sequence=[False, False, True, False])
+    status = player.play_item("item-1")
+
+    assert status == "ended"
+    stopped_call = fake_requests.calls[-1]
+    assert stopped_call["url"].endswith("/Sessions/Playing/Stopped")
+
+
+def test_play_item_survives_a_failed_playback_stopped_report(client, monkeypatch):
+    """A transient network failure on the final report must not surface as
+    a playback failure for an item that actually played to completion, and
+    must not prevent clear_browse_cache() from running."""
+    fake_requests = FakeRequests([
+        FakeResponse({"Name": "Test Item"}),  # get_item
+        FakeResponse({"MediaSources": [{"Id": "ms-1", "Container": "mkv"}]}),  # PlaybackInfo
+        FakeResponse(None),  # report_playback_start
+        FakeResponse(status_code=500, text="boom"),  # report_playback_stopped fails
+    ])
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+    library_mod.cache_children(client, "parent-1", "SortName", "Ascending", ["stale"])
+
+    player = _make_player(client, isplayingvideo_sequence=[False, False, True, False])
+    status = player.play_item("item-1")
+
+    assert status == "ended"
+    assert library_mod.get_cached_children(client, "parent-1", "SortName", "Ascending") is None
+
+
 # -- audio/subtitle stream selection -----------------------------------------
 
 def test_play_item_applies_the_chosen_audio_and_subtitle_streams(client, monkeypatch):

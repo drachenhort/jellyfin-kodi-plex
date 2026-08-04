@@ -97,4 +97,13 @@ class JellyfinClient:
             raise JellyfinApiError(response.status_code, response.text)
         if not response.content:
             return None
-        return response.json()
+        try:
+            return response.json()
+        except ValueError as exc:
+            # A captive portal or misconfigured reverse proxy can answer 200
+            # with an HTML/text body instead of JSON - json.JSONDecodeError
+            # is a ValueError subclass, not a requests.RequestException, so
+            # callers matching except (JellyfinApiError, RequestException)
+            # (e.g. main.py's server-probe fallback) wouldn't otherwise catch
+            # it and fall back to another saved server.
+            raise JellyfinApiError(response.status_code, f"invalid JSON response: {exc}") from exc

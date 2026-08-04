@@ -24,7 +24,12 @@ def discover_servers(timeout=DEFAULT_TIMEOUT):
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     servers = {}
     try:
-        sock.sendto(DISCOVERY_MESSAGE, ("255.255.255.255", DISCOVERY_PORT))
+        try:
+            sock.sendto(DISCOVERY_MESSAGE, ("255.255.255.255", DISCOVERY_PORT))
+        except OSError:
+            # No broadcast-capable interface, or the network blocks UDP
+            # broadcast outright - same as "no servers responded" to callers.
+            return []
         deadline = time.monotonic() + timeout
         while True:
             remaining = deadline - time.monotonic()

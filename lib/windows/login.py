@@ -94,13 +94,28 @@ class LoginWindow(ControlledWindow):
             self._set_status("Server URL and username are required")
             return
 
+        self._set_status("Signing in...")
+        thread = threading.Thread(
+            target=self._do_sign_in, args=(server_url, username, password), daemon=True
+        )
+        thread.start()
+
+    def _do_sign_in(self, server_url, username, password):
+        # Runs off the GUI thread - authenticate_by_name is a real HTTP
+        # request under REQUEST_TIMEOUT_SECONDS (60s), and every other window
+        # in this addon moved its Jellyfin requests to a background thread
+        # for exactly this reason (see lib/jellyfin/client.py): running it
+        # inline here would freeze all of Kodi for up to a minute with no
+        # spinner and no way to back out.
         client = JellyfinClient(server_url, self.device_id, client_version=self.client_version)
         try:
             auth.authenticate_by_name(client, username, password)
         except Exception as exc:  # noqa: BLE001 - surface any failure to the user
-            self._set_status(f"Sign in failed: {exc}")
+            if not self.closed_event.is_set():
+                self._set_status(f"Sign in failed: {exc}")
             return
-
+        if self.closed_event.is_set():
+            return
         self._finish(client)
 
     def _start_quick_connect(self):
@@ -111,23 +126,30 @@ class LoginWindow(ControlledWindow):
         if self._quick_connect_thread and self._quick_connect_thread.is_alive():
             return
 
+        self._quick_connect_stop.clear()
+        self._quick_connect_thread = threading.Thread(
+            target=self._initiate_and_poll_quick_connect, args=(server_url,), daemon=True
+        )
+        self._quick_connect_thread.start()
+
+    def _initiate_and_poll_quick_connect(self, server_url):
+        # initiate_quick_connect is also a real HTTP request - kept off the
+        # GUI thread for the same reason as _do_sign_in above.
         client = JellyfinClient(server_url, self.device_id, client_version=self.client_version)
         try:
             initiated = auth.initiate_quick_connect(client)
         except Exception as exc:  # noqa: BLE001
-            self._set_status(f"Quick Connect unavailable: {exc}")
+            if not self.closed_event.is_set():
+                self._set_status(f"Quick Connect unavailable: {exc}")
+            return
+        if self.closed_event.is_set():
             return
 
         code = initiated["Code"]
         secret = initiated["Secret"]
         self.getControl(CTRL_QUICK_CONNECT_CODE).setLabel(code)
         self._set_status("Enter this code in another Jellyfin app to sign in")
-
-        self._quick_connect_stop.clear()
-        self._quick_connect_thread = threading.Thread(
-            target=self._poll_quick_connect, args=(client, secret), daemon=True
-        )
-        self._quick_connect_thread.start()
+        self._poll_quick_connect(client, secret)
 
     def _poll_quick_connect(self, client, secret):
         waited = 0
@@ -135,16 +157,28 @@ class LoginWindow(ControlledWindow):
             if self._quick_connect_stop.is_set():
                 return
             try:
-                if auth.poll_quick_connect(client, secret):
-                    auth.authenticate_with_quick_connect(client, secret)
-                    self._finish(client)
-                    return
+                done = auth.poll_quick_connect(client, secret)
             except Exception as exc:  # noqa: BLE001
-                self._set_status(f"Quick Connect failed: {exc}")
+                if not self._quick_connect_stop.is_set():
+                    self._set_status(f"Quick Connect failed: {exc}")
+                return
+            if self._quick_connect_stop.is_set():
+                return
+            if done:
+                try:
+                    auth.authenticate_with_quick_connect(client, secret)
+                except Exception as exc:  # noqa: BLE001
+                    if not self._quick_connect_stop.is_set():
+                        self._set_status(f"Quick Connect failed: {exc}")
+                    return
+                if self._quick_connect_stop.is_set():
+                    return
+                self._finish(client)
                 return
             xbmc.sleep(QUICK_CONNECT_POLL_SECONDS * 1000)
             waited += QUICK_CONNECT_POLL_SECONDS
-        self._set_status("Quick Connect code expired, try again")
+        if not self._quick_connect_stop.is_set():
+            self._set_status("Quick Connect code expired, try again")
 
     def _finish(self, client):
         self.result = {

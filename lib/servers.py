@@ -45,7 +45,7 @@ def upsert(servers, server):
     """
     url = server["server_url"]
     for existing in servers:
-        if existing["server_url"].lower() == url.lower():
+        if existing.get("server_url", "").lower() == url.lower():
             existing_id = existing["id"]
             existing.update(server)
             existing["id"] = existing_id
