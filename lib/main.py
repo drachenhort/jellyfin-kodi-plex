@@ -355,10 +355,6 @@ def _search_loop(client):
                        item_overview=result.get("item_overview", ""))
 
 
-def _confirm_quit():
-    return xbmcgui.Dialog().yesno("Jellyfin", "Quit and return to Kodi?")
-
-
 def _home_loop(client):
     """Runs Home for one server session. Returns a new client to switch the
     active server to, or None once the user backs all the way out."""
@@ -380,24 +376,12 @@ def _home_loop(client):
             select_control_id=select_control_id, select_item_id=select_item_id,
         )
         if not result:
-            # Kodi force-closes any open window and expects the script to
-            # exit promptly on shutdown - popping a confirmation dialog here
-            # would sit forever waiting for a click that will never come
-            # (no one's driving the UI during shutdown), which is exactly
-            # what made this loop miss Kodi's 5-second "stop the script"
-            # grace period and get killed instead of exiting cleanly.
-            if xbmc.Monitor().abortRequested():
-                return None
-            confirmed = _confirm_quit()
-            # Re-check after the dialog, not just before it: Kodi can force
-            # the yesno() dialog closed mid-shutdown and hand back a falsy
-            # result (as if the user picked "No") with abort now signalled -
-            # looping back into HomeWindow.open() at that point is exactly
-            # what crashed with "maximum number of windows reached" on a
-            # real device (Kodi already mid-teardown, refusing new windows).
-            if confirmed or xbmc.Monitor().abortRequested():
-                return None
-            continue
+            # HomeWindow itself asks "Quit and return to Kodi?" before
+            # closing on Back (so the dialog renders on top of Home rather
+            # than after it's already closed) - by the time it returns None
+            # here, that's already been confirmed (or skipped because Kodi
+            # is mid-shutdown-teardown), so there's nothing left to ask.
+            return None
         if result["action"] == "browse":
             select_control_id = result["control_id"]
             select_item_id = result["item_id"]

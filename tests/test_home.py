@@ -16,6 +16,24 @@ import lib.windows.home as home_mod
 from lib.jellyfin import library
 
 
+class _FakeAction:
+    def __init__(self, action_id):
+        self._id = action_id
+
+    def getId(self):
+        return self._id
+
+
+class _AbortMonitor:
+    def abortRequested(self):
+        return True
+
+
+class _NoAbortMonitor:
+    def abortRequested(self):
+        return False
+
+
 def _make_window(client, monkeypatch, hide_playlists_setting=None, select_control_id=None, select_item_id=None,
                   extra_settings=None):
     # home.py's ADDON is a single module-level instance shared across the
@@ -30,6 +48,90 @@ def _make_window(client, monkeypatch, hide_playlists_setting=None, select_contro
     window = home_mod.HomeWindow(None, "/fake/addon/path", "Main", "1080i")
     window.setup(client=client, select_control_id=select_control_id, select_item_id=select_item_id)
     return window
+
+
+# -- onAction/Back: quit confirmation, asked by Home itself (not lib/main.py)
+# so the dialog renders on top of Home's own screen instead of after Home
+# has already closed and Kodi's own skin is showing behind it.
+
+def test_back_action_asks_for_quit_confirmation(client, monkeypatch):
+    monkeypatch.setattr(home_mod.xbmc, "Monitor", _NoAbortMonitor)
+    asked = []
+    monkeypatch.setattr(home_mod.xbmcgui, "Dialog", lambda: type(
+        "D", (), {"yesno": lambda self, heading, message: asked.append((heading, message)) or True}
+    )())
+    window = _make_window(client, monkeypatch)
+
+    window.onAction(_FakeAction(92))  # ACTION_NAV_BACK
+
+    assert asked == [("Jellyfin", "Quit and return to Kodi?")]
+    assert window.closed
+    assert window.result is None
+
+
+def test_back_action_declined_stays_on_home(client, monkeypatch):
+    monkeypatch.setattr(home_mod.xbmc, "Monitor", _NoAbortMonitor)
+    monkeypatch.setattr(home_mod.xbmcgui, "Dialog", lambda: type("D", (), {"yesno": lambda self, h, m: False})())
+    window = _make_window(client, monkeypatch)
+
+    window.onAction(_FakeAction(92))
+
+    assert not window.closed
+    assert window.result is None
+
+
+def test_back_action_skips_dialog_when_kodi_is_aborting(client, monkeypatch):
+    monkeypatch.setattr(home_mod.xbmc, "Monitor", _AbortMonitor)
+
+    def fail_if_called():
+        raise AssertionError("must not prompt for confirmation during shutdown")
+
+    monkeypatch.setattr(home_mod.xbmcgui, "Dialog", fail_if_called)
+    window = _make_window(client, monkeypatch)
+
+    window.onAction(_FakeAction(92))
+
+    assert window.closed
+    assert window.result is None
+
+
+def test_back_action_closes_even_if_declined_once_abort_fires_during_dialog(client, monkeypatch):
+    """Reproduces a real-device crash: Kodi can force the quit-confirmation
+    dialog closed mid-shutdown, handing back a falsy "No" just as abort
+    becomes true - staying open at that exact moment is what caused a
+    subsequent reopen elsewhere to crash with "maximum number of windows
+    reached" (Kodi already mid-teardown, refusing to construct a new
+    window)."""
+    class _AbortAfterDialogMonitor:
+        checks = 0
+
+        def abortRequested(self):
+            _AbortAfterDialogMonitor.checks += 1
+            # False for the pre-dialog check, True for the post-dialog one.
+            return _AbortAfterDialogMonitor.checks > 1
+
+    monkeypatch.setattr(home_mod.xbmc, "Monitor", _AbortAfterDialogMonitor)
+    monkeypatch.setattr(home_mod.xbmcgui, "Dialog", lambda: type("D", (), {"yesno": lambda self, h, m: False})())
+    window = _make_window(client, monkeypatch)
+
+    window.onAction(_FakeAction(92))
+
+    assert window.closed
+    assert window.result is None
+
+
+def test_non_back_action_does_not_prompt(client, monkeypatch):
+    monkeypatch.setattr(home_mod.xbmc, "Monitor", _NoAbortMonitor)
+
+    def fail_if_called():
+        raise AssertionError("must not prompt for an unrelated action")
+
+    monkeypatch.setattr(home_mod.xbmcgui, "Dialog", fail_if_called)
+    window = _make_window(client, monkeypatch)
+
+    window.onAction(_FakeAction(999))
+
+    assert not window.closed
 
 
 # -- _visible_library_views: hide Playlists, Movies/TV/Music order ---------

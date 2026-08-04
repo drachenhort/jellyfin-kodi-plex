@@ -15,69 +15,25 @@ class _AbortMonitor:
         return True
 
 
-# -- _home_loop: skip the quit confirmation dialog on Kodi shutdown ---------
+# -- _home_loop: HomeWindow now asks "quit?" itself before closing on Back --
+# (see lib/windows/home.py's onAction/_confirm_quit - moved there so the
+# dialog renders on top of Home instead of after it's already closed) -
+# _home_loop itself just has to treat a falsy result as "really done", with
+# no dialog of its own left to test here.
 
-def test_home_loop_returns_without_confirm_dialog_on_abort(monkeypatch):
+def test_home_loop_returns_none_once_home_closes_with_no_result(monkeypatch):
     monkeypatch.setattr(main_mod.HomeWindow, "open", staticmethod(lambda *a, **k: None))
+
+    assert main_mod._home_loop(client=object()) is None
+
+
+def test_home_loop_bails_before_reopening_home_if_kodi_is_aborting(monkeypatch):
     monkeypatch.setattr(xbmc, "Monitor", _AbortMonitor)
 
-    def fail_if_called():
-        raise AssertionError("must not prompt for confirmation during shutdown")
+    def fail_if_called(*a, **k):
+        raise AssertionError("must not (re)open Home once abort has fired")
 
-    monkeypatch.setattr(main_mod, "_confirm_quit", fail_if_called)
-
-    assert main_mod._home_loop(client=object()) is None
-
-
-def test_home_loop_still_confirms_quit_when_not_aborting(monkeypatch):
-    monkeypatch.setattr(main_mod.HomeWindow, "open", staticmethod(lambda *a, **k: None))
-    monkeypatch.setattr(main_mod, "_confirm_quit", lambda: True)
-
-    assert main_mod._home_loop(client=object()) is None
-
-
-def test_home_loop_still_loops_when_quit_declined_and_not_aborting(monkeypatch):
-    opens = []
-
-    def fake_open(*a, **k):
-        opens.append(1)
-        return None if len(opens) == 1 else {"action": "servers"}
-
-    monkeypatch.setattr(main_mod.HomeWindow, "open", staticmethod(fake_open))
-    monkeypatch.setattr(main_mod, "_confirm_quit", lambda: False)
-    monkeypatch.setattr(main_mod, "_manage_servers", lambda client: "new-client")
-
-    assert main_mod._home_loop(client=object()) == "new-client"
-    assert len(opens) == 2
-
-
-def test_home_loop_does_not_reopen_home_if_abort_fires_during_confirm_dialog(monkeypatch):
-    """Reproduces a real-device crash: Kodi can force the quit-confirmation
-    dialog closed mid-shutdown, handing back a falsy "No" just as abort
-    becomes true - looping back into HomeWindow.open() at that exact moment
-    crashed with "maximum number of windows reached" (Kodi already
-    mid-teardown, refusing to construct a new window)."""
-    opens = []
-
-    def fail_if_reopened(*a, **k):
-        opens.append(1)
-        if len(opens) > 1:
-            raise AssertionError("must not reopen Home once abort has fired")
-        return None
-
-    monkeypatch.setattr(main_mod.HomeWindow, "open", staticmethod(fail_if_reopened))
-
-    class _AbortAfterDialogMonitor:
-        checks = 0
-
-        def abortRequested(self):
-            _AbortAfterDialogMonitor.checks += 1
-            # False for the pre-open() and post-close() checks, True only
-            # once _confirm_quit() itself has been (attempted to be) shown.
-            return _AbortAfterDialogMonitor.checks > 2
-
-    monkeypatch.setattr(xbmc, "Monitor", _AbortAfterDialogMonitor)
-    monkeypatch.setattr(main_mod, "_confirm_quit", lambda: False)
+    monkeypatch.setattr(main_mod.HomeWindow, "open", staticmethod(fail_if_called))
 
     assert main_mod._home_loop(client=object()) is None
 

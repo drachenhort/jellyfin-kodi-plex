@@ -23,7 +23,14 @@ import xbmcaddon
 import xbmcgui
 
 from lib.jellyfin import images, library
-from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item, placeholder_art, progress_percent
+from lib.windows.kodigui import (
+    BACK_ACTIONS,
+    LOG_PREFIX,
+    ControlledWindow,
+    list_item,
+    placeholder_art,
+    progress_percent,
+)
 
 ADDON = xbmcaddon.Addon()
 
@@ -173,6 +180,41 @@ class HomeWindow(ControlledWindow):
         threading.Thread(target=self._load, daemon=True).start()
         threading.Thread(target=self._tick_progress, daemon=True).start()
         threading.Thread(target=self._tick_clock, daemon=True).start()
+
+    def onAction(self, action):
+        # Home is the root screen - backing out of it means quitting the
+        # whole addon, so it asks for confirmation itself, unlike every
+        # other window's plain Back. Showing the dialog here (before
+        # deciding whether to close) rather than after Home has already
+        # closed (the previous approach, in lib/main.py's _home_loop) means
+        # it renders layered on top of Home's own screen instead of over
+        # whatever's behind the addon - Kodi's own skin - which looked like
+        # the addon had already quit before the user had even answered.
+        if action.getId() in BACK_ACTIONS:
+            self._confirm_quit()
+            return
+        super().onAction(action)
+
+    def _confirm_quit(self):
+        if xbmc.Monitor().abortRequested():
+            # Kodi is already tearing down for shutdown - a confirmation
+            # dialog here would sit forever waiting for a click that will
+            # never come, missing Kodi's 5-second "stop the script" grace
+            # period. Just let Back close Home like normal.
+            self.result = None
+            self.close()
+            return
+        confirmed = xbmcgui.Dialog().yesno("Jellyfin", "Quit and return to Kodi?")
+        # Re-check after the dialog, not just before it: Kodi can force the
+        # yesno() dialog closed mid-shutdown and hand back a falsy result
+        # (as if the user picked "No") with abort now signalled - treating
+        # that as "stay on Home" would keep this window's own doModal()
+        # running right through Kodi's shutdown grace period instead of
+        # exiting cleanly.
+        if confirmed or xbmc.Monitor().abortRequested():
+            self.result = None
+            self.close()
+        # else: declined and not aborting - swallow Back, stay on Home.
 
     def _update_loading_label(self):
         # Shows both: a simulated percentage that keeps visibly climbing

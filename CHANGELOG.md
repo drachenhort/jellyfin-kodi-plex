@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.69 - 2026-08-04
+- Show the "Quit and return to Kodi?" confirmation dialog on top of Home itself, rather than after Home has already closed. Previously the dialog popped up over whatever was behind the addon (Kodi's own skin), making it look like the addon had already quit before you'd even answered. Home now asks the question itself from its own Back handling, closing only if you confirm (or Kodi is already shutting down) - lib/main.py's navigation loop no longer needs to ask separately. Verified live: dialog now renders over Home's own screen, both Yes (quits to Kodi) and No (stays on Home) work correctly
+
 ## 0.3.68 - 2026-08-04
 - Fix the remaining lower-severity issues found by the same code review (0.3.66/0.3.67): unguarded playback-start/playback-stopped server reports in lib/player.py that could abort an entire play-all/shuffle queue or wrongly surface "Playback failed" (and skip clearing the browse cache) for an item that actually played to completion on a transient network blip; the login screen's sign-in and Quick Connect calls ran inline on Kodi's GUI thread and could freeze the whole UI for up to 60s on a slow/unreachable server - moved to a background thread like every other window; Quick Connect's poll loop could touch a torn-down window's controls if Back was pressed mid-request; saved-server upsert() assumed every entry has a server_url key, which a corrupted settings.xml could violate; a malformed-but-200 Jellyfin response (e.g. from a captive portal) raised a raw JSON decode error that slipped past the server-probe fallback's exception handling instead of triggering it; LAN autodiscovery's UDP broadcast could raise an unhandled OSError on a network that blocks broadcast
 
