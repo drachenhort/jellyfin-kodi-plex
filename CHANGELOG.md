@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.66 - 2026-08-04
+- Fix addon crashing to Kodi's own home screen after an episode finished playing: the post-playback "offer next episode" lookup (`get_next_episode_in_season`) and the Up Next prompt window's `open()` call were unguarded, so any transient failure there (server timeout, unusual episode metadata) was an uncaught exception that killed the whole script process instead of just the auto-play-next feature. Wrapped both in try/except, matching the existing guard already in place around the next episode's own `play_item()` call
+
 ## 0.3.65 - 2026-07-31
 - Fix Home showing multiple rows' selected items as "focused" (zoomed, orange border) simultaneously right after the addon starts, before anything was actually selected: a List control renders its remembered selection with focusedlayout regardless of whether that control currently has real input focus, so every row's default item-0 selection showed the focused look at once. Gated the focus-only visuals (border, arrows, zoom, scrolling labels) behind `Control.HasFocus(id)` on the Libraries row and Recently Added Movies/TV/Next Up, so only the row genuinely holding input focus shows them
 

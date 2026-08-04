@@ -257,10 +257,18 @@ def _offer_next_episode(client, item_id):
     season for as long as the user keeps letting it auto-play or clicking
     Play Now, and stops silently at the season's last episode, on Cancel/
     Back, or if playback of the next episode doesn't itself end cleanly."""
-    next_item = library.get_next_episode_in_season(client, item_id)
+    try:
+        next_item = library.get_next_episode_in_season(client, item_id)
+    except Exception as exc:  # noqa: BLE001 - a lookup failure must not crash the addon
+        xbmcgui.Dialog().notification("Jellyfin", f"Couldn't check for next episode: {exc}")
+        return
     if not next_item:
         return
-    result = NextEpisodeWindow.open(ADDON_PATH, client=client, next_item=next_item)
+    try:
+        result = NextEpisodeWindow.open(ADDON_PATH, client=client, next_item=next_item)
+    except Exception as exc:  # noqa: BLE001 - a window failure must not crash the addon
+        xbmcgui.Dialog().notification("Jellyfin", f"Couldn't show next episode prompt: {exc}")
+        return
     if not result or result.get("action") != "play":
         return
     next_id = next_item["Id"]
