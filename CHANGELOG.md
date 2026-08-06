@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.70 - 2026-08-06
+- Fix landing on Kodi's own home screen (instead of this addon's Home) after an episode played to completion. Root cause found in a real device's kodi.log: this addon never cleared Kodi's global video playlist before playing, so a stale item left queued there by another add-on (e.g. Twitch) auto-advanced into once our stream ended, errored, and pulled focus away from the addon entirely. Now clears Kodi's video playlist immediately before every play_item() call - not yet re-verified live
+
 ## 0.3.69 - 2026-08-04
 - Show the "Quit and return to Kodi?" confirmation dialog on top of Home itself, rather than after Home has already closed. Previously the dialog popped up over whatever was behind the addon (Kodi's own skin), making it look like the addon had already quit before you'd even answered. Home now asks the question itself from its own Back handling, closing only if you confirm (or Kodi is already shutting down) - lib/main.py's navigation loop no longer needs to ask separately. Verified live: dialog now renders over Home's own screen, both Yes (quits to Kodi) and No (stays on Home) work correctly
 

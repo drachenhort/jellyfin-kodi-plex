@@ -166,6 +166,16 @@ class JellyfinPlayer(xbmc.Player):
             # play_queue() (play_item() would otherwise propagate past just this
             # item to whichever caller started the queue).
             xbmc.log(f"{LOG_PREFIX} Player: report_playback_start failed for {item_id!r}: {exc}", xbmc.LOGWARNING)
+        # A stale item left queued in Kodi's own global video playlist (e.g. by
+        # another add-on used earlier in the same Kodi session) auto-advances
+        # into once our stream ends, hijacking control away from this addon -
+        # observed on a real device: after an episode played to completion, Kodi
+        # silently tried to play a leftover plugin.video.twitch playlist entry,
+        # errored on it, and dropped the user to Kodi's native screen instead of
+        # back into this addon's own Home. This addon never uses Kodi's playlist
+        # itself (self.play() below is called directly with a single item), so
+        # it's always safe to clear it immediately before playing.
+        xbmc.PlayList(xbmc.PLAYLIST_VIDEO).clear()
         self.play(url, list_item)
 
         self._stop_event.clear()

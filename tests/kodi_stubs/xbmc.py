@@ -12,6 +12,20 @@ LOGINFO = 1
 LOGWARNING = 2
 LOGERROR = 3
 
+PLAYLIST_MUSIC = 0
+PLAYLIST_VIDEO = 1
+
+
+class PlayList:
+    """Stand-in for xbmc.PlayList - tests don't assert on playlist
+    contents, only that lib/player.py's clear() call doesn't blow up."""
+
+    def __init__(self, playlist_id):
+        self.playlist_id = playlist_id
+
+    def clear(self):
+        pass
+
 
 def log(msg, level=LOGINFO):
     pass
