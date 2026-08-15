@@ -504,6 +504,11 @@ class JellyfinPlayer(xbmc.Player):
         if self._reported_stop:
             return
         self._reported_stop = True
+        # Break the reference cycle with the progress-reporting thread so
+        # the player (and its xbmc.Player observer) can be freed immediately
+        # when chaining to the next episode, instead of lingering until the
+        # cyclic GC runs and interfering with the next overlay.
+        self._progress_thread = None
         try:
             # Only trust a live getTime() while Kodi still considers itself
             # playing - onPlayBackStopped/onPlayBackEnded fire before the
@@ -558,8 +563,14 @@ def play_item(client, item_id, item_type=None, resume_ticks=0,
         item_id, item_type=item_type, resume_ticks=resume_ticks,
         audio_stream_index=audio_stream_index, subtitle_stream_index=subtitle_stream_index,
     )
-    if status == "ended" and player.skip_target_item_id:
-        return play_item(client, player.skip_target_item_id, item_type="Episode")
+    skip_target = player.skip_target_item_id
+    # Free this player (and its xbmc.Player observer/overlay window) before
+    # creating the next one in the chain. A lingering old player can prevent
+    # Kodi from fully attaching callbacks/state to the new instance, which
+    # silently breaks the "Play Next" overlay on subsequent episodes.
+    del player
+    if status == "ended" and skip_target:
+        return play_item(client, skip_target, item_type="Episode")
     return status, item_id
 
 
