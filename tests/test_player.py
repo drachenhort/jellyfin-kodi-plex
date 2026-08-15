@@ -91,6 +91,7 @@ def test_play_item_waits_for_playback_to_actually_start(client, monkeypatch):
     player.play_item("item-1")
 
     assert player.stop_calls == 0  # ended naturally, not via an explicit stop
+    stopped_call = [c for c in fake_requests.calls if c["url"].endswith("/Sessions/Playing/Stopped")][0]
     mark_played_call = fake_requests.calls[-1]
     assert mark_played_call["url"].endswith("/PlayedItems/item-1")
     assert stopped_call["json"]["PositionTicks"] == int(12.5 * 10_000_000)
