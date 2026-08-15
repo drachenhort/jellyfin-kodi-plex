@@ -525,6 +525,14 @@ class JellyfinPlayer(xbmc.Player):
                 f"{LOG_PREFIX} Player: report_playback_stopped failed for {self._item_id!r}: {exc}",
                 xbmc.LOGWARNING,
             )
+        if self._end_reason == "ended":
+            try:
+                library.mark_played(self.client, self._item_id)
+            except Exception as exc:
+                xbmc.log(
+                    f"{LOG_PREFIX} Player: mark_played failed for {self._item_id!r}: {exc}",
+                    xbmc.LOGWARNING,
+                )
         # Reporting playback stopped is what makes Jellyfin update watched
         # state (played flag, resume position) server-side - any cached
         # browse listing's UserData is now potentially stale.
