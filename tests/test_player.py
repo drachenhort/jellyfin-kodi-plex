@@ -91,8 +91,8 @@ def test_play_item_waits_for_playback_to_actually_start(client, monkeypatch):
     player.play_item("item-1")
 
     assert player.stop_calls == 0  # ended naturally, not via an explicit stop
-    stopped_call = fake_requests.calls[-1]
-    assert stopped_call["url"].endswith("/Sessions/Playing/Stopped")
+    mark_played_call = fake_requests.calls[-1]
+    assert mark_played_call["url"].endswith("/PlayedItems/item-1")
     assert stopped_call["json"]["PositionTicks"] == int(12.5 * 10_000_000)
 
 
@@ -175,8 +175,8 @@ def test_play_item_survives_a_failed_playback_start_report(client, monkeypatch):
     status = player.play_item("item-1")
 
     assert status == "ended"
-    stopped_call = fake_requests.calls[-1]
-    assert stopped_call["url"].endswith("/Sessions/Playing/Stopped")
+    mark_played_call = fake_requests.calls[-1]
+    assert mark_played_call["url"].endswith("/PlayedItems/item-1")
 
 
 def test_play_item_survives_a_failed_playback_stopped_report(client, monkeypatch):
@@ -384,8 +384,8 @@ def test_play_item_treats_audio_only_playback_as_started(client, monkeypatch):
     player.play_item("track-1", item_type="Audio")
 
     assert player.stop_calls == 0  # ended naturally once the track finished
-    stopped_call = fake_requests.calls[-1]
-    assert stopped_call["url"].endswith("/Sessions/Playing/Stopped")
+    mark_played_call = fake_requests.calls[-1]
+    assert mark_played_call["url"].endswith("/PlayedItems/track-1")
 
 
 def test_play_item_stops_audio_when_kodi_home_becomes_active(client, monkeypatch):
@@ -480,10 +480,12 @@ def test_play_queue_advances_through_tracks_that_end_naturally(client, monkeypat
         FakeResponse({"MediaSources": [{"Id": "ms-1", "Container": "mp3"}]}),  # track 1 PlaybackInfo
         FakeResponse(None),  # track 1 start
         FakeResponse(None),  # track 1 stopped
+        FakeResponse(None),  # track 1 mark_played
         FakeResponse({"Name": "Track 2"}),  # track 2 get_item
         FakeResponse({"MediaSources": [{"Id": "ms-2", "Container": "mp3"}]}),  # track 2 PlaybackInfo
         FakeResponse(None),  # track 2 start
         FakeResponse(None),  # track 2 stopped
+        FakeResponse(None),  # track 2 mark_played
     ])
     monkeypatch.setattr(client_mod, "requests", fake_requests)
     monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
