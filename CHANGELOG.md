@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.72 - 2026-08-15
+- Fix "Play Next Episode" overlay not appearing on episodes after the first chained one. The old JellyfinPlayer formed a reference cycle with its progress-reporting thread, so the previous player (and its xbmc.Player observer) lingered across the recursive chain into the next episode and prevented Kodi from fully attaching the new player's callbacks/state. The player now breaks that cycle on finish and the module-level play_item() explicitly frees the old player before recursing.
+
 ## 0.3.71 - 2026-08-15
 - Fix marking the current episode as watched when using the "Play Next Episode" overlay. Choosing "Play Now" triggered an intentional stop so playback could chain into the next episode, but Kodi's `onPlayBackStopped` callback then raced that stop and reset the end reason to "stopped", which skipped the `mark_played()` call. The player now locks the end reason during an overlay-driven chain so the just-watched episode is correctly marked watched on the server
 
