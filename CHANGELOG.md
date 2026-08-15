@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.71 - 2026-08-15
+- Fix marking the current episode as watched when using the "Play Next Episode" overlay. Choosing "Play Now" triggered an intentional stop so playback could chain into the next episode, but Kodi's `onPlayBackStopped` callback then raced that stop and reset the end reason to "stopped", which skipped the `mark_played()` call. The player now locks the end reason during an overlay-driven chain so the just-watched episode is correctly marked watched on the server
+
 ## 0.3.70 - 2026-08-06
 - Fix landing on Kodi's own home screen (instead of this addon's Home) after an episode played to completion. Root cause found in a real device's kodi.log: this addon never cleared Kodi's global video playlist before playing, so a stale item left queued there by another add-on (e.g. Twitch) auto-advanced into once our stream ended, errored, and pulled focus away from the addon entirely. Now clears Kodi's video playlist immediately before every play_item() call - not yet re-verified live
 
