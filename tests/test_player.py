@@ -713,6 +713,48 @@ def test_play_item_skips_to_next_episode_via_overlay(client, monkeypatch):
     assert player.stop_calls == 1
 
 
+def test_play_item_marks_current_episode_played_when_skipping_via_overlay(client, monkeypatch):
+    """Regression: clicking "Play Next Episode" must mark the current
+    episode watched before chaining - otherwise the episode the user just
+    watched is left unwatched on the server."""
+    fake_requests = FakeRequests([
+        FakeResponse({"Name": "Episode 1"}),  # get_item e1
+        FakeResponse({"MediaSources": [{"Id": "ms-1"}]}),  # PlaybackInfo e1
+        FakeResponse(None),  # report_playback_start e1
+        FakeResponse(None),  # report_playback_stopped e1
+        FakeResponse(None),  # mark_played e1
+    ])
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+    monkeypatch.setattr(player_mod, "_skip_intro_enabled", lambda: False)
+
+    player = _make_player(client, isplayingvideo_sequence=[True, True, True, True])
+    player.getTotalTime = lambda: 200.0
+    player.getTime = lambda: 190.0
+
+    class _FakeOverlay:
+        def __init__(self):
+            self.closed_event = threading.Event()
+            self.closed_event.set()
+            self.result = {"action": "play"}
+
+        def close(self):
+            pass
+
+    def fake_maybe_offer(item_id):
+        player._overlay_attempted = True
+        player._overlay_next_episode_id = "e2"
+        player._overlay = _FakeOverlay()
+
+    player._maybe_offer_next_episode = fake_maybe_offer
+
+    status = player.play_item("e1", item_type="Episode")
+
+    assert status == "ended"
+    mark_played_calls = [c for c in fake_requests.calls if c["url"].endswith("/PlayedItems/e1")]
+    assert len(mark_played_calls) == 1
+
+
 def test_play_item_dismissed_overlay_does_not_skip(client, monkeypatch):
     fake_requests = _fake_playback_responses()
     monkeypatch.setattr(client_mod, "requests", fake_requests)

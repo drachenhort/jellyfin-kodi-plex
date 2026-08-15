@@ -96,6 +96,7 @@ class JellyfinPlayer(xbmc.Player):
         self._overlay_next_episode_id = None
         self._pending_next_episode = None
         self.skip_target_item_id = None
+        self._advance_to_next = False
         self._resume_seconds = 0
         self._resume_seek_applied = False
         self._intro_segment = None
@@ -347,6 +348,7 @@ class JellyfinPlayer(xbmc.Player):
                     self._overlay = None
                     if overlay_result and overlay_result.get("action") == "play":
                         self.skip_target_item_id = self._overlay_next_episode_id
+                        self._advance_to_next = True
                         self._end_reason = "ended"
                         if self.isPlaying():
                             self._stop_with_timeout()
@@ -471,7 +473,8 @@ class JellyfinPlayer(xbmc.Player):
 
     def onPlayBackStopped(self):
         xbmc.log(f"{LOG_PREFIX} Player: onPlayBackStopped for {self._item_id!r}", xbmc.LOGINFO)
-        self._end_reason = "stopped"
+        if not self._advance_to_next:
+            self._end_reason = "stopped"
         self._stop_event.set()
 
     def onPlayBackEnded(self):
@@ -525,7 +528,7 @@ class JellyfinPlayer(xbmc.Player):
                 f"{LOG_PREFIX} Player: report_playback_stopped failed for {self._item_id!r}: {exc}",
                 xbmc.LOGWARNING,
             )
-        if self._end_reason == "ended":
+        if self._end_reason == "ended" or self._advance_to_next:
             try:
                 library.mark_played(self.client, self._item_id)
             except Exception as exc:
