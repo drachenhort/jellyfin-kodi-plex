@@ -14,7 +14,8 @@ from tests.fakes import FakeRequests, FakeResponse
 
 
 def _make_player(client, isplayingvideo_sequence, isplaying_sequence=None,
-                  isplayingaudio_sequence=None, stop_event_after=None):
+                  isplayingaudio_sequence=None, stop_event_after=None,
+                  end_reason="ended"):
     """Build a JellyfinPlayer whose isPlayingVideo()/isPlaying()/
     isPlayingAudio() replay fixed sequences of return values (one per
     wait-loop iteration), and whose stop() is recorded rather than touching
@@ -29,11 +30,31 @@ def _make_player(client, isplayingvideo_sequence, isplaying_sequence=None,
     isplaying_iter = iter(isplaying_sequence or [True] * len(isplayingvideo_sequence))
     isplayingaudio_iter = iter(isplayingaudio_sequence or [False] * len(isplayingvideo_sequence))
 
+    # Track the combined playing state so we can fire the appropriate Kodi
+    # callback when the faked playback transitions to not-playing. The real
+    # loop now waits for that callback to set _end_reason; without this,
+    # tests would hang for the full wait timeout on every natural end.
+    _state = {"video": False, "audio": False, "was_playing": False, "ended_fired": False}
+
+    def _update_state():
+        currently_playing = _state["video"] or _state["audio"]
+        if _state["was_playing"] and not currently_playing and not _state["ended_fired"]:
+            _state["ended_fired"] = True
+            if end_reason == "stopped":
+                player.onPlayBackStopped()
+            elif end_reason == "error":
+                player.onPlayBackError()
+            else:
+                player.onPlayBackEnded()
+        _state["was_playing"] = currently_playing
+
     def fake_is_playing_video():
         try:
-            return next(isplayingvideo_iter)
+            _state["video"] = next(isplayingvideo_iter)
         except StopIteration:
-            return isplayingvideo_sequence[-1]
+            _state["video"] = isplayingvideo_sequence[-1]
+        _update_state()
+        return _state["video"]
 
     def fake_is_playing():
         try:
@@ -43,9 +64,11 @@ def _make_player(client, isplayingvideo_sequence, isplaying_sequence=None,
 
     def fake_is_playing_audio():
         try:
-            return next(isplayingaudio_iter)
+            _state["audio"] = next(isplayingaudio_iter)
         except StopIteration:
-            return isplayingaudio_sequence[-1] if isplayingaudio_sequence else False
+            _state["audio"] = isplayingaudio_sequence[-1] if isplayingaudio_sequence else False
+        _update_state()
+        return _state["audio"]
 
     def fake_stop():
         player.stop_calls += 1
@@ -446,6 +469,23 @@ def test_play_item_returns_ended_when_track_finishes_naturally(client, monkeypat
     status = player.play_item("item-1")
 
     assert status == "ended"
+
+
+def test_play_item_does_not_mark_a_stopped_episode_as_played(client, monkeypatch):
+    """Regression: a manual stop must leave the episode partially-watched
+    (resume position reported) instead of marking it played."""
+    fake_requests = _fake_playback_responses()
+    monkeypatch.setattr(client_mod, "requests", fake_requests)
+    monkeypatch.setattr(player_mod.xbmc, "getCondVisibility", lambda cond: False)
+
+    player = _make_player(
+        client, isplayingvideo_sequence=[True, True, False], end_reason="stopped"
+    )
+    status = player.play_item("item-1")
+
+    assert status == "stopped"
+    played_calls = [c for c in fake_requests.calls if c["url"].endswith("/PlayedItems/item-1")]
+    assert played_calls == []
 
 
 def test_play_item_returns_error_on_startup_timeout(client, monkeypatch):

@@ -250,7 +250,22 @@ class JellyfinPlayer(xbmc.Player):
                                 f"{self._resume_seconds}s failed: {exc}",
                                 xbmc.LOGWARNING,
                             )
-            elif started or self._stop_event.is_set():
+            elif self._stop_event.is_set():
+                break
+            elif started:
+                # Playback has ended but Kodi's callback may not have fired
+                # yet. Wait briefly so onPlayBackStopped/onPlayBackEnded can
+                # set _end_reason correctly; without this, a manual stop can
+                # race the loop and look like a natural end, causing the
+                # item to be marked played and its resume point discarded.
+                for _ in range(10):
+                    if self._stop_event.is_set():
+                        break
+                    if monitor.waitForAbort(0.1) or stop_requested():
+                        self._end_reason = "stopped"
+                        if self.isPlaying():
+                            self._stop_with_timeout()
+                        break
                 break
             else:
                 # Still hasn't started (may just be slow to open/buffer) -
@@ -475,6 +490,11 @@ class JellyfinPlayer(xbmc.Player):
         xbmc.log(f"{LOG_PREFIX} Player: onPlayBackStopped for {self._item_id!r}", xbmc.LOGINFO)
         if not self._advance_to_next:
             self._end_reason = "stopped"
+        try:
+            if self.isPlaying():
+                self._last_position_ticks = int(self.getTime() * 10_000_000)
+        except Exception:  # noqa: BLE001 - player may already be torn down
+            pass
         self._stop_event.set()
 
     def onPlayBackEnded(self):
