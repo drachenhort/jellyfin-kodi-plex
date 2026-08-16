@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.73 - 2026-08-16
+- Fix resume position being lost when stopping playback. The player now preserves the last-reported progress instead of resetting it before the stopped-state server report went out, so a manual stop resumes from where you left off next time.
+
 ## 0.3.72 - 2026-08-15
 - Fix "Play Next Episode" overlay not appearing on episodes after the first chained one. The old JellyfinPlayer formed a reference cycle with its progress-reporting thread, so the previous player (and its xbmc.Player observer) lingered across the recursive chain into the next episode and prevented Kodi from fully attaching the new player's callbacks/state. The player now breaks that cycle on finish and the module-level play_item() explicitly frees the old player before recursing.
 
