@@ -490,6 +490,44 @@ def test_get_next_episode_in_season_returns_none_for_non_episode_items(client, m
     assert len(fake.calls) == 1  # never queries siblings for a non-episode
 
 
+def test_get_next_episode_in_season_crosses_into_next_season(client, monkeypatch):
+    fake = FakeRequests([
+        FakeResponse({"Id": "e3", "Type": "Episode", "SeasonId": "season-1", "SeriesId": "series-1"}),
+        FakeResponse({"Items": [
+            {"Id": "e1", "IndexNumber": 1}, {"Id": "e2", "IndexNumber": 2},
+            {"Id": "e3", "IndexNumber": 3},
+        ]}),
+        FakeResponse({"Id": "season-1", "IndexNumber": 1}),
+        FakeResponse({"Items": [
+            {"Id": "season-1", "IndexNumber": 1}, {"Id": "season-2", "IndexNumber": 2},
+        ]}),
+        FakeResponse({"Items": [{"Id": "s2e1", "IndexNumber": 1}, {"Id": "s2e2", "IndexNumber": 2}]}),
+    ])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    result = library.get_next_episode_in_season(client, "e3")
+
+    assert result == {"Id": "s2e1", "IndexNumber": 1}
+    assert fake.calls[3]["params"]["ParentId"] == "series-1"
+    assert fake.calls[3]["params"]["IncludeItemTypes"] == "Season"
+    assert fake.calls[4]["params"]["ParentId"] == "season-2"
+
+
+def test_get_next_episode_in_season_returns_none_for_the_show_finale(client, monkeypatch):
+    fake = FakeRequests([
+        FakeResponse({"Id": "e3", "Type": "Episode", "SeasonId": "season-1", "SeriesId": "series-1"}),
+        FakeResponse({"Items": [
+            {"Id": "e1", "IndexNumber": 1}, {"Id": "e2", "IndexNumber": 2},
+            {"Id": "e3", "IndexNumber": 3},
+        ]}),
+        FakeResponse({"Id": "season-1", "IndexNumber": 1}),
+        FakeResponse({"Items": [{"Id": "season-1", "IndexNumber": 1}]}),
+    ])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    assert library.get_next_episode_in_season(client, "e3") is None
+
+
 def test_get_similar(client, monkeypatch):
     library.clear_browse_cache()
     fake = FakeRequests([FakeResponse({"Items": [{"Id": "s1", "Name": "Similar Movie"}]})])

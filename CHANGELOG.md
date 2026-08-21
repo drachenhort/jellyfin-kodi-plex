@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.74 - 2026-08-21
+- The "Play Next Episode" prompt now offers the next season's first episode when a season's last episode finishes, instead of stopping at season boundaries. Applies to the same auto-play overlay used for in-season chaining.
+
 ## 0.3.73 - 2026-08-16
 - Fix resume position being lost when stopping playback. The player now preserves the last-reported progress instead of resetting it before the stopped-state server report went out, so a manual stop resumes from where you left off next time.
 

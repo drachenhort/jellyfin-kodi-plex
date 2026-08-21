@@ -245,10 +245,11 @@ def _season_block_item(episodes):
 
 
 def get_next_episode_in_season(client, item_id):
-    """The episode immediately after `item_id` within the same season, by
-    IndexNumber - or None if `item_id` isn't an Episode, has no season, or
-    is already the season's last episode. Used to offer auto-play after an
-    episode finishes (lib/main.py)."""
+    """The episode immediately after `item_id`, by IndexNumber - within the
+    same season if one follows, otherwise the first episode of the next
+    season (by season IndexNumber) if the show continues there. None if
+    `item_id` isn't an Episode, has no season, or is the show's last episode
+    overall. Used to offer auto-play after an episode finishes (lib/main.py)."""
     current = get_item(client, item_id, fields=LISTING_ITEM_FIELDS)
     if not current or current.get("Type") != "Episode":
         return None
@@ -261,8 +262,39 @@ def get_next_episode_in_season(client, item_id):
     ).get("Items", [])
     for index, episode in enumerate(siblings):
         if episode.get("Id") == item_id:
-            return siblings[index + 1] if index + 1 < len(siblings) else None
+            if index + 1 < len(siblings):
+                return siblings[index + 1]
+            return _get_first_episode_of_next_season(client, current, season_id)
     return None
+
+
+def _get_first_episode_of_next_season(client, current_episode, season_id):
+    """The first episode (by IndexNumber) of the season immediately after
+    `season_id` within the same series, by season IndexNumber - or None if
+    there's no series, no next season, or that season has no episodes."""
+    series_id = current_episode.get("SeriesId")
+    if not series_id:
+        return None
+    season = get_item(client, season_id, fields=LISTING_ITEM_FIELDS)
+    season_number = season.get("IndexNumber") if season else None
+    if season_number is None:
+        return None
+    seasons = get_items(
+        client, parent_id=series_id, limit=1000, sort_by="IndexNumber",
+        sort_order="Ascending", include_item_types="Season", fields=LISTING_ITEM_FIELDS,
+    ).get("Items", [])
+    next_seasons = [
+        s for s in seasons
+        if s.get("IndexNumber") is not None and s.get("IndexNumber") > season_number
+    ]
+    if not next_seasons:
+        return None
+    next_season = min(next_seasons, key=lambda s: s.get("IndexNumber"))
+    episodes = get_items(
+        client, parent_id=next_season.get("Id"), limit=1000, sort_by="IndexNumber",
+        sort_order="Ascending", include_item_types="Episode", fields=LISTING_ITEM_FIELDS,
+    ).get("Items", [])
+    return episodes[0] if episodes else None
 
 
 def mark_played(client, item_id):
