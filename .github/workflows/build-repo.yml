@@ -51,6 +51,7 @@ jobs:
             gh release create "$tag" --repo "${{ github.repository }}" \
               --title "$tag" \
               --generate-notes \
+              --latest \
               "docs/script.jellyfin.plex/script.jellyfin.plex-${version}.zip"
           fi
 
@@ -63,8 +64,13 @@ jobs:
           if gh release view "$tag" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             echo "Release $tag already exists, skipping."
           else
+            # --latest=false: this repo's GitHub "Latest release" sidebar is
+            # shared with the unrelated script.jellyfin.plex addon, which
+            # should stay the one shown there - a Twitch Center release must
+            # never take over that slot just by being the most recent by date.
             gh release create "$tag" --repo "${{ github.repository }}" \
               --title "Twitch Center v${version}" \
               --generate-notes \
+              --latest=false \
               "docs/script.twitch.center/script.twitch.center-${version}.zip"
           fi
