@@ -1,0 +1,95 @@
+# Kodi Media Center language file
+msgid ""
+msgstr ""
+
+msgctxt "#30000"
+msgid "General"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Show chat overlay while playing"
+msgstr ""
+
+msgctxt "#30005"
+msgid "Twitch Client ID"
+msgstr ""
+
+msgctxt "#30006"
+msgid "Twitch Token"
+msgstr ""
+
+msgctxt "#30007"
+msgid "Website Token (optional, for ads-free/subscriber perks)"
+msgstr ""
+
+msgctxt "#30008"
+msgid "Optional. Paste your twitch.tv 'auth-token' cookie (browser DevTools > Application > Cookies) for ad-free/subscriber playback."
+msgstr ""
+
+msgctxt "#30009"
+msgid "Show offline channels on Home"
+msgstr ""
+
+msgctxt "#30010"
+msgid "Audio cycle key"
+msgstr ""
+
+msgctxt "#30011"
+msgid "Keyboard key that cycles to the next audio stream during playback. Leave empty to disable. Changes apply after reloading the addon."
+msgstr ""
+
+msgctxt "#30012"
+msgid "Audio cycle remote button"
+msgstr ""
+
+msgctxt "#30013"
+msgid "Remote button that cycles to the next audio stream during playback. Leave empty to disable. Common values: red, green, yellow, blue."
+msgstr ""
+
+msgctxt "#30014"
+msgid "Chat engine"
+msgstr ""
+
+msgctxt "#30015"
+msgid "IRC (anonymous, no login required)"
+msgstr ""
+
+msgctxt "#30016"
+msgid "EventSub (requires login, official API)"
+msgstr ""
+
+msgctxt "#30017"
+msgid "EventSub requires being logged in and is not available for Search results playback (falls back to IRC there)."
+msgstr ""
+
+msgctxt "#30018"
+msgid "Variable-size chat overlay (EventSub only)"
+msgstr ""
+
+msgctxt "#30019"
+msgid "Sizes each chat overlay message's box to its actual length instead of a fixed maximum. Only takes effect when the EventSub chat engine is selected above."
+msgstr ""
+
+msgctxt "#30020"
+msgid "Kick Client ID"
+msgstr ""
+
+msgctxt "#30021"
+msgid "Kick OAuth redirect port"
+msgstr ""
+
+msgctxt "#30022"
+msgid "Kick Token"
+msgstr ""
+
+msgctxt "#30023"
+msgid "Local port used to receive the OAuth redirect during Kick login. Must match the redirect URI registered with your Kick app (http://127.0.0.1:<port>/callback)."
+msgstr ""
+
+msgctxt "#30024"
+msgid "Your Kick OAuth app's client ID. Register an app at kick.com/settings/developer to get one."
+msgstr ""
+
+msgctxt "#30025"
+msgid "Kick Client Secret"
+msgstr ""

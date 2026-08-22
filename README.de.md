@@ -10,6 +10,11 @@ Die Architektur orientiert sich am Open-Source-Addon [Plex for Kodi](https://git
 ein Kodi-*Skript*-Addon (kein `plugin.video.*`), das eigene `WindowXML`/`WindowXMLDialog`-Fenster öffnet,
 um die Oberfläche vollständig selbst zu steuern, unabhängig vom aktiven Kodi-Skin.
 
+> Dieses Repository beherbergt außerdem ein zweites, unabhängiges Addon,
+> [**Twitch Center**](https://github.com/drachenhort/twitch-center) (`script.twitch.center`) — ein
+> Twitch-Streaming-/Chat-Addon, das sich diesen Build-/Release-Workflow und das Repository-Addon
+> teilt. Details siehe die eigene README dieses Projekts; hier nur zur Distribution eingebunden.
+
 ## Screenshots
 
 ![Startbildschirm mit Bibliotheks-Zeile, kürzlich hinzugefügten Filmen und Serien](screenshots/home-screen.png)
@@ -53,7 +58,7 @@ als eine undurchschaubare Posterwand.
 ### Installation über das Repository (empfohlen — ermöglicht automatische Updates)
 
 1. Repository-Addon-Zip herunterladen:
-   [`repository.jellyfinplex-1.0.0.zip`](https://drachenhort.github.io/jellyfin-kodi-plex/repository.jellyfinplex/repository.jellyfinplex-1.0.0.zip)
+   [`repository.jellyfinplex-1.0.1.zip`](https://drachenhort.github.io/jellyfin-kodi-plex/repository.jellyfinplex/repository.jellyfinplex-1.0.1.zip)
 2. In Kodi: **Add-ons → Von ZIP-Datei installieren**, die heruntergeladene Datei auswählen.
 3. Danach **Add-ons → Aus Repository installieren → Jellyfin (Plex-style) Repository →
    Video-Add-ons → Jellyfin (Plex-style)** und von dort installieren.
@@ -67,6 +72,13 @@ ist damit nicht mehr nötig.
 Die Addon-ZIP-Datei von einem [GitHub Release](https://github.com/drachenhort/jellyfin-kodi-plex/releases)
 herunterladen und in Kodi **Add-ons → Von ZIP-Datei installieren** verwenden. Dieser Schritt muss
 für jede zukünftige Version manuell wiederholt werden.
+
+### Stattdessen Twitch Center installieren
+
+Dieselbe Repository-ZIP-Datei installiert beide Addons. Nach Schritt 2 stattdessen zu **Add-ons →
+Aus Repository installieren → Jellyfin (Plex-style) Repository → Programm-Add-ons → Twitch
+Center** gehen. Siehe [drachenhort/twitch-center](https://github.com/drachenhort/twitch-center)
+für die eigene Dokumentation, Screenshots und den Status dieses Addons.
 
 ## Status
 

@@ -85,6 +85,11 @@ ADDONS = [
         "includes": ["addon.xml", "default.py", "service.py", "icon.png", "lib", "resources"],
     },
     {
+        "id": "script.twitch.center",
+        "source_dir": os.path.join(REPO_ROOT, "script.twitch.center"),
+        "includes": ["addon.xml", "addon.py", "icon.png", "lib", "resources"],
+    },
+    {
         "id": "repository.jellyfinplex",
         "source_dir": os.path.join(REPO_ROOT, "repository.jellyfinplex"),
         "includes": None,

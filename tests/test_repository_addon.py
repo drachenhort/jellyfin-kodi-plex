@@ -9,7 +9,7 @@ def test_repository_addon_xml_is_well_formed():
     root = ET.parse(ADDON_XML).getroot()
     assert root.tag == "addon"
     assert root.attrib["id"] == "repository.jellyfinplex"
-    assert root.attrib["version"] == "1.0.0"
+    assert root.attrib["version"] == "1.0.1"
 
 
 def test_repository_addon_declares_repository_extension():

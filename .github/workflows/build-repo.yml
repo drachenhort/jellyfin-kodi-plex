@@ -6,6 +6,7 @@ on:
     paths:
       - "script.jellyfin.plex/addon.xml"
       - "addon.xml"
+      - "script.twitch.center/addon.xml"
       - "repository.jellyfinplex/addon.xml"
       - "tools/build_repo.py"
   workflow_dispatch: {}
@@ -38,7 +39,7 @@ jobs:
             git push
           fi
 
-      - name: Create GitHub release for this version
+      - name: Create GitHub release for this version (script.jellyfin.plex)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -51,4 +52,19 @@ jobs:
               --title "$tag" \
               --generate-notes \
               "docs/script.jellyfin.plex/script.jellyfin.plex-${version}.zip"
+          fi
+
+      - name: Create GitHub release for this version (script.twitch.center)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(python -c "import xml.etree.ElementTree as ET; print(ET.parse('script.twitch.center/addon.xml').getroot().attrib['version'])")
+          tag="script.twitch.center-v${version}"
+          if gh release view "$tag" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "Release $tag already exists, skipping."
+          else
+            gh release create "$tag" --repo "${{ github.repository }}" \
+              --title "Twitch Center v${version}" \
+              --generate-notes \
+              "docs/script.twitch.center/script.twitch.center-${version}.zip"
           fi

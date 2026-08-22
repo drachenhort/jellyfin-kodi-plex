@@ -10,6 +10,11 @@ Architecture is modelled on the open-source [Plex for Kodi](https://github.com/p
 addon: a Kodi *script* addon (not `plugin.video.*`) that opens its own `WindowXML`/`WindowXMLDialog`
 windows to fully control the UI, independent of the active Kodi skin.
 
+> This repository also hosts an unrelated second addon,
+> [**Twitch Center**](https://github.com/drachenhort/twitch-center) (`script.twitch.center`) — a
+> Twitch streaming/chat addon, sharing this repo's build/release workflow and repository addon.
+> See that project's own README for details; it's included here for distribution only.
+
 ## Screenshots
 
 ![Home screen with library row, Recently Added Movies, and Recently Added TV](screenshots/home-screen.png)
@@ -49,7 +54,7 @@ posters.
 ### Install via repository (recommended — enables auto-updates)
 
 1. Download the repository addon zip:
-   [`repository.jellyfinplex-1.0.0.zip`](https://drachenhort.github.io/jellyfin-kodi-plex/repository.jellyfinplex/repository.jellyfinplex-1.0.0.zip)
+   [`repository.jellyfinplex-1.0.1.zip`](https://drachenhort.github.io/jellyfin-kodi-plex/repository.jellyfinplex/repository.jellyfinplex-1.0.1.zip)
 2. In Kodi: **Add-ons → Install from zip file**, select the downloaded file.
 3. Then **Add-ons → Install from repository → Jellyfin (Plex-style) Repository →
    Video add-ons → Jellyfin (Plex-style)**, and install it from there.
@@ -62,6 +67,13 @@ any other, so you no longer need to manually reinstall a zip after every release
 Download the addon zip from a [GitHub Release](https://github.com/drachenhort/jellyfin-kodi-plex/releases)
 and use **Add-ons → Install from zip file** in Kodi. You'll need to repeat this manually for every
 future version.
+
+### Installing Twitch Center instead
+
+Same repository zip as above installs both addons. After step 2, go to **Add-ons → Install from
+repository → Jellyfin (Plex-style) Repository → Program add-ons → Twitch Center** instead. See
+[drachenhort/twitch-center](https://github.com/drachenhort/twitch-center) for that addon's own
+documentation, screenshots, and status.
 
 ## Status
 
