@@ -17,6 +17,21 @@ def _response(json_body, status_code=200):
     return response
 
 
+def test_get_unofficial_channel_returns_parsed_json():
+    body = {"slug": "somechannel", "playback_url": "https://x.m3u8", "livestream": {"is_live": True}}
+    with patch.object(api.requests, "get", return_value=_response(body)) as mock_get:
+        result = api.get_unofficial_channel("somechannel")
+    assert result == body
+    assert mock_get.call_args.args[0] == "https://kick.com/api/v2/channels/somechannel"
+    assert "Authorization" not in mock_get.call_args.kwargs.get("headers", {})
+
+
+def test_get_unofficial_channel_returns_none_on_404():
+    with patch.object(api.requests, "get", return_value=_response({}, status_code=404)):
+        result = api.get_unofficial_channel("nosuchchannel")
+    assert result is None
+
+
 def test_get_current_user_normalizes_field_names():
     body = {"data": [{"user_id": 42, "name": "SomeUser"}]}
     with patch.object(api.requests, "get", return_value=_response(body)) as mock_get:
@@ -61,10 +76,35 @@ def test_get_live_streams_omits_category_id_when_none():
 
 
 def test_get_top_categories_returns_id_and_name():
-    body = {"data": [{"id": 7, "name": "Just Chatting"}, {"id": 8, "name": "Games"}]}
-    with patch.object(api.requests, "get", return_value=_response(body)):
+    body = {
+        "data": [
+            {"id": 1, "name": "Apex Legends", "thumbnail": "https://example.invalid/apex.jpg", "tags": ["FPS"]},
+            {"id": 2, "name": "Fortnite", "thumbnail": "https://example.invalid/fortnite.jpg", "tags": ["Shooter"]},
+        ]
+    }
+    with patch.object(api.requests, "get", return_value=_response(body)) as mock_get:
         result = api.get_top_categories("token", first=2)
-    assert result == [{"id": 7, "name": "Just Chatting"}, {"id": 8, "name": "Games"}]
+    assert result == [{"id": 1, "name": "Apex Legends"}, {"id": 2, "name": "Fortnite"}]
+    called_url = mock_get.call_args.args[0]
+    assert called_url == api.API_BASE_V2 + "/categories"
+    assert mock_get.call_args.kwargs["params"] == {"limit": 2}
+
+
+def test_search_categories_returns_id_and_name():
+    body = {"data": [{"id": 3, "name": "EVE Online", "thumbnail": "https://example.invalid/eve.jpg", "tags": []}]}
+    with patch.object(api.requests, "get", return_value=_response(body)) as mock_get:
+        result = api.search_categories("token", "eve", first=5)
+    assert result == [{"id": 3, "name": "EVE Online"}]
+    called_url = mock_get.call_args.args[0]
+    assert called_url == api.API_BASE_V2 + "/categories"
+    assert mock_get.call_args.kwargs["params"] == {"name": "eve", "limit": 5}
+
+
+def test_search_categories_dedupes_by_id():
+    body = {"data": [{"id": 3, "name": "EVE Online"}, {"id": 3, "name": "EVE Online"}, {"id": 4, "name": "EverQuest"}]}
+    with patch.object(api.requests, "get", return_value=_response(body)):
+        result = api.search_categories("token", "eve")
+    assert result == [{"id": 3, "name": "EVE Online"}, {"id": 4, "name": "EverQuest"}]
 
 
 def test_get_user_by_login_returns_normalized_dict():
@@ -79,19 +119,3 @@ def test_get_user_by_login_returns_none_when_not_found():
     with patch.object(api.requests, "get", return_value=_response({"data": []})):
         result = api.get_user_by_login("token", "nosuchuser")
     assert result is None
-
-
-def test_search_channels_returns_data():
-    body = {"data": [{"slug": "somechannel"}, {"slug": "otherchannel"}]}
-    with patch.object(api.requests, "get", return_value=_response(body)) as mock_get:
-        result = api.search_channels("token", "some", first=5)
-    assert result == body["data"]
-    assert mock_get.call_args.kwargs["params"] == {"searchQuery": "some", "limit": 5}
-
-
-def test_search_channels_uses_search_base_not_api_base():
-    body = {"data": []}
-    with patch.object(api.requests, "get", return_value=_response(body)) as mock_get:
-        api.search_channels("token", "query")
-    called_url = mock_get.call_args.args[0]
-    assert called_url == api.SEARCH_BASE + "/search/channels"

@@ -3,6 +3,7 @@
 ACTION_PREVIOUS_MENU = 10
 ACTION_NAV_BACK = 92
 ACTION_SELECT_ITEM = 7
+ACTION_CONTEXT_MENU = 117
 
 
 class Action:
@@ -88,9 +89,17 @@ class FakeListControl:
     def addItems(self, items):
         self._items.extend(items)
 
+    def addItem(self, item):
+        self._items.append(item)
+
     def reset(self):
         self._items = []
         self._selected_index = 0
+
+    def getSelectedPosition(self):
+        if not self._items:
+            return -1
+        return min(self._selected_index, len(self._items) - 1)
 
     def removeItem(self, index):
         del self._items[index]
@@ -102,6 +111,9 @@ class FakeListControl:
         if not self._items:
             return None
         index = min(self._selected_index, len(self._items) - 1)
+        return self._items[index]
+
+    def getListItem(self, index):
         return self._items[index]
 
     def selectItem(self, index):
@@ -196,3 +208,19 @@ class WindowXML:
 class WindowXMLDialog(WindowXML):
     def doModal(self):
         pass
+
+
+class Dialog:
+    # Test-controllable: set before calling contextmenu() to control which
+    # item index (or -1 for "cancelled") the fake dialog returns.
+    next_contextmenu_choice = -1
+    notifications = []
+
+    def ok(self, heading, message):
+        return True
+
+    def contextmenu(self, items):
+        return Dialog.next_contextmenu_choice
+
+    def notification(self, heading, message, icon=None, time=None):
+        Dialog.notifications.append((heading, message))

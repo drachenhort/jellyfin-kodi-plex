@@ -1,10 +1,10 @@
 from unittest.mock import patch
 
-from lib.twitch import stream
-
 import xbmcaddon
 import xbmcgui
 
+from lib import providers
+from lib.kick import auth as kick_auth
 from lib.twitch import api
 from lib.twitch.auth import clear_token, save_token
 from lib.views.discover_view import (
@@ -89,6 +89,8 @@ def test_build_stream_item_sets_label2_and_thumbnail():
     assert "500" in item.getLabel2()
     assert item.getArt("thumb") == "https://example.invalid/320x180.jpg"
     assert item.getProperty("broadcaster_id") == "1"
+    assert item.getProperty("game_name") == "Just Chatting"
+    assert item.getProperty("viewer_count") == "500"
 
 
 def test_build_channel_item_live_shows_game_and_live_status():
@@ -98,6 +100,7 @@ def test_build_channel_item_live_shows_game_and_live_status():
     assert "League of Legends" in item.getLabel2()
     assert item.getArt("thumb") == "https://example.invalid/bob.jpg"
     assert item.getProperty("broadcaster_id") == "2"
+    assert item.getProperty("game_name") == "League of Legends"
 
 
 def test_build_channel_item_offline_shows_offline():
@@ -221,6 +224,10 @@ def test_toggling_search_mode_button_flips_mode_and_label():
         assert "Games" in win.window.getControl(DiscoverView.SEARCH_MODE_TOGGLE_ID).getLabel()
 
         win.handle_action(xbmcgui.Action(xbmcgui.ACTION_SELECT_ITEM))
+        assert win._search_mode == "kick"
+        assert "Kick" in win.window.getControl(DiscoverView.SEARCH_MODE_TOGGLE_ID).getLabel()
+
+        win.handle_action(xbmcgui.Action(xbmcgui.ACTION_SELECT_ITEM))
         assert win._search_mode == "channels"
         assert "Channels" in win.window.getControl(DiscoverView.SEARCH_MODE_TOGGLE_ID).getLabel()
 
@@ -268,6 +275,73 @@ def test_pressing_search_in_game_mode_shows_message_when_no_game_matches():
     mock_get_streams.assert_not_called()
     assert win.window.getControl(DiscoverView.EMPTY_LABEL_ID).getLabel() != ""
     assert win.window.getControl(DiscoverView.RESULTS_LIST_ID).size() == 0
+
+
+def _switch_to_kick_search_mode(win):
+    win.window.setFocusId(DiscoverView.SEARCH_MODE_TOGGLE_ID)
+    win.handle_action(xbmcgui.Action(xbmcgui.ACTION_SELECT_ITEM))  # channels -> games
+    win.handle_action(xbmcgui.Action(xbmcgui.ACTION_SELECT_ITEM))  # games -> kick
+
+
+def test_pressing_search_in_kick_mode_searches_categories_then_lists_its_streams():
+    addon = _addon_with_token({"access_token": "tok", "refresh_token": "ref", "user_id": "u1"})
+    matches = [{"id": 3, "name": "EVE Online"}]
+    with patch("xbmcaddon.Addon", return_value=addon), patch.object(
+        api, "get_top_games", return_value=TOP_GAMES
+    ), patch.object(kick_auth, "load_token", return_value={"access_token": "ktok"}), patch.object(
+        providers, "search_kick_categories", return_value=matches
+    ) as mock_search, patch.object(
+        providers, "get_kick_category_streams", return_value=[KICK_CATEGORY_STREAM]
+    ) as mock_get_streams:
+        win = DiscoverView(FakeWindow())
+        win.activate()
+        _switch_to_kick_search_mode(win)
+        win.window.getControl(DiscoverView.SEARCH_EDIT_ID).setText("eve")
+        win.window.setFocusId(DiscoverView.SEARCH_BUTTON_ID)
+        win.handle_action(xbmcgui.Action(xbmcgui.ACTION_SELECT_ITEM))
+
+    mock_search.assert_called_once_with(addon, "eve")
+    mock_get_streams.assert_called_once_with(addon, 3)
+    results_control = win.window.getControl(DiscoverView.RESULTS_LIST_ID)
+    assert results_control.size() == 1
+    assert results_control.getListItem(0).getProperty("platform") == "kick"
+
+
+def test_pressing_search_in_kick_mode_shows_message_when_no_category_matches():
+    addon = _addon_with_token({"access_token": "tok", "refresh_token": "ref", "user_id": "u1"})
+    with patch("xbmcaddon.Addon", return_value=addon), patch.object(
+        api, "get_top_games", return_value=TOP_GAMES
+    ), patch.object(kick_auth, "load_token", return_value={"access_token": "ktok"}), patch.object(
+        providers, "search_kick_categories", return_value=[]
+    ), patch.object(providers, "get_kick_category_streams") as mock_get_streams:
+        win = DiscoverView(FakeWindow())
+        win.activate()
+        _switch_to_kick_search_mode(win)
+        win.window.getControl(DiscoverView.SEARCH_EDIT_ID).setText("nonexistentgamexyz")
+        win.window.setFocusId(DiscoverView.SEARCH_BUTTON_ID)
+        win.handle_action(xbmcgui.Action(xbmcgui.ACTION_SELECT_ITEM))
+
+    mock_get_streams.assert_not_called()
+    assert win.window.getControl(DiscoverView.EMPTY_LABEL_ID).getLabel() != ""
+    assert win.window.getControl(DiscoverView.RESULTS_LIST_ID).size() == 0
+
+
+def test_pressing_search_in_kick_mode_shows_error_when_not_logged_into_kick():
+    addon = _addon_with_token({"access_token": "tok", "refresh_token": "ref", "user_id": "u1"})
+    with patch("xbmcaddon.Addon", return_value=addon), patch.object(
+        api, "get_top_games", return_value=TOP_GAMES
+    ), patch.object(kick_auth, "load_token", return_value=None), patch.object(
+        providers, "search_kick_categories"
+    ) as mock_search:
+        win = DiscoverView(FakeWindow())
+        win.activate()
+        _switch_to_kick_search_mode(win)
+        win.window.getControl(DiscoverView.SEARCH_EDIT_ID).setText("eve")
+        win.window.setFocusId(DiscoverView.SEARCH_BUTTON_ID)
+        win.handle_action(xbmcgui.Action(xbmcgui.ACTION_SELECT_ITEM))
+
+    mock_search.assert_not_called()
+    assert win.window.getControl(DiscoverView.ERROR_LABEL_ID).getLabel() != ""
 
 
 def test_selecting_relogin_button_switches_to_login_view():
@@ -429,9 +503,8 @@ def test_selecting_a_live_result_plays_it():
     addon = _addon_with_token({"access_token": "tok", "refresh_token": "ref", "user_id": "u1"})
     with patch("xbmcaddon.Addon", return_value=addon), patch.object(
         api, "get_top_games", return_value=TOP_GAMES
-    ), patch.object(api, "get_live_streams_by_game", return_value=STREAMS), patch(
-        "lib.views.discover_view.stream.resolve_stream_url",
-        return_value="https://example.invalid/stream.m3u8",
+    ), patch.object(api, "get_live_streams_by_game", return_value=STREAMS), patch.object(
+        providers, "resolve_stream_url", return_value="https://example.invalid/stream.m3u8"
     ) as mock_resolve, patch(
         "lib.views.discover_view.player.play_stream", return_value=True
     ) as mock_play:
@@ -446,10 +519,13 @@ def test_selecting_a_live_result_plays_it():
         win.window.setFocusId(DiscoverView.RESULTS_LIST_ID)
         win.handle_action(xbmcgui.Action(xbmcgui.ACTION_SELECT_ITEM))
 
-    mock_resolve.assert_called_once_with(STREAMS[0]["user_login"], "")
+    call_args = mock_resolve.call_args
+    assert call_args.args[1] == "twitch"
+    assert call_args.args[2] == STREAMS[0]["user_login"]
     mock_play.assert_called_once_with(
         "https://example.invalid/stream.m3u8",
         STREAMS[0]["user_login"],
+        platform="twitch",
         access_token="tok",
         client_id="",
         user_id="u1",
@@ -469,7 +545,7 @@ def test_selecting_an_offline_search_result_does_nothing():
         results_control = win.window.getControl(DiscoverView.RESULTS_LIST_ID)
         results_control.selectItem(1)  # Carol, offline per SEARCH_RESULTS[1]
         win.window.setFocusId(DiscoverView.RESULTS_LIST_ID)
-        with patch("lib.views.discover_view.stream.resolve_stream_url") as mock_resolve:
+        with patch.object(providers, "resolve_stream_url") as mock_resolve:
             win.handle_action(xbmcgui.Action(xbmcgui.ACTION_SELECT_ITEM))
 
     mock_resolve.assert_not_called()
@@ -479,9 +555,8 @@ def test_selecting_a_live_result_shows_results_error_when_resolution_fails():
     addon = _addon_with_token({"access_token": "tok", "refresh_token": "ref", "user_id": "u1"})
     with patch("xbmcaddon.Addon", return_value=addon), patch.object(
         api, "get_top_games", return_value=TOP_GAMES
-    ), patch.object(api, "get_live_streams_by_game", return_value=STREAMS), patch(
-        "lib.views.discover_view.stream.resolve_stream_url",
-        side_effect=stream.StreamUnavailableError("alice"),
+    ), patch.object(api, "get_live_streams_by_game", return_value=STREAMS), patch.object(
+        providers, "resolve_stream_url", side_effect=providers.StreamUnavailableError("alice"),
     ):
         win = DiscoverView(FakeWindow())
         win.activate()
@@ -504,9 +579,8 @@ def test_selecting_a_live_result_shows_error_on_unexpected_exception():
     addon = _addon_with_token({"access_token": "tok", "refresh_token": "ref", "user_id": "u1"})
     with patch("xbmcaddon.Addon", return_value=addon), patch.object(
         api, "get_top_games", return_value=TOP_GAMES
-    ), patch.object(api, "get_live_streams_by_game", return_value=STREAMS), patch(
-        "lib.views.discover_view.stream.resolve_stream_url",
-        side_effect=RuntimeError("boom"),
+    ), patch.object(api, "get_live_streams_by_game", return_value=STREAMS), patch.object(
+        providers, "resolve_stream_url", side_effect=RuntimeError("boom"),
     ):
         win = DiscoverView(FakeWindow())
         win.activate()
@@ -521,3 +595,148 @@ def test_selecting_a_live_result_shows_error_on_unexpected_exception():
 
     assert win.window.getControl(DiscoverView.ERROR_LABEL_ID).getLabel() != ""
     assert games_control.size() == 2
+
+
+KICK_TOP_CATEGORIES = [{"id": 7, "name": "Just Chatting"}, {"id": 8, "name": "Slots"}]
+
+KICK_CATEGORY_STREAM = {
+    "platform": "kick",
+    "id": "42",
+    "login": "kickchannel",
+    "display_name": "kickchannel",
+    "is_live": True,
+    "viewer_count": 88,
+    "game_name": "Slots",
+    "thumbnail_url": "https://example.invalid/kickthumb.jpg",
+}
+
+
+def test_oninit_populates_kick_categories_row():
+    addon = _addon_with_token({"access_token": "tok", "refresh_token": "ref", "user_id": "u1"})
+    with patch("xbmcaddon.Addon", return_value=addon), patch.object(
+        api, "get_top_games", return_value=TOP_GAMES
+    ), patch.object(providers, "get_kick_top_categories", return_value=KICK_TOP_CATEGORIES):
+        win = DiscoverView(FakeWindow())
+        win.activate()
+
+    kick_control = win.window.getControl(DiscoverView.KICK_CATEGORIES_LIST_ID)
+    assert kick_control.size() == 2
+    assert kick_control.getListItem(0).getLabel() == "Just Chatting"
+    assert kick_control.getListItem(0).getProperty("category_id") == "7"
+
+
+def test_kick_categories_row_is_empty_when_no_kick_token():
+    addon = _addon_with_token({"access_token": "tok", "refresh_token": "ref", "user_id": "u1"})
+    with patch("xbmcaddon.Addon", return_value=addon), patch.object(
+        api, "get_top_games", return_value=TOP_GAMES
+    ), patch.object(providers, "get_kick_top_categories", return_value=[]):
+        win = DiscoverView(FakeWindow())
+        win.activate()
+
+    kick_control = win.window.getControl(DiscoverView.KICK_CATEGORIES_LIST_ID)
+    assert kick_control.size() == 0
+
+
+def test_selecting_a_kick_category_populates_results_with_kick_items():
+    addon = _addon_with_token({"access_token": "tok", "refresh_token": "ref", "user_id": "u1"})
+    with patch("xbmcaddon.Addon", return_value=addon), patch.object(
+        api, "get_top_games", return_value=TOP_GAMES
+    ), patch.object(
+        providers, "get_kick_top_categories", return_value=KICK_TOP_CATEGORIES
+    ), patch.object(
+        providers, "get_kick_category_streams", return_value=[KICK_CATEGORY_STREAM]
+    ) as mock_get_streams:
+        win = DiscoverView(FakeWindow())
+        win.activate()
+        kick_control = win.window.getControl(DiscoverView.KICK_CATEGORIES_LIST_ID)
+        kick_control.selectItem(0)
+        win.window.setFocusId(DiscoverView.KICK_CATEGORIES_LIST_ID)
+        win.handle_action(xbmcgui.Action(xbmcgui.ACTION_SELECT_ITEM))
+
+    mock_get_streams.assert_called_once()
+    assert mock_get_streams.call_args.args[1] == "7"
+    results_control = win.window.getControl(DiscoverView.RESULTS_LIST_ID)
+    assert results_control.size() == 1
+    assert results_control.getListItem(0).getProperty("broadcaster_login") == "kickchannel"
+    assert results_control.getListItem(0).getProperty("platform") == "kick"
+
+
+def test_selecting_a_live_kick_result_plays_it():
+    addon = _addon_with_token({"access_token": "tok", "refresh_token": "ref", "user_id": "u1"})
+    with patch("xbmcaddon.Addon", return_value=addon), patch.object(
+        api, "get_top_games", return_value=TOP_GAMES
+    ), patch.object(
+        providers, "get_kick_top_categories", return_value=KICK_TOP_CATEGORIES
+    ), patch.object(
+        providers, "get_kick_category_streams", return_value=[KICK_CATEGORY_STREAM]
+    ), patch.object(
+        providers, "resolve_stream_url", return_value="https://kick.example/x.m3u8"
+    ) as mock_resolve, patch(
+        "lib.views.discover_view.player.play_stream", return_value=True
+    ) as mock_play:
+        win = DiscoverView(FakeWindow())
+        win.activate()
+        kick_control = win.window.getControl(DiscoverView.KICK_CATEGORIES_LIST_ID)
+        kick_control.selectItem(0)
+        win.window.setFocusId(DiscoverView.KICK_CATEGORIES_LIST_ID)
+        win.handle_action(xbmcgui.Action(xbmcgui.ACTION_SELECT_ITEM))
+        results_control = win.window.getControl(DiscoverView.RESULTS_LIST_ID)
+        results_control.selectItem(0)
+        win.window.setFocusId(DiscoverView.RESULTS_LIST_ID)
+        win.handle_action(xbmcgui.Action(xbmcgui.ACTION_SELECT_ITEM))
+
+    call_args = mock_resolve.call_args
+    assert call_args.args[1] == "kick"
+    assert call_args.args[2] == "kickchannel"
+    mock_play.assert_called_once_with(
+        "https://kick.example/x.m3u8", "kickchannel", platform="kick"
+    )
+
+
+def test_context_menu_on_kick_result_adds_favorite():
+    addon = _addon_with_token({"access_token": "tok", "refresh_token": "ref", "user_id": "u1"})
+    xbmcgui.Dialog.next_contextmenu_choice = 0
+    xbmcgui.Dialog.notifications = []
+    with patch("xbmcaddon.Addon", return_value=addon), patch.object(
+        api, "get_top_games", return_value=TOP_GAMES
+    ), patch.object(
+        providers, "get_kick_top_categories", return_value=KICK_TOP_CATEGORIES
+    ), patch.object(
+        providers, "get_kick_category_streams", return_value=[KICK_CATEGORY_STREAM]
+    ):
+        win = DiscoverView(FakeWindow())
+        win.activate()
+        kick_control = win.window.getControl(DiscoverView.KICK_CATEGORIES_LIST_ID)
+        kick_control.selectItem(0)
+        win.window.setFocusId(DiscoverView.KICK_CATEGORIES_LIST_ID)
+        win.handle_action(xbmcgui.Action(xbmcgui.ACTION_SELECT_ITEM))
+        results_control = win.window.getControl(DiscoverView.RESULTS_LIST_ID)
+        results_control.selectItem(0)
+        win.window.setFocusId(DiscoverView.RESULTS_LIST_ID)
+        win.handle_action(xbmcgui.Action(xbmcgui.ACTION_CONTEXT_MENU))
+
+    assert providers.get_kick_favorites(addon) == ["kickchannel"]
+
+
+def test_context_menu_on_twitch_result_does_nothing():
+    addon = _addon_with_token({"access_token": "tok", "refresh_token": "ref", "user_id": "u1"})
+    xbmcgui.Dialog.next_contextmenu_choice = 0
+    xbmcgui.Dialog.notifications = []
+    with patch("xbmcaddon.Addon", return_value=addon), patch.object(
+        api, "get_top_games", return_value=TOP_GAMES
+    ), patch.object(
+        api, "get_live_streams_by_game", return_value=STREAMS
+    ):
+        win = DiscoverView(FakeWindow())
+        win.activate()
+        games_control = win.window.getControl(DiscoverView.GAMES_LIST_ID)
+        games_control.selectItem(0)
+        win.window.setFocusId(DiscoverView.GAMES_LIST_ID)
+        win.handle_action(xbmcgui.Action(xbmcgui.ACTION_SELECT_ITEM))
+        results_control = win.window.getControl(DiscoverView.RESULTS_LIST_ID)
+        results_control.selectItem(0)
+        win.window.setFocusId(DiscoverView.RESULTS_LIST_ID)
+        win.handle_action(xbmcgui.Action(xbmcgui.ACTION_CONTEXT_MENU))
+
+    assert providers.get_kick_favorites(addon) == []
+    assert xbmcgui.Dialog.notifications == []

@@ -14,7 +14,7 @@ class MainWindow(xbmcgui.WindowXML):
         "menu": 500,
         "live_streams": 200,
         "discover": 300,
-        "search": 400,
+        "kick_login": 600,
     }
 
     VERSION_LABEL_ID = 900
@@ -36,22 +36,22 @@ class MainWindow(xbmcgui.WindowXML):
     @staticmethod
     def _default_view_classes():
         from lib.views.discover_view import DiscoverView
+        from lib.views.kick_login_view import KickLoginView
         from lib.views.live_streams_view import LiveStreamsView
         from lib.views.login_view import LoginView
         from lib.views.menu_view import MenuView
-        from lib.views.search_view import SearchView
 
         return {
             "login": LoginView,
             "menu": MenuView,
             "live_streams": LiveStreamsView,
             "discover": DiscoverView,
-            "search": SearchView,
+            "kick_login": KickLoginView,
         }
 
     def onInit(self):
         # Kodi can re-fire onInit on an already-active window; resuming the
-        # current view keeps a user who's deep in Discover/Search from being
+        # current view keeps a user who's deep in Discover from being
         # snapped back to the initial view.
         self._switch_view(self._active_name or self._initial_view)
         version_label = self._safe_control(self.VERSION_LABEL_ID)

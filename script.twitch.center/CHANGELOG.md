@@ -4,6 +4,166 @@ All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow the addon's own
 `version` field in `addon.xml`.
 
+## [0.24.2] - 2026-08-23
+
+### Changed
+- New Menu screen background and logo (`resources/skins/Default/media/home_bg.jpg`,
+  `logo_overlay.png`) - a streaming-setup photo and a "Sigma Streaming Hub" badge logo,
+  replacing the previous plain background and Twitch Center wordmark.
+
+## [0.24.1] - 2026-08-23
+
+### Added
+- Discover's search mode toggle now cycles through a third "Kick" mode - search Kick
+  categories by name (e.g. "eve" finds "EVE Online") and jump straight to its live
+  streams, same convention as the existing Twitch game-search mode. Uses
+  `GET /public/v2/categories`'s `name` filter param (confirmed live 2026-08-23:
+  case-insensitive substring match). Previously the Kick categories row only showed the
+  first ~20 categories from Kick's default (non-popularity-sorted) ordering, so anything
+  outside that page - like EVE Online - was unreachable without this.
+
+## [0.24.0] - 2026-08-23
+
+### Removed
+- The standalone Search screen (menu button, `SearchView`, skin group 400) - live testing
+  found its search box's on-screen keyboard reopened in a loop on the very first press,
+  even before typing anything, unrelated to any recent change. Rather than chase an
+  unexplained pre-existing bug, dropped the screen entirely: Discover's search-by-channel
+  already covers the same need and works fine. Also removed the now-dead code this only
+  existed to serve: `lib.twitch.gql.search()`, `providers.normalize_twitch_search_result`.
+
+## [0.23.1] - 2026-08-23
+
+### Changed
+- Search results now render as the same card tiles as Live Streams/Discover (thumbnail,
+  name box, game name, live-viewer chip) instead of a plain text list.
+  `lib/views/search_view.py` now sets `game_name`/`viewer_count`/`is_live` as ListItem
+  properties and thumbnail art, matching the shared card layout's bindings.
+
+## [0.23.0] - 2026-08-23
+
+### Changed
+- Discover screen restyled to match Live Streams' card look: results now render as
+  thumbnail tiles (name box, game name, live-viewer chip, platform badge) in a panel
+  instead of a plain thumb+text list, and the games/Kick-categories filter rows became
+  small card-style pills with `CardHeadline` text instead of plain list text.
+- Both Discover and Live Streams' card tiles now show a colored platform badge/focus
+  highlight - blue "TWITCH" / green "KICK" label on the tile, and the focus background
+  itself tints per platform (blue for Twitch, green for Kick) instead of always blue.
+- Discover's games/Kick-categories rows now have static "TWITCH:" / "KICK:" row labels,
+  and each row's pill background is subtly tinted per platform even when not focused, so
+  the two rows (and the currently-selected item) are distinguishable without guessing.
+
+### Fixed (as part of the above)
+- `lib/views/discover_view.py`'s three result-item builders now set `game_name` and
+  `viewer_count` as ListItem properties (previously only baked into `Label2` text), which
+  the new card layout's `$INFO[ListItem.Property(...)]` bindings need.
+
+## [0.22.6] - 2026-08-23
+
+### Fixed
+- Kick playback never worked - `resolve_stream_url` assumed the official Public API's
+  `channel["stream"]["url"]` held the HLS playback URL (flagged UNVERIFIED since the
+  original implementation). Confirmed live 2026-08-23 against a real live channel: that
+  field is always an empty string, even while live - the official API doesn't expose a
+  playback URL at all. Switched to the unofficial `kick.com/api/v2/channels/{slug}`
+  endpoint (public, no auth needed), whose `playback_url` field actually works.
+
+## [0.22.5] - 2026-08-23
+
+### Fixed
+- Successful Kick login never switched back to the main menu - `lib/main.py`'s polling
+  loop checked the Twitch login view's `login_succeeded` flag but never the Kick login
+  view's, so the Kick login screen just sat on "Logged in!" until manually backed out of.
+
+### Changed
+- Menu's Twitch/Kick buttons now show actual login status instead of static text:
+  "(Twitch) Logged in" (always, by the time Menu is reachable at all - still clickable to
+  switch accounts) and "(Kick) Logged in" / "Log in to Kick" depending on whether a Kick
+  token is saved.
+
+## [0.22.4] - 2026-08-23
+
+### Changed
+- Kick login screen now shows/logs a short `http://127.0.0.1:<port>/start` link instead
+  of Kick's much longer authorize URL - the addon's own loopback OAuth server now also
+  serves that route, 302-redirecting straight to Kick. Same-machine use only (not a fix
+  for logging in from a separate phone/device - that still needs the real long URL
+  reachable over the LAN, which `127.0.0.1` never is from another device).
+
+## [0.22.3] - 2026-08-23
+
+### Fixed
+- `kick_client_secret` setting was left `<visible>false</visible>` with no help text
+  (unlike its `kick_client_id` sibling), so there was no way to enter/fix it via Kodi's
+  Settings UI. Now visible with help text pointing to dev.kick.com, matching client_id.
+- Kick PKCE login's generic "Connection error" message covered four different failure
+  causes (state mismatch, token exchange failure, user-info fetch failure, or any other
+  exception) with no way to tell which. `run_pkce_login` now passes the real exception/
+  reason through to `on_status`, logged to kodi.log.
+- Discover's Kick categories row switched from the client-side derive-from-livestreams
+  workaround (added in 0.22.2 for Finding 3) to the real `GET /public/v2/categories`
+  endpoint - confirmed live 2026-08-23 that, unlike the deprecated v1 endpoint, it needs
+  no search query and genuinely supports browsing all categories.
+
+### Changed
+- Kick login screen's authorize URL is now also written to kodi.log (INFO level) and its
+  on-screen label wraps across multiple lines instead of being clipped - both make it
+  usable to actually copy/read instead of squinting at a single truncated line.
+
+## [0.22.2] - 2026-08-23
+
+### Fixed
+- Kick's real API returns `thumbnail` as a flat URL string, not `{"url": ...}` as
+  guessed during implementation - fixed `_normalize_kick_channel` and
+  `_normalize_kick_live_stream_entry` in `lib/providers.py`. Previously crashed Live
+  Streams and Discover's Kick category browsing as soon as any Kick data had a
+  thumbnail (i.e. immediately, on any live channel).
+- `_normalize_kick_channel` read `category` nested under `stream`, but the real
+  `/channels` response has it as a top-level key - was silently making `game_name`
+  always empty for every Kick favorite on Live Streams.
+- Discover's Kick categories row called `GET /public/v1/categories`, which is
+  deprecated and requires a mandatory search query - it always failed. Replaced with
+  deriving categories client-side from a page of live streams (`GET /livestreams`,
+  which supports unfiltered browsing), deduped and ordered by viewer count.
+
+### Removed
+- Kick results from Search. The guessed unofficial endpoint
+  (`kick.com/api/v2/search/channels`) 404s, and live probing of the real
+  `kick.com/api/search` route (which does exist) couldn't find a working parameter
+  name after trying the obvious candidates - the route appears gated behind
+  browser-session/bot-detection rather than a simple param mismatch, so this was
+  dropped rather than kept as more unconfirmed-endpoint risk. Kick channels remain
+  discoverable via Live Streams favorites and Discover's categories row.
+
+## [0.22.1] - 2026-08-22
+
+### Added
+- Kick favorites are now manageable from within the addon: a context menu (remote's
+  Context/Info button, or long-press) on any Kick channel in Discover, Search, or Live
+  Streams offers "Add to Kick Favorites" / "Remove from Kick Favorites". Closes the gap
+  from v0.22.0 where the favorites list existed but had no UI to populate it - Kick has
+  no followed-channels API of its own to read from, so favorites stay addon-local.
+
+## [0.22.0] - 2026-08-22
+
+### Added
+- Kick.com stream browsing and playback, wired into all three existing views alongside
+  Twitch: Live Streams shows favorited Kick channels interleaved with followed Twitch
+  channels by viewer count, Discover browses Kick's top categories in their own row, and
+  Search merges Kick results into Twitch search results. Adds Kick PKCE login (a dedicated
+  login view/flow) reachable from the Menu. Kick chat is explicitly out of scope for this
+  release - Kick streams play without a chat overlay.
+
+## [0.21.1] - 2026-08-22
+
+### Fixed
+- `chat_overlay_variable_height` setting now applies to the IRC chat engine too, not just
+  EventSub. IRC is the default engine, so the fixed-height `ChatOverlay` item boxes (sized for
+  the worst-case 5 wrapped lines) were leaving visible trailing blank space under most short
+  messages for anyone on defaults. Enabling the setting now switches IRC to `VariableChatOverlay`
+  as well, which sizes each message block to its actual line count.
+
 ## [0.21.0] - 2026-08-22
 
 ### Added
