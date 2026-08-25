@@ -59,6 +59,10 @@ STOP_WAIT_TIMEOUT_SECONDS = 5
 CONTAINER_TYPES = {"Series", "Season", "MusicArtist", "MusicAlbum", "BoxSet", "Folder"}
 
 
+def _notify_error(message):
+    xbmcgui.Dialog().notification("Jellyfin", message)
+
+
 def _get_device_id():
     device_id = ADDON.getSetting("device_id")
     if not device_id:
@@ -262,14 +266,14 @@ def _offer_next_episode(client, item_id):
     try:
         next_item = library.get_next_episode_in_season(client, item_id)
     except Exception as exc:  # noqa: BLE001 - a lookup failure must not crash the addon
-        xbmcgui.Dialog().notification("Jellyfin", f"Couldn't check for next episode: {exc}")
+        _notify_error(f"Couldn't check for next episode: {exc}")
         return
     if not next_item:
         return
     try:
         result = NextEpisodeWindow.open(ADDON_PATH, client=client, next_item=next_item)
     except Exception as exc:  # noqa: BLE001 - a window failure must not crash the addon
-        xbmcgui.Dialog().notification("Jellyfin", f"Couldn't show next episode prompt: {exc}")
+        _notify_error(f"Couldn't show next episode prompt: {exc}")
         return
     if not result or result.get("action") != "play":
         return
@@ -277,7 +281,7 @@ def _offer_next_episode(client, item_id):
     try:
         status, played_item_id = player.play_item(client, next_id, item_type="Episode")
     except Exception as exc:  # noqa: BLE001 - surface playback failures, don't crash the addon
-        xbmcgui.Dialog().notification("Jellyfin", f"Playback failed: {exc}")
+        _notify_error(f"Playback failed: {exc}")
         return
     if status == "ended":
         _offer_next_episode(client, played_item_id)
@@ -299,7 +303,7 @@ def _detail_loop(client, item_id):
                     subtitle_stream_index=result.get("subtitle_stream_index"),
                 )
             except Exception as exc:  # noqa: BLE001 - surface playback failures, don't crash the addon
-                xbmcgui.Dialog().notification("Jellyfin", f"Playback failed: {exc}")
+                _notify_error(f"Playback failed: {exc}")
                 status, played_item_id = None, None
             if status == "ended" and result.get("item_type") == "Episode":
                 _offer_next_episode(client, played_item_id)
@@ -342,7 +346,7 @@ def _browse_loop(client, parent_id, title, parent_item_type=None, parent_overvie
             try:
                 player.play_queue(client, result["item_ids"], item_type=result.get("item_type"))
             except Exception as exc:  # noqa: BLE001 - surface playback failures, don't crash the addon
-                xbmcgui.Dialog().notification("Jellyfin", f"Playback failed: {exc}")
+                _notify_error(f"Playback failed: {exc}")
 
 
 def _search_loop(client):
@@ -457,7 +461,7 @@ def run():
                 client = _login()
             except Exception as exc:  # noqa: BLE001 - a login-screen crash must not kill the addon silently
                 xbmc.log(f"{LOG_PREFIX} Login failed unexpectedly: {exc}", xbmc.LOGERROR)
-                xbmcgui.Dialog().notification("Jellyfin", f"Unexpected error: {exc}")
+                _notify_error(f"Unexpected error: {exc}")
                 client = None
         while client:
             try:
@@ -486,7 +490,7 @@ def run():
                 # process uncaught and silently dropping the user to Kodi's own home screen - see the
                 # v0.3.66 fix for the same failure mode in _offer_next_episode.
                 xbmc.log(f"{LOG_PREFIX} Unexpected error in navigation loop: {exc}", xbmc.LOGERROR)
-                xbmcgui.Dialog().notification("Jellyfin", f"Unexpected error: {exc}")
+                _notify_error(f"Unexpected error: {exc}")
                 break
     finally:
         # Always clears, even on an unhandled exception - a permanent

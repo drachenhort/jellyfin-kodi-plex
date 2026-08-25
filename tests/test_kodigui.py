@@ -12,10 +12,10 @@ from lib.windows.kodigui import (
     PLACEHOLDER_ART_MUSIC,
     ControlledWindow,
     _display_label,
-    _episode_code,
     _progress_text,
     _ratings_text,
     _unwatched_count_text,
+    episode_code,
     list_item,
     placeholder_art,
     progress_percent,
@@ -51,19 +51,19 @@ def test_display_label_audio_track_gets_index_prefix():
     assert _display_label(item) == "3. Track One"
 
 
-# -- _episode_code --------------------------------------------------------
+# -- episode_code --------------------------------------------------------
 
 def test_episode_code_for_episode():
     item = {"Type": "Episode", "ParentIndexNumber": 4, "IndexNumber": 12}
-    assert _episode_code(item) == "4x12"
+    assert episode_code(item) == "4x12"
 
 
 def test_episode_code_empty_for_non_episode():
-    assert _episode_code({"Type": "Movie"}) == ""
+    assert episode_code({"Type": "Movie"}) == ""
 
 
 def test_episode_code_empty_when_numbers_missing():
-    assert _episode_code({"Type": "Episode", "ParentIndexNumber": None, "IndexNumber": 3}) == ""
+    assert episode_code({"Type": "Episode", "ParentIndexNumber": None, "IndexNumber": 3}) == ""
 
 
 # -- _progress_text --------------------------------------------------------

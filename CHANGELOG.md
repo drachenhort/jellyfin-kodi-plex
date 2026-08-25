@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.75 - 2026-08-25
+- Internal cleanup: deduplicated repeated Jellyfin API-listing calls in library.py, the episode-code formatter across kodigui.py/next_episode.py, Home's settings-read block, and repeated notification calls in main.py. No behavior change. Added missing test coverage for the Skip Intro / Play Next Episode overlays, a JellyfinClient client_version override, and Home's Servers-management screen (_manage_servers).
+
 ## 0.3.74 - 2026-08-21
 - The "Play Next Episode" prompt now offers the next season's first episode when a season's last episode finishes, instead of stopping at season boundaries. Applies to the same auto-play overlay used for in-season chaining.
 

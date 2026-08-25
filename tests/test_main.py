@@ -478,3 +478,96 @@ def test_detail_loop_does_not_offer_next_episode_when_playback_was_stopped_early
     monkeypatch.setattr(main_mod, "_offer_next_episode", fail_if_offered)
 
     main_mod._detail_loop(client=object(), item_id="e1")
+
+
+# -- _manage_servers: Home's "Servers" screen loop -------------------------
+
+def test_manage_servers_returns_none_when_screen_closes_with_no_result(monkeypatch):
+    monkeypatch.setattr(main_mod, "_load_servers", lambda: [])
+    monkeypatch.setattr(main_mod, "_get_active_server_id", lambda: None)
+    monkeypatch.setattr(main_mod.ServerListWindow, "open", staticmethod(lambda *a, **k: None))
+
+    assert main_mod._manage_servers(client=object()) is None
+
+
+def test_manage_servers_add_returns_the_newly_logged_in_client(monkeypatch):
+    monkeypatch.setattr(main_mod, "_load_servers", lambda: [])
+    monkeypatch.setattr(main_mod, "_get_active_server_id", lambda: None)
+    monkeypatch.setattr(
+        main_mod.ServerListWindow, "open",
+        staticmethod(lambda *a, **k: {"action": "add"}),
+    )
+    new_client = object()
+    monkeypatch.setattr(main_mod, "_login", lambda: new_client)
+
+    assert main_mod._manage_servers(client=object()) is new_client
+
+
+def test_manage_servers_add_reopens_the_screen_if_login_is_cancelled(monkeypatch):
+    monkeypatch.setattr(main_mod, "_load_servers", lambda: [])
+    monkeypatch.setattr(main_mod, "_get_active_server_id", lambda: None)
+    monkeypatch.setattr(main_mod, "_login", lambda: None)
+    calls = []
+
+    def fake_open(*a, **k):
+        calls.append(1)
+        if len(calls) == 1:
+            return {"action": "add"}
+        return None  # second time around: user backs out
+
+    monkeypatch.setattr(main_mod.ServerListWindow, "open", staticmethod(fake_open))
+
+    assert main_mod._manage_servers(client=object()) is None
+    assert len(calls) == 2
+
+
+def test_manage_servers_remove_saves_the_list_and_reopens(monkeypatch):
+    server = _stub_server("primary", "s1")
+    monkeypatch.setattr(main_mod, "_load_servers", lambda: [server])
+    monkeypatch.setattr(main_mod, "_get_active_server_id", lambda: "s1")
+    calls = []
+
+    def fake_open(*a, **k):
+        calls.append(1)
+        if len(calls) == 1:
+            return {"action": "remove", "server_id": "s1"}
+        return None
+
+    monkeypatch.setattr(main_mod.ServerListWindow, "open", staticmethod(fake_open))
+    saved = []
+    monkeypatch.setattr(main_mod, "_save_servers", lambda servers: saved.append(servers))
+
+    assert main_mod._manage_servers(client=object()) is None
+    assert saved == [[]]  # s1 removed from the list
+
+
+def test_manage_servers_select_active_server_returns_none(monkeypatch):
+    server = _stub_server("primary", "s1")
+    monkeypatch.setattr(main_mod, "_load_servers", lambda: [server])
+    monkeypatch.setattr(main_mod, "_get_active_server_id", lambda: "s1")
+    monkeypatch.setattr(
+        main_mod.ServerListWindow, "open",
+        staticmethod(lambda *a, **k: {"action": "select", "server_id": "s1"}),
+    )
+
+    assert main_mod._manage_servers(client=object()) is None
+
+
+def test_manage_servers_select_different_server_switches_active_and_returns_new_client(monkeypatch):
+    active = _stub_server("primary", "s1")
+    other = _stub_server("backup", "s2")
+    monkeypatch.setattr(main_mod, "_load_servers", lambda: [active, other])
+    monkeypatch.setattr(main_mod, "_get_active_server_id", lambda: "s1")
+    monkeypatch.setattr(
+        main_mod.ServerListWindow, "open",
+        staticmethod(lambda *a, **k: {"action": "select", "server_id": "s2"}),
+    )
+    set_ids = []
+    monkeypatch.setattr(main_mod, "_set_active_server_id", lambda sid: set_ids.append(sid))
+    switched_client = object()
+    monkeypatch.setattr(main_mod, "_client_from_server", lambda srv: switched_client if srv is other else None)
+
+    result = main_mod._manage_servers(client=object())
+
+    assert result is switched_client
+    assert set_ids == ["s2"]

@@ -14,20 +14,9 @@ import threading
 import xbmcgui
 
 from lib.jellyfin import images
-from lib.windows.kodigui import ControlledWindow, placeholder_art
+from lib.windows.kodigui import ControlledWindow, episode_code, placeholder_art
 
 COUNTDOWN_SECONDS = 30
-
-
-def _episode_code(item):
-    """"4x12"-style season/episode code, or "" if either number is missing -
-    same format as kodigui._episode_code(), duplicated locally rather than
-    reaching into that module's private helper."""
-    season = item.get("ParentIndexNumber")
-    episode = item.get("IndexNumber")
-    if season is None or episode is None:
-        return ""
-    return f"{season}x{episode:02d}"
 
 CTRL_THUMB = 500
 CTRL_TITLE = 501
@@ -49,7 +38,7 @@ class NextEpisodeWindow(ControlledWindow):
 
     def onInit(self):
         self.getControl(CTRL_TITLE).setLabel(self.next_item.get("Name", ""))
-        self.getControl(CTRL_EPISODE_CODE).setLabel(_episode_code(self.next_item))
+        self.getControl(CTRL_EPISODE_CODE).setLabel(episode_code(self.next_item))
         thumb = images.primary_image_url(self.client, self.next_item) if self.client else None
         self.getControl(CTRL_THUMB).setImage(thumb or placeholder_art(self.next_item))
         self.setFocusId(CTRL_PLAY_NOW)

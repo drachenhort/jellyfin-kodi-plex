@@ -9,7 +9,8 @@ def _window(client=None, next_item=None, countdown_seconds=0):
 
 def test_onInit_populates_title_episode_code_and_thumb(client):
     next_item = {
-        "Id": "e2", "Name": "The Trial", "ParentIndexNumber": 1, "IndexNumber": 2,
+        "Id": "e2", "Name": "The Trial", "Type": "Episode",
+        "ParentIndexNumber": 1, "IndexNumber": 2,
         "ImageTags": {"Primary": "tag123"},
     }
     window = _window(client=client, next_item=next_item)

@@ -240,7 +240,7 @@ def _display_label(item):
     return name
 
 
-def _episode_code(item):
+def episode_code(item):
     """"4x12"-style season/episode code for an Episode item, or "" for
     anything else (or an episode missing season/episode numbers) - used
     where the number needs to display separately from the plain title
@@ -319,7 +319,7 @@ def list_item(item, primary_art=None, backdrop_art=None):
     li.setProperty("jellyfin_type", item.get("Type", ""))
     li.setProperty("overview", item.get("Overview") or "")
     li.setProperty("series_name", item.get("SeriesName") or "")
-    li.setProperty("episode_code", _episode_code(item))
+    li.setProperty("episode_code", episode_code(item))
     li.setProperty("progress_text", _progress_text(item))
     li.setProperty("ratings_text", _ratings_text(item))
     li.setProperty("watched", "true" if user_data.get("Played") else "")

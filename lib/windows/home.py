@@ -128,23 +128,7 @@ class HomeWindow(ControlledWindow):
         super().setup(**kwargs)
         self.client = client
         self.views = None
-        self.hide_playlists = ADDON.getSetting(HIDE_PLAYLISTS_SETTING) != "false"
-        # Per-row visibility toggles, addon settings > Home - each row is
-        # simply never fetched/populated when off, so the group's own
-        # Container(x).NumItems>0 visibility condition in the skin XML
-        # keeps it collapsed without any XML changes needed here.
-        self.show_continue_watching = ADDON.getSetting(SHOW_CONTINUE_WATCHING_SETTING) != "false"
-        self.show_next_up = ADDON.getSetting(SHOW_NEXT_UP_SETTING) != "false"
-        self.show_recently_added_movies = ADDON.getSetting(SHOW_RECENTLY_ADDED_MOVIES_SETTING) != "false"
-        self.show_recently_added_tv = ADDON.getSetting(SHOW_RECENTLY_ADDED_TV_SETTING) != "false"
-        self.show_recently_added_music = ADDON.getSetting(SHOW_RECENTLY_ADDED_MUSIC_SETTING) != "false"
-        self.hide_watched_recently_added_movies = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_MOVIES_SETTING) == "true"
-        self.hide_watched_recently_added_tv = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_TV_SETTING) == "true"
-        self.hide_watched_recently_added_music = ADDON.getSetting(HIDE_WATCHED_RECENTLY_ADDED_MUSIC_SETTING) == "true"
-        self.recently_added_item_limit = _recently_added_item_limit()
-        self.season_block_threshold = _season_block_threshold()
-        self.show_clock = ADDON.getSetting(SHOW_CLOCK_SETTING) != "false"
-        self.clock_24_hour = ADDON.getSetting(CLOCK_24_HOUR_SETTING) != "false"
+        self._load_settings()
         self.loaded_steps = 0
         # Which item (if any) to re-select once its row is loaded, e.g.
         # because Home is being shown again after the user backed out of
@@ -489,8 +473,12 @@ class HomeWindow(ControlledWindow):
             return
         self._refresh_after_settings_change()
 
-    def _refresh_after_settings_change(self):
+    def _load_settings(self):
         self.hide_playlists = ADDON.getSetting(HIDE_PLAYLISTS_SETTING) != "false"
+        # Per-row visibility toggles, addon settings > Home - each row is
+        # simply never fetched/populated when off, so the group's own
+        # Container(x).NumItems>0 visibility condition in the skin XML
+        # keeps it collapsed without any XML changes needed here.
         self.show_continue_watching = ADDON.getSetting(SHOW_CONTINUE_WATCHING_SETTING) != "false"
         self.show_next_up = ADDON.getSetting(SHOW_NEXT_UP_SETTING) != "false"
         self.show_recently_added_movies = ADDON.getSetting(SHOW_RECENTLY_ADDED_MOVIES_SETTING) != "false"
@@ -503,6 +491,9 @@ class HomeWindow(ControlledWindow):
         self.season_block_threshold = _season_block_threshold()
         self.show_clock = ADDON.getSetting(SHOW_CLOCK_SETTING) != "false"
         self.clock_24_hour = ADDON.getSetting(CLOCK_24_HOUR_SETTING) != "false"
+
+    def _refresh_after_settings_change(self):
+        self._load_settings()
         self._update_playlists_toggle_label()
         self._update_clock_properties()
         # A settings-driven refresh re-fetches every row from scratch (the

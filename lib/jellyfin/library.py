@@ -244,6 +244,16 @@ def _season_block_item(episodes):
     }
 
 
+def _get_all_children(client, parent_id, item_type):
+    """All items of `item_type` directly under `parent_id`, sorted by
+    IndexNumber ascending. Uses a high limit since these are used for
+    season/episode listings that fit well within it."""
+    return get_items(
+        client, parent_id=parent_id, limit=1000, sort_by="IndexNumber",
+        sort_order="Ascending", include_item_types=item_type, fields=LISTING_ITEM_FIELDS,
+    ).get("Items", [])
+
+
 def get_next_episode_in_season(client, item_id):
     """The episode immediately after `item_id`, by IndexNumber - within the
     same season if one follows, otherwise the first episode of the next
@@ -256,10 +266,7 @@ def get_next_episode_in_season(client, item_id):
     season_id = current.get("SeasonId") or current.get("ParentId")
     if not season_id:
         return None
-    siblings = get_items(
-        client, parent_id=season_id, limit=1000, sort_by="IndexNumber",
-        sort_order="Ascending", include_item_types="Episode", fields=LISTING_ITEM_FIELDS,
-    ).get("Items", [])
+    siblings = _get_all_children(client, season_id, "Episode")
     for index, episode in enumerate(siblings):
         if episode.get("Id") == item_id:
             if index + 1 < len(siblings):
@@ -279,10 +286,7 @@ def _get_first_episode_of_next_season(client, current_episode, season_id):
     season_number = season.get("IndexNumber") if season else None
     if season_number is None:
         return None
-    seasons = get_items(
-        client, parent_id=series_id, limit=1000, sort_by="IndexNumber",
-        sort_order="Ascending", include_item_types="Season", fields=LISTING_ITEM_FIELDS,
-    ).get("Items", [])
+    seasons = _get_all_children(client, series_id, "Season")
     next_seasons = [
         s for s in seasons
         if s.get("IndexNumber") is not None and s.get("IndexNumber") > season_number
@@ -290,10 +294,7 @@ def _get_first_episode_of_next_season(client, current_episode, season_id):
     if not next_seasons:
         return None
     next_season = min(next_seasons, key=lambda s: s.get("IndexNumber"))
-    episodes = get_items(
-        client, parent_id=next_season.get("Id"), limit=1000, sort_by="IndexNumber",
-        sort_order="Ascending", include_item_types="Episode", fields=LISTING_ITEM_FIELDS,
-    ).get("Items", [])
+    episodes = _get_all_children(client, next_season.get("Id"), "Episode")
     return episodes[0] if episodes else None
 
 

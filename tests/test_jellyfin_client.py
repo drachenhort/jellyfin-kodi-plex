@@ -31,6 +31,19 @@ def test_auth_header_with_token(client):
     assert 'Token="test-token"' in header
 
 
+def test_auth_header_uses_a_constructor_provided_client_version():
+    """lib/main.py passes the addon's actual addon.xml version in here so it
+    can't drift from what Jellyfin displays for the session - must actually
+    show up in the auth header, not just the module fallback constant."""
+    custom_client = client_mod.JellyfinClient(
+        "http://jellyfin.example:8096", device_id="test-device-id", client_version="1.2.3",
+    )
+
+    header = custom_client.auth_header()
+
+    assert 'Version="1.2.3"' in header
+
+
 def test_requests_use_the_configured_timeout(client, monkeypatch):
     fake = FakeRequests([FakeResponse({"ServerName": "Tower"})])
     monkeypatch.setattr(client_mod, "requests", fake)
