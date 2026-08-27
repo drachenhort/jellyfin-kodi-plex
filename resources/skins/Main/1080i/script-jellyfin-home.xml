@@ -681,7 +681,7 @@
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
           <onup>205</onup>
-          <ondown>202</ondown>
+          <ondown>201</ondown>
           <animation effect="zoom" start="100" end="108" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
           <animation effect="zoom" start="108" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
           <itemlayout width="260" height="390">
@@ -749,156 +749,6 @@
 
       <control type="group">
         <width>1760</width>
-        <height>560</height>
-        <visible>Integer.IsGreater(Container(202).NumItems,0)</visible>
-        <control type="label">
-          <posx>0</posx>
-          <posy>20</posy>
-          <width>1760</width>
-          <height>30</height>
-          <font>font16</font>
-          <label>Next Up</label>
-        </control>
-        <!-- Same margin-and-shift technique as Recently Added Movies/TV
-             above (see that list's comment): a bigger focusedlayout box
-             instead of a container-level Focus/UnFocus animation, with the
-             list's own declared box grown on every edge so the zoom (and
-             this row's below-poster title card, taller than the other
-             rows') can't clip against the list control's own clip bounds. -->
-        <control type="list" id="202">
-          <posx>0</posx>
-          <posy>50</posy>
-          <width>1801</width>
-          <height>500</height>
-          <orientation>horizontal</orientation>
-          <itemgap>20</itemgap>
-          <onup>207</onup>
-          <ondown>201</ondown>
-          <itemlayout width="257" height="387">
-            <control type="image">
-              <posy>30</posy>
-              <width>257</width>
-              <height>387</height>
-              <aspectratio>scale</aspectratio>
-              <texture>$INFO[ListItem.Art(thumb)]</texture>
-            </control>
-            <control type="image">
-              <posy>369</posy>
-              <width>257</width>
-              <height>48</height>
-              <texture>gradient-overlay.png</texture>
-            </control>
-            <control type="label">
-              <posx>10</posx>
-              <posy>369</posy>
-              <width>237</width>
-              <height>24</height>
-              <font>font12</font>
-              <label>$INFO[ListItem.Property(series_name)]</label>
-            </control>
-            <control type="label">
-              <posx>10</posx>
-              <posy>393</posy>
-              <width>237</width>
-              <height>24</height>
-              <font>font12</font>
-              <label>$INFO[ListItem.Label]</label>
-            </control>
-          </itemlayout>
-          <focusedlayout width="288" height="430">
-            <!-- See Recently Added Movies above for why these Control.HasFocus
-                 conditions are needed. -->
-            <control type="image">
-              <posy>30</posy>
-              <width>257</width>
-              <height>387</height>
-              <aspectratio>scale</aspectratio>
-              <texture>$INFO[ListItem.Art(thumb)]</texture>
-              <visible>!Control.HasFocus(202)</visible>
-            </control>
-            <control type="image">
-              <posy>369</posy>
-              <width>257</width>
-              <height>48</height>
-              <texture>gradient-overlay.png</texture>
-              <visible>!Control.HasFocus(202)</visible>
-            </control>
-            <control type="label">
-              <posx>10</posx>
-              <posy>369</posy>
-              <width>237</width>
-              <height>24</height>
-              <font>font12</font>
-              <label>$INFO[ListItem.Property(series_name)]</label>
-              <visible>!Control.HasFocus(202)</visible>
-            </control>
-            <control type="label">
-              <posx>10</posx>
-              <posy>393</posy>
-              <width>237</width>
-              <height>24</height>
-              <font>font12</font>
-              <label>$INFO[ListItem.Label]</label>
-              <visible>!Control.HasFocus(202)</visible>
-            </control>
-            <control type="image">
-              <posy>10</posy>
-              <width>288</width>
-              <height>430</height>
-              <texture border="10">focus-highlight.png</texture>
-              <visible>Control.HasFocus(202)</visible>
-            </control>
-            <control type="image">
-              <posx>3</posx>
-              <posy>13</posy>
-              <width>282</width>
-              <height>424</height>
-              <aspectratio>scale</aspectratio>
-              <texture>$INFO[ListItem.Art(thumb)]</texture>
-              <visible>Control.HasFocus(202)</visible>
-            </control>
-            <control type="image">
-              <posx>3</posx>
-              <posy>442</posy>
-              <width>282</width>
-              <height>48</height>
-              <texture>focus-turquoise.png</texture>
-              <visible>Control.HasFocus(202)</visible>
-            </control>
-            <control type="label">
-              <posx>13</posx>
-              <posy>442</posy>
-              <width>262</width>
-              <height>24</height>
-              <font>font12</font>
-              <label>$INFO[ListItem.Property(series_name)]</label>
-              <scroll>true</scroll>
-              <visible>Control.HasFocus(202)</visible>
-            </control>
-            <control type="label">
-              <posx>13</posx>
-              <posy>466</posy>
-              <width>262</width>
-              <height>24</height>
-              <font>font12</font>
-              <label>$INFO[ListItem.Label]</label>
-              <scroll>true</scroll>
-              <visible>Control.HasFocus(202)</visible>
-            </control>
-            <control type="image">
-              <posx>126</posx>
-              <posy>10</posy>
-              <width>36</width>
-              <height>22</height>
-              <texture>focus-arrow.png</texture>
-              <visible>Control.HasFocus(202)</visible>
-            </control>
-          </focusedlayout>
-        </control>
-      </control>
-
-      <control type="group">
-        <width>1760</width>
         <height>510</height>
         <visible>Integer.IsGreater(Container(201).NumItems,0)</visible>
         <control type="label">
@@ -916,7 +766,7 @@
           <height>470</height>
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
-          <onup>202</onup>
+          <onup>207</onup>
           <ondown>201</ondown>
           <animation effect="zoom" start="100" end="108" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
           <animation effect="zoom" start="108" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>

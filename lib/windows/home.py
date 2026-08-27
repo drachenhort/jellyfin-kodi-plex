@@ -1,6 +1,6 @@
 """Home window: library shortcuts plus Plex-style hub rows (Continue
-Watching / Next Up / Recently Added Movies / Recently Added TV / Recently
-Added Music).
+Watching - a combined feed of in-progress Resume items and Next Up episodes -
+plus Recently Added Movies / Recently Added TV / Recently Added Music).
 
 self.result on close is one of:
   {"action": "browse", "library_id": ..., "library_name": ...}
@@ -56,7 +56,6 @@ def _season_block_threshold():
 
 HIDE_PLAYLISTS_SETTING = "hide_playlists"
 SHOW_CONTINUE_WATCHING_SETTING = "show_continue_watching"
-SHOW_NEXT_UP_SETTING = "show_next_up"
 SHOW_RECENTLY_ADDED_MOVIES_SETTING = "show_recently_added_movies"
 SHOW_RECENTLY_ADDED_TV_SETTING = "show_recently_added_tv"
 SHOW_RECENTLY_ADDED_MUSIC_SETTING = "show_recently_added_music"
@@ -71,7 +70,6 @@ CLOCK_24_HOUR_SETTING = "clock_24_hour"
 
 CTRL_LIBRARIES = 200
 CTRL_CONTINUE_WATCHING = 201
-CTRL_NEXT_UP = 202
 CTRL_RECENTLY_ADDED_MOVIES = 203
 CTRL_SEARCH = 204
 CTRL_RECENTLY_ADDED_TV = 205
@@ -82,7 +80,7 @@ CTRL_SETTINGS = 209
 CTRL_LOADING = 220
 
 HUB_CONTROLS = (
-    CTRL_CONTINUE_WATCHING, CTRL_NEXT_UP, CTRL_RECENTLY_ADDED_MOVIES, CTRL_RECENTLY_ADDED_TV,
+    CTRL_CONTINUE_WATCHING, CTRL_RECENTLY_ADDED_MOVIES, CTRL_RECENTLY_ADDED_TV,
     CTRL_RECENTLY_ADDED_MUSIC,
 )
 
@@ -253,12 +251,8 @@ class HomeWindow(ControlledWindow):
         self._update_loading_label()
 
         self._load_hub_row(
-            CTRL_CONTINUE_WATCHING, "get_resume", library.get_resume, self.client,
+            CTRL_CONTINUE_WATCHING, "get_continue_watching", self._get_continue_watching, self.client,
             populate=self._populate_episode_aware, enabled=self.show_continue_watching,
-        )
-        self._load_hub_row(
-            CTRL_NEXT_UP, "get_next_up", library.get_next_up, self.client,
-            populate=self._populate_episode_aware, enabled=self.show_next_up,
         )
         self._load_hub_row(
             CTRL_RECENTLY_ADDED_MOVIES, "latest movies", self._latest, views, "movies",
@@ -321,6 +315,22 @@ class HomeWindow(ControlledWindow):
         finally:
             xbmc.log(f"{LOG_PREFIX} Home: {label} took {time.time() - started:.1f}s", xbmc.LOGINFO)
 
+    def _get_continue_watching(self, client):
+        """Combined Continue Watching feed: in-progress items (Resume) first,
+        then Next Up episodes not already covered by an in-progress item for
+        the same show - a show already in Resume doesn't need a second tile
+        just because its next episode also qualifies for Next Up."""
+        resume_items = library.get_resume(client)
+        next_up_items = library.get_next_up(client)
+        seen_ids = {item["Id"] for item in resume_items}
+        seen_series_ids = {item["SeriesId"] for item in resume_items if item.get("SeriesId")}
+        merged = list(resume_items)
+        for item in next_up_items:
+            if item["Id"] in seen_ids or item.get("SeriesId") in seen_series_ids:
+                continue
+            merged.append(item)
+        return merged
+
     def _latest(self, views, collection_type):
         latest = []
         for view in views:
@@ -381,12 +391,12 @@ class HomeWindow(ControlledWindow):
         control.addItems(list_items)
 
     def _populate_episode_aware(self, control_id, items):
-        """Shared by Next Up and Continue Watching. Episode items show their
-        show's poster (current season's own poster if it has one, else the
-        series poster) instead of their own landscape screengrab, so the row
-        reads as "here's what's next/in progress for each show" rather than
-        a strip of random stills. Continue Watching also mixes in movies,
-        which keep their own poster art since they have no season/series."""
+        """Continue Watching's populate step. Episode items show their show's
+        poster (current season's own poster if it has one, else the series
+        poster) instead of their own landscape screengrab, so the row reads
+        as "here's what's next/in progress for each show" rather than a
+        strip of random stills. Movies keep their own poster art since they
+        have no season/series."""
         season_ids = {item["SeasonId"] for item in items if item.get("SeasonId")}
         seasons = library.get_items_by_ids(self.client, list(season_ids))
         season_by_id = {season["Id"]: season for season in seasons}
@@ -480,7 +490,6 @@ class HomeWindow(ControlledWindow):
         # Container(x).NumItems>0 visibility condition in the skin XML
         # keeps it collapsed without any XML changes needed here.
         self.show_continue_watching = ADDON.getSetting(SHOW_CONTINUE_WATCHING_SETTING) != "false"
-        self.show_next_up = ADDON.getSetting(SHOW_NEXT_UP_SETTING) != "false"
         self.show_recently_added_movies = ADDON.getSetting(SHOW_RECENTLY_ADDED_MOVIES_SETTING) != "false"
         self.show_recently_added_tv = ADDON.getSetting(SHOW_RECENTLY_ADDED_TV_SETTING) != "false"
         self.show_recently_added_music = ADDON.getSetting(SHOW_RECENTLY_ADDED_MUSIC_SETTING) != "false"

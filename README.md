@@ -78,7 +78,7 @@ documentation, screenshots, and status.
 ## Status
 
 Milestone 1 (complete): login (LAN autodiscovery, Quick Connect + password fallback) → home screen with
-Continue Watching / Next Up / Recently Added Movies / Recently Added TV / Recently Added Music hub
+Continue Watching (combined Resume + Next Up feed) / Recently Added Movies / Recently Added TV / Recently Added Music hub
 rows → library poster-wall browsing, including drill-down through TV (Series → Season → Episode)
 and Music (Artist → Album → Track) hierarchies, and a Search screen → item detail page → playback
 (video and audio, using Kodi's own native OSD/controls) with progress reported back to the server,

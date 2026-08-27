@@ -32,10 +32,6 @@ msgctxt "#30011"
 msgid "Show Continue Watching"
 msgstr ""
 
-msgctxt "#30012"
-msgid "Show Next Up"
-msgstr ""
-
 msgctxt "#30013"
 msgid "Show Recently Added Movies"
 msgstr ""

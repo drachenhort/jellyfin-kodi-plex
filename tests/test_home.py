@@ -167,6 +167,47 @@ def test_visible_library_views_keeps_unknown_types_after_known_ones_in_order():
     assert names == ["Filme", "Books", "Homevideos"]
 
 
+def test_continue_watching_merges_resume_and_next_up(client, monkeypatch):
+    """The Continue Watching row is a combined feed: Resume (in-progress)
+    items first, then Next Up items for shows not already covered."""
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [
+        {"Id": "ep-1", "Name": "Resumed Ep", "Type": "Episode", "SeriesId": "series-1"},
+    ])
+    monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [
+        {"Id": "ep-2", "Name": "Next Up Ep", "Type": "Episode", "SeriesId": "series-2"},
+    ])
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3, hide_watched=False: [])
+
+    window = _make_window(client, monkeypatch)
+    window._load()
+
+    row = window.getControl(home_mod.CTRL_CONTINUE_WATCHING)
+    assert [li.getLabel() for li in row.items] == ["Resumed Ep", "Next Up Ep"]
+
+
+def test_continue_watching_drops_next_up_item_for_a_show_already_in_resume(client, monkeypatch):
+    """A show already has an in-progress episode in Resume - its Next Up
+    entry for that same show would be a redundant second tile."""
+    monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
+    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [
+        {"Id": "ep-1", "Name": "Resumed Ep", "Type": "Episode", "SeriesId": "series-1"},
+    ])
+    monkeypatch.setattr(home_mod.library, "get_next_up", lambda c: [
+        {"Id": "ep-2", "Name": "Same Show Next Up", "Type": "Episode", "SeriesId": "series-1"},
+        {"Id": "ep-3", "Name": "Other Show Next Up", "Type": "Episode", "SeriesId": "series-2"},
+    ])
+    monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
+    monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3, hide_watched=False: [])
+
+    window = _make_window(client, monkeypatch)
+    window._load()
+
+    row = window.getControl(home_mod.CTRL_CONTINUE_WATCHING)
+    assert [li.getLabel() for li in row.items] == ["Resumed Ep", "Other Show Next Up"]
+
+
 def test_home_libraries_row_excludes_playlists_and_orders_music_last(client, monkeypatch):
     views = [
         {"Id": "lib-movies", "Name": "Filme", "CollectionType": "movies"},
@@ -349,9 +390,10 @@ def test_onInit_sets_the_loading_label_to_zero_percent(client, monkeypatch):
     # Exact "0%" isn't pinned down - the background progress ticker spins
     # without a real delay in tests (xbmc.sleep() is a no-op stub), so it
     # may have ticked the simulated percentage up by the time this runs.
-    # "0 of 6" is deterministic though, since get_views is blocked.
+    # "0 of TOTAL_LOAD_STEPS" is deterministic though, since get_views is
+    # blocked.
     label = window.getControl(home_mod.CTRL_LOADING).getLabel()
-    match = re.fullmatch(r"Loading library… (\d+)% \(0 of 6\)", label)
+    match = re.fullmatch(rf"Loading library… (\d+)% \(0 of {home_mod.TOTAL_LOAD_STEPS}\)", label)
     assert match, label
     assert int(match.group(1)) < 10
     assert started.wait(2), "background thread never called get_views"
@@ -572,7 +614,6 @@ def test_load_leaves_default_focus_when_no_selection_to_restore(client, monkeypa
 def test_hub_row_toggles_default_to_shown_when_settings_unset(client, monkeypatch):
     window = _make_window(client, monkeypatch)
     assert window.show_continue_watching is True
-    assert window.show_next_up is True
     assert window.show_recently_added_movies is True
     assert window.show_recently_added_tv is True
     assert window.show_recently_added_music is True
@@ -584,15 +625,15 @@ def test_disabled_hub_row_is_never_fetched_or_populated(client, monkeypatch):
     def fail_if_called(*a, **k):
         raise AssertionError("a disabled hub row must not be fetched")
 
+    monkeypatch.setattr(home_mod.library, "get_resume", fail_if_called)
     monkeypatch.setattr(home_mod.library, "get_next_up", fail_if_called)
-    monkeypatch.setattr(home_mod.library, "get_resume", lambda c: [])
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
     monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3, hide_watched=False: [])
 
-    window = _make_window(client, monkeypatch, extra_settings={home_mod.SHOW_NEXT_UP_SETTING: "false"})
+    window = _make_window(client, monkeypatch, extra_settings={home_mod.SHOW_CONTINUE_WATCHING_SETTING: "false"})
     window._load()
 
-    assert window.getControl(home_mod.CTRL_NEXT_UP).items == []
+    assert window.getControl(home_mod.CTRL_CONTINUE_WATCHING).items == []
 
 
 def test_disabled_hub_row_still_counts_as_a_completed_loading_step(client, monkeypatch):
@@ -602,7 +643,7 @@ def test_disabled_hub_row_still_counts_as_a_completed_loading_step(client, monke
     monkeypatch.setattr(home_mod.library, "get_latest", lambda c, parent_id=None, limit=10: [])
     monkeypatch.setattr(home_mod.library, "get_latest_episodes", lambda c, parent_id=None, limit=20, block_threshold=3, hide_watched=False: [])
 
-    window = _make_window(client, monkeypatch, extra_settings={home_mod.SHOW_NEXT_UP_SETTING: "false"})
+    window = _make_window(client, monkeypatch, extra_settings={home_mod.SHOW_CONTINUE_WATCHING_SETTING: "false"})
     window._load()
 
     assert window.loaded_steps == home_mod.TOTAL_LOAD_STEPS
@@ -622,7 +663,7 @@ def test_enabled_hub_rows_still_populate_when_a_sibling_row_is_disabled(client, 
 
     monkeypatch.setattr(home_mod.library, "get_latest", fake_get_latest)
 
-    window = _make_window(client, monkeypatch, extra_settings={home_mod.SHOW_NEXT_UP_SETTING: "false"})
+    window = _make_window(client, monkeypatch, extra_settings={home_mod.SHOW_CONTINUE_WATCHING_SETTING: "false"})
     window._load()
 
     movies_row = window.getControl(home_mod.CTRL_RECENTLY_ADDED_MOVIES)
@@ -760,10 +801,10 @@ def test_settings_dialog_picks_up_a_setting_changed_while_it_was_open(client, mo
     it returns here, whatever they toggled is already saved, so the
     in-memory flags must be re-read from ADDON rather than staying stale."""
     window = _make_window(client, monkeypatch)
-    assert window.show_next_up is True
+    assert window.show_continue_watching is True
 
     def fake_open_settings():
-        home_mod.ADDON.setSetting(home_mod.SHOW_NEXT_UP_SETTING, "false")
+        home_mod.ADDON.setSetting(home_mod.SHOW_CONTINUE_WATCHING_SETTING, "false")
 
     monkeypatch.setattr(home_mod.ADDON, "openSettings", fake_open_settings)
     monkeypatch.setattr(home_mod.library, "get_views", lambda c: [])
@@ -774,7 +815,7 @@ def test_settings_dialog_picks_up_a_setting_changed_while_it_was_open(client, mo
 
     window.handle_click(home_mod.CTRL_SETTINGS)
 
-    assert window.show_next_up is False
+    assert window.show_continue_watching is False
 
 
 def test_settings_dialog_does_not_touch_controls_if_window_closed_while_open(client, monkeypatch):

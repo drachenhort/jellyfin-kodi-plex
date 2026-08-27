@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.76 - 2026-08-27
+- Home: Continue Watching and Next Up are now one combined row (the "Show Next Up" setting is gone; "Show Continue Watching" controls both). In-progress (Resume) items come first, followed by Next Up episodes for shows not already in progress.
+
 ## 0.3.75 - 2026-08-25
 - Internal cleanup: deduplicated repeated Jellyfin API-listing calls in library.py, the episode-code formatter across kodigui.py/next_episode.py, Home's settings-read block, and repeated notification calls in main.py. No behavior change. Added missing test coverage for the Skip Intro / Play Next Episode overlays, a JellyfinClient client_version override, and Home's Servers-management screen (_manage_servers).
 

@@ -83,7 +83,7 @@ für die eigene Dokumentation, Screenshots und den Status dieses Addons.
 ## Status
 
 Meilenstein 1 (abgeschlossen): Login (LAN-Autoerkennung, Quick Connect mit Passwort-Fallback) → Startbildschirm mit
-den Hub-Zeilen „Weiterschauen" / „Als Nächstes" / „Kürzlich hinzugefügte Filme" / „Kürzlich hinzugefügte Serien" /
+den Hub-Zeilen „Weiterschauen" (kombinierter Feed aus Fortsetzen und Als Nächstes) / „Kürzlich hinzugefügte Filme" / „Kürzlich hinzugefügte Serien" /
 „Kürzlich hinzugefügte Musik" → Bibliotheks-Posterwand-Browsing, inklusive Drilldown durch die TV-
 (Serie → Staffel → Episode) und Musik-Hierarchien (Interpret → Album → Titel), sowie ein Suchbildschirm →
 Detailseite eines Titels → Wiedergabe (Video und Audio, mit Kodis eigenem nativen OSD/Steuerelementen) mit
