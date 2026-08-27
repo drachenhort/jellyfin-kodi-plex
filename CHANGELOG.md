@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.77 - 2026-08-27
+- Continue Watching: the focus zoom now grows only the selected poster (bigger focusedlayout box, like Recently Added Movies/TV) instead of a container-level animation that zoomed the whole row.
+
 ## 0.3.76 - 2026-08-27
 - Home: Continue Watching and Next Up are now one combined row (the "Show Next Up" setting is gone; "Show Continue Watching" controls both). In-progress (Resume) items come first, followed by Next Up episodes for shows not already in progress.
 

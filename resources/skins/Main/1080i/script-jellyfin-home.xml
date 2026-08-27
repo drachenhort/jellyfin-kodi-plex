@@ -749,27 +749,33 @@
 
       <control type="group">
         <width>1760</width>
-        <height>510</height>
+        <height>560</height>
         <visible>Integer.IsGreater(Container(201).NumItems,0)</visible>
         <control type="label">
           <posx>0</posx>
-          <posy>0</posy>
+          <posy>20</posy>
           <width>1760</width>
           <height>30</height>
           <font>font16</font>
           <label>Continue Watching</label>
         </control>
+        <!-- Same margin-and-shift technique as Recently Added Movies/TV above
+             (see that list's comment): the focused item's zoom is a bigger
+             focusedlayout box rather than a container-level Focus/UnFocus
+             animation, so it grows only the hovered poster instead of the
+             whole row. The list's own declared box is grown on every edge so
+             the zoom (and this row's below-poster title card, taller than
+             the other rows') can't clip against the list control's own clip
+             bounds. -->
         <control type="list" id="201">
           <posx>0</posx>
-          <posy>40</posy>
-          <width>1760</width>
-          <height>470</height>
+          <posy>50</posy>
+          <width>1801</width>
+          <height>500</height>
           <orientation>horizontal</orientation>
           <itemgap>20</itemgap>
           <onup>207</onup>
           <ondown>201</ondown>
-          <animation effect="zoom" start="100" end="108" center="auto" time="200" tween="quadratic" easing="out">Focus</animation>
-          <animation effect="zoom" start="108" end="100" center="auto" time="200" tween="quadratic" easing="out">UnFocus</animation>
           <itemlayout width="260" height="390">
             <control type="image">
               <width>260</width>
@@ -778,59 +784,76 @@
               <texture>$INFO[ListItem.Art(thumb)]</texture>
             </control>
           </itemlayout>
-          <focusedlayout width="260" height="390">
+          <focusedlayout width="288" height="430">
+            <!-- See Recently Added Movies above for why these Control.HasFocus
+                 conditions are needed. -->
             <control type="image">
               <width>260</width>
               <height>390</height>
-              <texture border="10">focus-highlight.png</texture>
-            </control>
-            <control type="image">
-              <posx>3</posx>
-              <posy>3</posy>
-              <width>254</width>
-              <height>384</height>
               <aspectratio>scale</aspectratio>
               <texture>$INFO[ListItem.Art(thumb)]</texture>
+              <visible>!Control.HasFocus(201)</visible>
+            </control>
+            <control type="image">
+              <posy>10</posy>
+              <width>288</width>
+              <height>430</height>
+              <texture border="10">focus-highlight.png</texture>
+              <visible>Control.HasFocus(201)</visible>
             </control>
             <control type="image">
               <posx>3</posx>
-              <posy>392</posy>
-              <width>254</width>
+              <posy>13</posy>
+              <width>282</width>
+              <height>424</height>
+              <aspectratio>scale</aspectratio>
+              <texture>$INFO[ListItem.Art(thumb)]</texture>
+              <visible>Control.HasFocus(201)</visible>
+            </control>
+            <control type="image">
+              <posx>3</posx>
+              <posy>442</posy>
+              <width>282</width>
               <height>72</height>
               <texture>focus-turquoise.png</texture>
+              <visible>Control.HasFocus(201)</visible>
             </control>
             <control type="label">
               <posx>13</posx>
-              <posy>392</posy>
-              <width>234</width>
+              <posy>442</posy>
+              <width>262</width>
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(series_name)]</label>
               <scroll>true</scroll>
+              <visible>Control.HasFocus(201)</visible>
             </control>
             <control type="label">
               <posx>13</posx>
-              <posy>416</posy>
-              <width>234</width>
+              <posy>466</posy>
+              <width>262</width>
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Label]</label>
               <scroll>true</scroll>
+              <visible>Control.HasFocus(201)</visible>
             </control>
             <control type="label">
               <posx>13</posx>
-              <posy>440</posy>
-              <width>234</width>
+              <posy>490</posy>
+              <width>262</width>
               <height>24</height>
               <font>font12</font>
               <label>$INFO[ListItem.Property(progress_text)]</label>
+              <visible>Control.HasFocus(201)</visible>
             </control>
             <control type="image">
-              <posx>112</posx>
-              <posy>0</posy>
+              <posx>126</posx>
+              <posy>10</posy>
               <width>36</width>
               <height>22</height>
               <texture>focus-arrow.png</texture>
+              <visible>Control.HasFocus(201)</visible>
             </control>
           </focusedlayout>
         </control>
