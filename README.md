@@ -10,10 +10,13 @@ Architecture is modelled on the open-source [Plex for Kodi](https://github.com/p
 addon: a Kodi *script* addon (not `plugin.video.*`) that opens its own `WindowXML`/`WindowXMLDialog`
 windows to fully control the UI, independent of the active Kodi skin.
 
-> This repository also hosts an unrelated second addon,
-> [**Twitch Center**](https://github.com/drachenhort/twitch-center) (`script.twitch.center`) — a
-> Twitch streaming/chat addon, sharing this repo's build/release workflow and repository addon.
-> See that project's own README for details; it's included here for distribution only.
+> The Kodi repository/build pipeline that used to live in this repo (`docs/`,
+> `tools/build_repo.py`, `repository.jellyfinplex`) has moved to a separate repo,
+> [**drachenhort-repo**](https://github.com/drachenhort/drachenhort-repo), which now builds and
+> hosts a shared `repository.drachenhort` addon covering both this addon and the unrelated
+> [**Twitch Center**](https://github.com/drachenhort/twitch-center) (`script.twitch.center`) addon
+> via git submodules. See the Installation section below for the current install steps, and that
+> project's own README for Twitch Center details.
 
 ## Screenshots
 
@@ -53,10 +56,15 @@ posters.
 
 ### Install via repository (recommended — enables auto-updates)
 
+The Kodi repository moved out of this repo into a dedicated one,
+[drachenhort/drachenhort-repo](https://github.com/drachenhort/drachenhort-repo), which now hosts
+the repository addon and built zips for all of drachenhort's Kodi addons (this one and Twitch
+Center) instead of each addon shipping its own repository.
+
 1. Download the repository addon zip:
-   [`repository.jellyfinplex-1.0.1.zip`](https://drachenhort.github.io/jellyfin-kodi-plex/repository.jellyfinplex/repository.jellyfinplex-1.0.1.zip)
+   [`repository.drachenhort-1.0.0.zip`](https://drachenhort.github.io/drachenhort-repo/repository.drachenhort/repository.drachenhort-1.0.0.zip)
 2. In Kodi: **Add-ons → Install from zip file**, select the downloaded file.
-3. Then **Add-ons → Install from repository → Jellyfin (Plex-style) Repository →
+3. Then **Add-ons → Install from repository → drachenhort Kodi Addons →
    Video add-ons → Jellyfin (Plex-style)**, and install it from there.
 
 From then on, Kodi checks this repository for new versions and can auto-update the addon like
@@ -71,7 +79,7 @@ future version.
 ### Installing Twitch Center instead
 
 Same repository zip as above installs both addons. After step 2, go to **Add-ons → Install from
-repository → Jellyfin (Plex-style) Repository → Program add-ons → Twitch Center** instead. See
+repository → drachenhort Kodi Addons → Program add-ons → Twitch Center** instead. See
 [drachenhort/twitch-center](https://github.com/drachenhort/twitch-center) for that addon's own
 documentation, screenshots, and status.
 

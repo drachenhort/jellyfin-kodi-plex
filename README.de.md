@@ -10,10 +10,13 @@ Die Architektur orientiert sich am Open-Source-Addon [Plex for Kodi](https://git
 ein Kodi-*Skript*-Addon (kein `plugin.video.*`), das eigene `WindowXML`/`WindowXMLDialog`-Fenster öffnet,
 um die Oberfläche vollständig selbst zu steuern, unabhängig vom aktiven Kodi-Skin.
 
-> Dieses Repository beherbergt außerdem ein zweites, unabhängiges Addon,
-> [**Twitch Center**](https://github.com/drachenhort/twitch-center) (`script.twitch.center`) — ein
-> Twitch-Streaming-/Chat-Addon, das sich diesen Build-/Release-Workflow und das Repository-Addon
-> teilt. Details siehe die eigene README dieses Projekts; hier nur zur Distribution eingebunden.
+> Die Kodi-Repository-/Build-Pipeline, die früher in diesem Repository lag (`docs/`,
+> `tools/build_repo.py`, `repository.jellyfinplex`), wurde in ein eigenes Repository ausgelagert:
+> [**drachenhort-repo**](https://github.com/drachenhort/drachenhort-repo). Dieses baut und
+> beherbergt nun ein gemeinsames `repository.drachenhort`-Addon, das per Git-Submodule sowohl
+> dieses Addon als auch das unabhängige [**Twitch Center**](https://github.com/drachenhort/twitch-center)
+> (`script.twitch.center`) abdeckt. Aktuelle Installationsschritte siehe Abschnitt „Installation"
+> unten; Details zu Twitch Center siehe die eigene README dieses Projekts.
 
 ## Screenshots
 
@@ -57,10 +60,15 @@ als eine undurchschaubare Posterwand.
 
 ### Installation über das Repository (empfohlen — ermöglicht automatische Updates)
 
+Das Kodi-Repository ist aus diesem Projekt ausgelagert in ein eigenes Repository,
+[drachenhort/drachenhort-repo](https://github.com/drachenhort/drachenhort-repo), das nun das
+Repository-Addon und die gebauten ZIP-Dateien für alle Kodi-Addons von drachenhort (dieses hier und
+Twitch Center) beherbergt, statt dass jedes Addon sein eigenes Repository mitbringt.
+
 1. Repository-Addon-Zip herunterladen:
-   [`repository.jellyfinplex-1.0.1.zip`](https://drachenhort.github.io/jellyfin-kodi-plex/repository.jellyfinplex/repository.jellyfinplex-1.0.1.zip)
+   [`repository.drachenhort-1.0.0.zip`](https://drachenhort.github.io/drachenhort-repo/repository.drachenhort/repository.drachenhort-1.0.0.zip)
 2. In Kodi: **Add-ons → Von ZIP-Datei installieren**, die heruntergeladene Datei auswählen.
-3. Danach **Add-ons → Aus Repository installieren → Jellyfin (Plex-style) Repository →
+3. Danach **Add-ons → Aus Repository installieren → drachenhort Kodi Addons →
    Video-Add-ons → Jellyfin (Plex-style)** und von dort installieren.
 
 Ab diesem Zeitpunkt prüft Kodi dieses Repository auf neue Versionen und kann das Addon wie jedes
@@ -76,7 +84,7 @@ für jede zukünftige Version manuell wiederholt werden.
 ### Stattdessen Twitch Center installieren
 
 Dieselbe Repository-ZIP-Datei installiert beide Addons. Nach Schritt 2 stattdessen zu **Add-ons →
-Aus Repository installieren → Jellyfin (Plex-style) Repository → Programm-Add-ons → Twitch
+Aus Repository installieren → drachenhort Kodi Addons → Programm-Add-ons → Twitch
 Center** gehen. Siehe [drachenhort/twitch-center](https://github.com/drachenhort/twitch-center)
 für die eigene Dokumentation, Screenshots und den Status dieses Addons.
 
