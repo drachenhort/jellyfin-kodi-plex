@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.78 - 2026-09-04
+- Movies library screen now shows genre filter buttons above the poster grid; picking one reopens the same screen filtered to that genre (Back returns to the unfiltered list).
+
 ## 0.3.77 - 2026-08-27
 - Continue Watching: the focus zoom now grows only the selected poster (bigger focusedlayout box, like Recently Added Movies/TV) instead of a container-level animation that zoomed the whole row.
 

@@ -15,7 +15,7 @@ import lib.windows.browse as browse_mod
 
 
 def _make_window(client, parent_item_type=None, select_item_id=None, monkeypatch=None,
-                  default_sort_by=None, parent_overview=""):
+                  default_sort_by=None, parent_overview="", collection_type=None, genre_id=None):
     if monkeypatch is not None and default_sort_by is not None:
         # browse.py's ADDON is a single module-level instance shared across
         # the whole test session - give the test its own fresh stub so a
@@ -27,6 +27,7 @@ def _make_window(client, parent_item_type=None, select_item_id=None, monkeypatch
     window.setup(
         client=client, parent_id="parent-1", title="Title", parent_item_type=parent_item_type,
         select_item_id=select_item_id, parent_overview=parent_overview,
+        collection_type=collection_type, genre_id=genre_id,
     )
     return window
 
@@ -506,3 +507,74 @@ def test_clear_browse_cache_forces_a_fresh_load(client, monkeypatch):
     window2._load()
 
     assert len(calls) == 2  # cache was cleared, so the second load hit the network again
+
+
+# -- Genre filter bar (Movies library top-level screen only) -----------
+
+GENRES = [{"Id": "g-1", "Name": "Action"}, {"Id": "g-2", "Name": "Comedy"}]
+
+
+def test_genre_bar_visible_for_movies_library_top_level(client):
+    window = _make_window(client, collection_type="movies")
+    window.onInit()
+
+    assert window.getControl(browse_mod.CTRL_GENRE_BAR).visible is True
+
+
+def test_genre_bar_hidden_for_non_movies_library(client):
+    window = _make_window(client, collection_type="tvshows")
+    window.onInit()
+
+    assert window.getControl(browse_mod.CTRL_GENRE_BAR).visible is False
+
+
+def test_genre_bar_hidden_when_a_genre_is_already_selected(client):
+    window = _make_window(client, collection_type="movies", genre_id="g-1")
+    window.onInit()
+
+    assert window.getControl(browse_mod.CTRL_GENRE_BAR).visible is False
+
+
+def test_genre_bar_hidden_below_the_top_level(client):
+    window = _make_window(client, collection_type="movies", parent_item_type="Series")
+    window.onInit()
+
+    assert window.getControl(browse_mod.CTRL_GENRE_BAR).visible is False
+
+
+def test_load_genres_populates_the_genre_bar(client, monkeypatch):
+    monkeypatch.setattr(browse_mod.library, "get_genres", lambda *a, **k: GENRES)
+
+    window = _make_window(client, collection_type="movies")
+    window._load_genres()
+
+    assert [i.getProperty("jellyfin_id") for i in window.getControl(browse_mod.CTRL_GENRE_BAR).items] == [
+        "g-1", "g-2",
+    ]
+
+
+def test_genre_click_returns_open_genre_action(client, monkeypatch):
+    monkeypatch.setattr(browse_mod.library, "get_genres", lambda *a, **k: GENRES)
+
+    window = _make_window(client, collection_type="movies")
+    window._load_genres()
+    window.getControl(browse_mod.CTRL_GENRE_BAR).selectItem(1)
+    window.handle_click(browse_mod.CTRL_GENRE_BAR)
+
+    assert window.result == {"action": "open_genre", "genre_id": "g-2", "genre_name": "Comedy"}
+    assert window.closed
+
+
+def test_load_passes_genre_id_to_iter_items_paged(client, monkeypatch):
+    calls = []
+
+    def fake_iter(c, **kwargs):
+        calls.append(kwargs)
+        return iter([])
+
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", fake_iter)
+
+    window = _make_window(client, genre_id="g-1")
+    window._load()
+
+    assert calls[0]["genre_id"] == "g-1"

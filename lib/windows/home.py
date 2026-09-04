@@ -116,6 +116,7 @@ def _library_list_item(client, view):
     art_url = images.primary_image_url(client, view) or placeholder_art(view)
     li.setArt({"thumb": art_url, "poster": art_url})
     li.setProperty("jellyfin_id", view.get("Id", ""))
+    li.setProperty("collection_type", view.get("CollectionType") or "")
     return li
 
 
@@ -525,6 +526,7 @@ class HomeWindow(ControlledWindow):
             "action": "browse",
             "library_id": selected.getProperty("jellyfin_id"),
             "library_name": selected.getLabel(),
+            "collection_type": selected.getProperty("collection_type"),
             "control_id": CTRL_LIBRARIES,
             "item_id": selected.getProperty("jellyfin_id"),
         }

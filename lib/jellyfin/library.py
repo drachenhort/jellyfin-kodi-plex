@@ -50,7 +50,7 @@ def is_played(item):
 
 def get_items(client, parent_id=None, start_index=0, limit=50, sort_by="SortName",
               sort_order="Ascending", include_item_types=None, recursive=True,
-              search_term=None, fields=LISTING_ITEM_FIELDS):
+              search_term=None, genre_id=None, fields=LISTING_ITEM_FIELDS):
     """GET /Users/{userId}/Items — browse within a library/folder, paged."""
     params = {
         "StartIndex": start_index,
@@ -66,7 +66,22 @@ def get_items(client, parent_id=None, start_index=0, limit=50, sort_by="SortName
         params["IncludeItemTypes"] = include_item_types
     if search_term:
         params["SearchTerm"] = search_term
+    if genre_id:
+        params["GenreIds"] = genre_id
     return client.get(f"/Users/{client.user_id}/Items", params=params)
+
+
+def get_genres(client, parent_id=None):
+    """GET /Genres — the distinct genres present under `parent_id` (a
+    library's Id), for the Movies library's genre filter buttons. Recursive
+    so a genre only present on a deep child (there are no deep children in a
+    flat Movies library today, but this stays correct if that changes) still
+    shows up."""
+    params = {"UserId": client.user_id, "Recursive": "true", "SortBy": "SortName"}
+    if parent_id:
+        params["ParentId"] = parent_id
+    result = client.get("/Genres", params=params)
+    return result.get("Items", [])
 
 
 def get_item(client, item_id, fields=DEFAULT_ITEM_FIELDS):
@@ -327,18 +342,18 @@ def mark_unplayed(client, item_id):
 _browse_cache = {}  # (client, parent_id, sort_by, sort_order) -> items list
 
 
-def _browse_cache_key(client, parent_id, sort_by, sort_order):
-    return (client, parent_id, sort_by, sort_order)
+def _browse_cache_key(client, parent_id, sort_by, sort_order, genre_id=None):
+    return (client, parent_id, sort_by, sort_order, genre_id)
 
 
-def get_cached_children(client, parent_id, sort_by, sort_order):
+def get_cached_children(client, parent_id, sort_by, sort_order, genre_id=None):
     """The fully-loaded children previously cached for this exact browse
     level, or None if not cached (never loaded, or invalidated since)."""
-    return _browse_cache.get(_browse_cache_key(client, parent_id, sort_by, sort_order))
+    return _browse_cache.get(_browse_cache_key(client, parent_id, sort_by, sort_order, genre_id))
 
 
-def cache_children(client, parent_id, sort_by, sort_order, items):
-    _browse_cache[_browse_cache_key(client, parent_id, sort_by, sort_order)] = items
+def cache_children(client, parent_id, sort_by, sort_order, items, genre_id=None):
+    _browse_cache[_browse_cache_key(client, parent_id, sort_by, sort_order, genre_id)] = items
 
 
 def clear_browse_cache():
@@ -348,7 +363,7 @@ def clear_browse_cache():
 
 def iter_items_paged(client, parent_id=None, include_item_types=None, fields="",
                       sort_by="SortName", sort_order="Ascending", recursive=True,
-                      page_size=50, timeout=(5, 300)):
+                      genre_id=None, page_size=50, timeout=(5, 300)):
     """GET /Users/{userId}/Items, paged via StartIndex/Limit — for walking a whole
     library too large to hold in memory at once (e.g. a ~100k-track Music library).
 
@@ -375,6 +390,8 @@ def iter_items_paged(client, parent_id=None, include_item_types=None, fields="",
             params["ParentId"] = parent_id
         if include_item_types:
             params["IncludeItemTypes"] = include_item_types
+        if genre_id:
+            params["GenreIds"] = genre_id
         response = client.get(f"/Users/{client.user_id}/Items", params=params, timeout=timeout)
         items = response.get("Items", [])
         if not items:

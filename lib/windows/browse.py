@@ -48,6 +48,14 @@ CTRL_PLAY_ALL = 302
 CTRL_SHUFFLE = 303
 CTRL_EPISODE_LIST = 304
 CTRL_LOADING = 305
+CTRL_GENRE_BAR = 306
+
+# Genre filter buttons only make sense on a flat, ungrouped listing - shown
+# on a Movies library's own top-level screen (parent_item_type is None
+# there, same as any other flat library) and hidden again once a genre is
+# already selected (self.genre_id set), since there's nothing left to narrow
+# further from a single-genre listing.
+GENRE_BAR_COLLECTION_TYPES = {"movies"}
 
 # Parent types whose own Overview is worth showing persistently at the
 # bottom while the user is still picking a child - a Series' seasons rarely
@@ -73,14 +81,21 @@ class BrowseWindow(ControlledWindow):
     xmlFile = "script-jellyfin-browse.xml"
 
     def setup(self, client=None, parent_id=None, title="", parent_item_type=None,
-              select_item_id=None, parent_overview="", **kwargs):
+              select_item_id=None, parent_overview="", collection_type=None,
+              genre_id=None, **kwargs):
         super().setup(**kwargs)
         self.client = client
         self.parent_id = parent_id
         self.title = title
         self.parent_item_type = parent_item_type
         self.parent_overview = parent_overview
+        self.collection_type = collection_type
+        self.genre_id = genre_id
         self.is_episode_list = parent_item_type in LISTED_PARENT_TYPES
+        self.show_genre_bar = (
+            parent_item_type is None and not genre_id
+            and collection_type in GENRE_BAR_COLLECTION_TYPES
+        )
         self.items = []
         self._track_id_cache = []
         self.sort_by, self.sort_order = SORT_OPTIONS.get(
@@ -108,6 +123,9 @@ class BrowseWindow(ControlledWindow):
         active_control = CTRL_EPISODE_LIST if self.is_episode_list else CTRL_GRID
         self.getControl(CTRL_GRID).setVisible(not self.is_episode_list)
         self.getControl(CTRL_EPISODE_LIST).setVisible(self.is_episode_list)
+        self.getControl(CTRL_GENRE_BAR).setVisible(self.show_genre_bar)
+        if self.show_genre_bar:
+            threading.Thread(target=self._load_genres, daemon=True).start()
         # A Window property rather than a direct getControl().setVisible()/
         # setText() pair - Kodi's skin engine continuously re-evaluates any
         # control that has its own <visible> condition in the XML (which 306/
@@ -150,6 +168,24 @@ class BrowseWindow(ControlledWindow):
                 return
             self._update_loading_label()
 
+    def _load_genres(self):
+        # Runs alongside _load() on its own thread rather than blocking it -
+        # the genre bar and the item grid are independent fetches, and a slow
+        # /Genres response shouldn't hold up the poster wall from appearing.
+        try:
+            genres = library.get_genres(self.client, self.parent_id)
+        except Exception as exc:  # noqa: BLE001 - a failed genre fetch shouldn't break browsing
+            xbmc.log(f"{LOG_PREFIX} Browse: fetching genres for {self.parent_id!r} failed: {exc}",
+                     xbmc.LOGWARNING)
+            return
+        if self.closed_event.is_set() or not genres:
+            return
+        control = self.getControl(CTRL_GENRE_BAR)
+        for genre in genres:
+            li = xbmcgui.ListItem(label=genre.get("Name", ""))
+            li.setProperty("jellyfin_id", genre.get("Id", ""))
+            control.addItem(li)
+
     def _load(self):
         started = self._load_started
         active_control = CTRL_EPISODE_LIST if self.is_episode_list else CTRL_GRID
@@ -160,7 +196,7 @@ class BrowseWindow(ControlledWindow):
         error = None
 
         cached_items = library.get_cached_children(
-            self.client, self.parent_id, self.sort_by, self.sort_order
+            self.client, self.parent_id, self.sort_by, self.sort_order, self.genre_id
         )
         if cached_items is not None:
             # Session-scoped cache hit (see library.clear_browse_cache's
@@ -193,6 +229,7 @@ class BrowseWindow(ControlledWindow):
                 self.client, parent_id=self.parent_id, recursive=False,
                 fields=library.LISTING_ITEM_FIELDS,
                 sort_by=self.sort_by, sort_order=self.sort_order,
+                genre_id=self.genre_id,
             ):
                 if self.closed_event.is_set():
                     return
@@ -271,7 +308,9 @@ class BrowseWindow(ControlledWindow):
             # (the `if error:` branch above) isn't the full listing, so
             # caching it would silently truncate every future visit to this
             # level until something else clears the cache.
-            library.cache_children(self.client, self.parent_id, self.sort_by, self.sort_order, self.items)
+            library.cache_children(
+                self.client, self.parent_id, self.sort_by, self.sort_order, self.items, self.genre_id
+            )
 
         self._track_id_cache = [item["Id"] for item in self.items if item.get("Type") == "Audio"]
         show_queue_controls = self.parent_item_type in QUEUEABLE_PARENT_TYPES and self._track_id_cache
@@ -288,6 +327,19 @@ class BrowseWindow(ControlledWindow):
             self._play_queue(shuffle=False)
         elif control_id == CTRL_SHUFFLE:
             self._play_queue(shuffle=True)
+        elif control_id == CTRL_GENRE_BAR:
+            self._open_genre()
+
+    def _open_genre(self):
+        selected = self.getControl(CTRL_GENRE_BAR).getSelectedItem()
+        if not selected:
+            return
+        self.result = {
+            "action": "open_genre",
+            "genre_id": selected.getProperty("jellyfin_id"),
+            "genre_name": selected.getLabel(),
+        }
+        self.close()
 
     def _open_selected(self, control_id):
         selected = self.getControl(control_id).getSelectedItem()

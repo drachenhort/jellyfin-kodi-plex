@@ -325,7 +325,8 @@ def _open_item(client, item_id, item_type, item_name, item_overview=""):
         _detail_loop(client, item_id)
 
 
-def _browse_loop(client, parent_id, title, parent_item_type=None, parent_overview=""):
+def _browse_loop(client, parent_id, title, parent_item_type=None, parent_overview="",
+                  collection_type=None, genre_id=None):
     # Remembers which item was last opened from this screen so that, when
     # BrowseWindow.open() runs again after Back, it re-selects that same
     # item instead of resetting focus to the top of the list.
@@ -334,7 +335,8 @@ def _browse_loop(client, parent_id, title, parent_item_type=None, parent_overvie
         result = BrowseWindow.open(
             ADDON_PATH, client=client, parent_id=parent_id, title=title,
             parent_item_type=parent_item_type, select_item_id=select_item_id,
-            parent_overview=parent_overview,
+            parent_overview=parent_overview, collection_type=collection_type,
+            genre_id=genre_id,
         )
         if not result:
             return
@@ -347,6 +349,16 @@ def _browse_loop(client, parent_id, title, parent_item_type=None, parent_overvie
                 player.play_queue(client, result["item_ids"], item_type=result.get("item_type"))
             except Exception as exc:  # noqa: BLE001 - surface playback failures, don't crash the addon
                 _notify_error(f"Playback failed: {exc}")
+        elif result["action"] == "open_genre":
+            # Reopens this same level filtered to the clicked genre - a
+            # nested loop (not a mutation of this loop's own state) so
+            # backing out of the filtered listing returns to the unfiltered
+            # one, matching how every other drill-down here nests.
+            _browse_loop(
+                client, parent_id, f"{title} · {result['genre_name']}",
+                parent_item_type=parent_item_type, parent_overview=parent_overview,
+                collection_type=collection_type, genre_id=result["genre_id"],
+            )
 
 
 def _search_loop(client):
@@ -389,7 +401,8 @@ def _home_loop(client):
         if result["action"] == "browse":
             select_control_id = result["control_id"]
             select_item_id = result["item_id"]
-            _browse_loop(client, result["library_id"], result["library_name"])
+            _browse_loop(client, result["library_id"], result["library_name"],
+                         collection_type=result.get("collection_type"))
         elif result["action"] == "open":
             select_control_id = result["control_id"]
             select_item_id = result["item_id"]
