@@ -727,7 +727,7 @@ def test_primary_image_url_uses_item_tag(client):
     assert url.startswith(client.build_url("/Items/item-1/Images/Primary"))
     assert "tag=tag123" in url
     assert "maxWidth=400" in url
-    assert f"api_key={client.access_token}" in url
+    assert f"ApiKey={client.access_token}" in url
 
 
 def test_primary_image_url_falls_back_to_series(client):
@@ -800,7 +800,7 @@ def test_stream_url_builds_expected_query(client):
     assert url.startswith(client.build_url("/Videos/item-1/stream.mkv"))
     assert "static=true" in url
     assert "mediaSourceId=ms-1" in url
-    assert f"api_key={client.access_token}" in url
+    assert f"ApiKey={client.access_token}" in url
     assert play_session_id in url
 
 

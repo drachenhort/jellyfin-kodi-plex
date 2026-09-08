@@ -52,7 +52,7 @@ def stream_url(client, item_id, media_source, item_type=None):
     return (
         client.build_url(f"/{endpoint}/{item_id}/stream.{container}")
         + f"?static=true&mediaSourceId={media_source['Id']}"
-        f"&api_key={client.access_token}&PlaySessionId={play_session_id}"
+        f"&ApiKey={client.access_token}&PlaySessionId={play_session_id}"
     ), play_session_id
 
 

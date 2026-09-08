@@ -19,7 +19,7 @@ def image_url(client, item_id, image_type=PRIMARY, tag=None, max_width=None, ind
     if max_width:
         params.append(f"maxWidth={max_width}")
     if client.access_token:
-        params.append(f"api_key={client.access_token}")
+        params.append(f"ApiKey={client.access_token}")
     url = client.build_url(path)
     if params:
         url += "?" + "&".join(params)
