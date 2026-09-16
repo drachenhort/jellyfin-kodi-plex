@@ -279,12 +279,15 @@ def _unwatched_count_text(item):
 
 
 def _ratings_text(item):
-    """"TMDb 6.7 · RT 80%"-style caption from Jellyfin's two rating fields:
+    """"2024-03-15 · TMDb 6.7 · RT 80%"-style caption. For an Episode, leads
+    with its PremiereDate (original air date) ahead of the rating fields:
     CommunityRating (whichever metadata plugin populated it, commonly TMDb)
     and CriticRating (Rotten Tomatoes' critic/tomatometer score, 0-100).
-    Jellyfin doesn't expose a separate IMDb score. Omits either half that's
-    missing, and returns "" if neither is set."""
+    Jellyfin doesn't expose a separate IMDb score. Omits any part that's
+    missing, and returns "" if nothing is set."""
     parts = []
+    if item.get("Type") == "Episode" and item.get("PremiereDate"):
+        parts.append(item["PremiereDate"][:10])
     community = item.get("CommunityRating")
     if community:
         parts.append(f"TMDb {community:.1f}")

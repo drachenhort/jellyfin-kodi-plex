@@ -113,6 +113,16 @@ def test_ratings_text_empty_when_neither_present():
     assert _ratings_text({}) == ""
 
 
+def test_ratings_text_episode_leads_with_air_date():
+    item = {"Type": "Episode", "PremiereDate": "2024-03-15T00:00:00.0000000Z", "CommunityRating": 6.7}
+    assert _ratings_text(item) == "2024-03-15 · TMDb 6.7"
+
+
+def test_ratings_text_air_date_ignored_for_non_episode():
+    item = {"Type": "Movie", "PremiereDate": "2024-03-15T00:00:00.0000000Z", "CommunityRating": 6.7}
+    assert _ratings_text(item) == "TMDb 6.7"
+
+
 def test_ratings_text_critic_zero_is_not_treated_as_missing():
     assert _ratings_text({"CriticRating": 0}) == "RT 0%"
 

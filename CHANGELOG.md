@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.80 - 2026-09-16
+- TV episode listing now shows the episode's original air date in front of its TMDb/RT rating.
+
 ## 0.3.79 - 2026-09-08
 - Image and stream playback URLs now use the `ApiKey` query parameter instead of the legacy lowercase `api_key`, which Jellyfin 12.0 disables by default (still accepted by 10.8+, so this stays compatible with 10.11).
 

@@ -292,15 +292,15 @@
         </control>
         <control type="label">
           <posx>260</posx>
-          <width>850</width>
+          <width>780</width>
           <height>84</height>
           <font>font13</font>
           <aligny>center</aligny>
           <label>$INFO[ListItem.Title]</label>
         </control>
         <control type="label">
-          <posx>1120</posx>
-          <width>190</width>
+          <posx>1050</posx>
+          <width>340</width>
           <height>84</height>
           <font>font13</font>
           <aligny>center</aligny>
@@ -308,8 +308,8 @@
           <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
         </control>
         <control type="label">
-          <posx>1330</posx>
-          <width>100</width>
+          <posx>1400</posx>
+          <width>90</width>
           <height>84</height>
           <font>font13</font>
           <align>right</align>
@@ -318,8 +318,8 @@
           <visible>Integer.IsGreater(ListItem.Duration,0)</visible>
         </control>
         <control type="label">
-          <posx>1440</posx>
-          <width>150</width>
+          <posx>1500</posx>
+          <width>100</width>
           <height>84</height>
           <font>font13</font>
           <aligny>center</aligny>
@@ -359,15 +359,15 @@
         </control>
         <control type="label">
           <posx>264</posx>
-          <width>840</width>
+          <width>770</width>
           <height>84</height>
           <font>font13</font>
           <aligny>center</aligny>
           <label>$INFO[ListItem.Title]</label>
         </control>
         <control type="label">
-          <posx>1120</posx>
-          <width>190</width>
+          <posx>1050</posx>
+          <width>340</width>
           <height>84</height>
           <font>font13</font>
           <aligny>center</aligny>
@@ -375,8 +375,8 @@
           <visible>!String.IsEmpty(ListItem.Property(ratings_text))</visible>
         </control>
         <control type="label">
-          <posx>1330</posx>
-          <width>100</width>
+          <posx>1400</posx>
+          <width>90</width>
           <height>84</height>
           <font>font13</font>
           <align>right</align>
@@ -385,8 +385,8 @@
           <visible>Integer.IsGreater(ListItem.Duration,0)</visible>
         </control>
         <control type="label">
-          <posx>1440</posx>
-          <width>150</width>
+          <posx>1500</posx>
+          <width>100</width>
           <height>84</height>
           <font>font13</font>
           <aligny>center</aligny>
