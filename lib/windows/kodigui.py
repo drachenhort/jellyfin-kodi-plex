@@ -20,6 +20,8 @@ import time
 import xbmc
 import xbmcgui
 
+from lib.emoji import replace_shortcodes
+
 # Shared xbmc.log() prefix so log lines from any window or the player are
 # easy to grep for as one group (e.g. `grep "script.jellyfin.plex" kodi.log`).
 LOG_PREFIX = "[script.jellyfin.plex]"
@@ -230,7 +232,7 @@ def _display_label(item):
     """Grid caption for `item`: plain Name, except ordered children of a
     container (episodes within a season, tracks within an album) get their
     index number prefixed since Name alone doesn't convey ordering."""
-    name = item.get("Name", "")
+    name = replace_shortcodes(item.get("Name", ""))
     item_type = item.get("Type")
     index = item.get("IndexNumber")
     if item_type == "Episode" and item.get("ParentIndexNumber") is not None and index is not None:
@@ -306,9 +308,9 @@ def list_item(item, primary_art=None, backdrop_art=None):
         art["fanart"] = backdrop_art
     li.setArt(art)
     info_tag = li.getVideoInfoTag()
-    info_tag.setTitle(item.get("Name", ""))
+    info_tag.setTitle(replace_shortcodes(item.get("Name", "")))
     if item.get("Overview"):
-        info_tag.setPlot(item["Overview"])
+        info_tag.setPlot(replace_shortcodes(item["Overview"]))
     if item.get("ProductionYear"):
         info_tag.setYear(item["ProductionYear"])
     if item.get("Genres"):
@@ -320,7 +322,7 @@ def list_item(item, primary_art=None, backdrop_art=None):
         info_tag.setResumePoint(user_data["PlaybackPositionTicks"] / 10_000_000)
     li.setProperty("jellyfin_id", item.get("Id", ""))
     li.setProperty("jellyfin_type", item.get("Type", ""))
-    li.setProperty("overview", item.get("Overview") or "")
+    li.setProperty("overview", replace_shortcodes(item.get("Overview") or ""))
     li.setProperty("series_name", item.get("SeriesName") or "")
     li.setProperty("episode_code", episode_code(item))
     li.setProperty("progress_text", _progress_text(item))

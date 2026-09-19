@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.81 - 2026-09-19
+- Titles and overviews now show `:shortcode:` text (e.g. `:smile:`) as the actual emoji.
+
 ## 0.3.80 - 2026-09-16
 - TV episode listing now shows the episode's original air date in front of its TMDb/RT rating.
 

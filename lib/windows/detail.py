@@ -15,6 +15,7 @@ import xbmc
 import xbmcaddon
 import xbmcgui
 
+from lib.emoji import replace_shortcodes
 from lib.jellyfin import images, library
 from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item
 
@@ -166,9 +167,9 @@ class DetailWindow(ControlledWindow):
         if poster:
             self.getControl(CTRL_POSTER).setImage(poster)
 
-        self.getControl(CTRL_TITLE).setLabel(self.item.get("Name", ""))
+        self.getControl(CTRL_TITLE).setLabel(replace_shortcodes(self.item.get("Name", "")))
         self.getControl(CTRL_META).setLabel(_meta_line(self.item))
-        self.getControl(CTRL_OVERVIEW).setText(self.item.get("Overview", ""))
+        self.getControl(CTRL_OVERVIEW).setText(replace_shortcodes(self.item.get("Overview", "")))
         self.getControl(CTRL_CAST).setLabel(_cast_line(self.item))
 
         resume_ticks = (self.item.get("UserData") or {}).get("PlaybackPositionTicks", 0)
