@@ -15,7 +15,7 @@ def test_format_bytes():
 
 
 def test_message_for_several_movies_shows_files_and_size():
-    movies = [{"Name": "A"}, {"Name": "B"}]
+    movies = [{"Name": "A", "Type": "Movie"}, {"Name": "B", "Type": "Movie"}]
     summary = {"files": 3, "bytes": 6 * 1024 ** 3, "unknown_sizes": 0}
     assert confirm_mod.build_message(movies, summary) == (
         "Permanently delete 2 movies from the server?[CR]"
@@ -64,7 +64,9 @@ def test_get_media_summary_counts_sources_and_bytes(client, monkeypatch):
     ]})])
     monkeypatch.setattr(client_mod, "requests", fake)
 
-    summary = library.get_media_summary(client, ["m1", "m2", "m3"])
+    summary = library.get_media_summary(
+        client, [{"Id": "m1", "Type": "Movie"}, {"Id": "m2", "Type": "Movie"}, {"Id": "m3", "Type": "Movie"}]
+    )
 
     assert summary == {"files": 3, "bytes": 150, "unknown_sizes": 1}
     assert fake.calls[0]["params"] == {"Ids": "m1,m2,m3", "Fields": "MediaSources"}
@@ -74,7 +76,46 @@ def test_get_media_summary_chunks_long_id_lists(client, monkeypatch):
     fake = FakeRequests([FakeResponse({"Items": []}), FakeResponse({"Items": []})])
     monkeypatch.setattr(client_mod, "requests", fake)
 
-    library.get_media_summary(client, [f"m{i}" for i in range(library.MEDIA_SUMMARY_CHUNK + 1)])
+    library.get_media_summary(
+        client, [{"Id": f"m{i}", "Type": "Movie"} for i in range(library.MEDIA_SUMMARY_CHUNK + 1)]
+    )
 
     assert len(fake.calls) == 2
     assert fake.calls[1]["params"]["Ids"] == f"m{library.MEDIA_SUMMARY_CHUNK}"
+
+
+def test_get_media_summary_walks_episodes_of_series_and_seasons(client, monkeypatch):
+    fake = FakeRequests([
+        FakeResponse({"Items": [{"MediaSources": [{"Size": 10}]}, {"MediaSources": [{"Size": 20}]}]}),
+        FakeResponse({"Items": [{"MediaSources": [{"Size": 5}]}]}),
+    ])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    summary = library.get_media_summary(client, [{"Id": "t1", "Type": "Series"}, {"Id": "s1", "Type": "Season"}])
+
+    assert summary == {"files": 3, "bytes": 35, "unknown_sizes": 0}
+    assert fake.calls[0]["params"]["ParentId"] == "t1"
+    assert fake.calls[0]["params"]["IncludeItemTypes"] == "Episode"
+    assert fake.calls[1]["params"]["ParentId"] == "s1"
+
+
+def test_item_name_prefixes_season_with_show():
+    assert confirm_mod.item_name({"Name": "Season 2", "Type": "Season", "SeriesName": "Lost"}) == "Lost – Season 2"
+    assert confirm_mod.item_name({"Name": "Lost", "Type": "Series"}) == "Lost"
+
+
+def test_describe_count():
+    assert confirm_mod.describe_count([{"Type": "Movie"}] * 3) == "3 movies"
+    assert confirm_mod.describe_count([{"Type": "Series"}, {"Type": "Season"}, {"Type": "Season"}]) == (
+        "1 show and 2 seasons"
+    )
+    assert confirm_mod.describe_count([{"Type": "Movie"}, {"Type": "Series"}, {"Type": "Season"}]) == (
+        "1 movie, 1 show and 1 season"
+    )
+    assert confirm_mod.describe_count([]) == "0 items"
+
+
+def test_result_message():
+    assert confirm_mod.result_message([{"Type": "Series"}], []) == "Deleted 1 show"
+    failed = [{"Type": "Season", "Name": "Season 1", "SeriesName": "Dark"}]
+    assert confirm_mod.result_message([], failed) == "Deleted 0 items, 1 failed: Dark – Season 1"

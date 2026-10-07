@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.85 - 2026-10-07
+- TV shows can now be deleted too, once fully watched: whole shows and fully watched seasons. The Clean Up screen has a Movies / TV Shows switch sharing one to-be-deleted list, and the context menu on a TV library (shows) and a show's seasons screen (seasons) offers single and multi-select delete. The confirmation summary counts every episode file and its size.
+
 ## 0.3.84 - 2026-10-07
 - Every movie delete confirmation (Detail page, Movies wall context menu, Clean Up screen) now shows a summary of how many files and how much disk space will be deleted, looked up from the server before asking.
 

@@ -655,16 +655,18 @@ def test_movies_listing_requests_can_delete_field(client, monkeypatch):
     assert "CanDelete" in seen["fields"]
 
 
-def test_deletable_movies_requires_watched_and_can_delete(client, monkeypatch):
+def test_deletable_items_requires_watched_and_can_delete(client, monkeypatch):
     window = _movies_window(client, monkeypatch)
-    assert [m["Id"] for m in window._deletable_movies()] == ["m1", "m4"]
+    assert [m["Id"] for m in window._deletable_items()] == ["m1", "m4"]
 
 
-def test_delete_not_allowed_outside_movies_library(client):
-    window = _make_window(client, collection_type="tvshows")
-    assert window.allow_delete is False
-    window = _make_window(client, parent_item_type="Season", collection_type="movies")
-    assert window.allow_delete is False
+def test_delete_type_per_listing(client):
+    assert _make_window(client, collection_type="movies").delete_type == "Movie"
+    assert _make_window(client, collection_type="tvshows").delete_type == "Series"
+    assert _make_window(client, parent_item_type="Series").delete_type == "Season"
+    assert _make_window(client, collection_type="music").allow_delete is False
+    assert _make_window(client, parent_item_type="Season").allow_delete is False
+    assert _make_window(client, parent_item_type="MusicAlbum").allow_delete is False
 
 
 def test_context_menu_deletes_focused_movie(client, monkeypatch):
@@ -759,3 +761,73 @@ def _no_size_lookup(monkeypatch):
     every test here offline with a fixed summary."""
     monkeypatch.setattr(browse_mod.library, "get_media_summary",
                         lambda c, ids: {"files": len(ids), "bytes": 0, "unknown_sizes": 0})
+
+
+SEASONS = [
+    {"Id": "s1", "Name": "Season 1", "Type": "Season", "SeriesName": "Lost", "CanDelete": True,
+     "UserData": {"Played": True}},
+    {"Id": "s2", "Name": "Season 2", "Type": "Season", "SeriesName": "Lost", "CanDelete": True,
+     "UserData": {"Played": False}},
+]
+
+SHOWS = [
+    {"Id": "t1", "Name": "Lost", "Type": "Series", "CanDelete": True, "UserData": {"Played": True}},
+    {"Id": "t2", "Name": "Dark", "Type": "Series", "CanDelete": True, "UserData": {"Played": False}},
+]
+
+
+def _listing_window(client, monkeypatch, items, **kwargs):
+    monkeypatch.setattr(browse_mod.library, "get_cached_children", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.library, "cache_children", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(items))
+    window = _make_window(client, **kwargs)
+    window._load()
+    return window
+
+
+def test_season_screen_context_menu_deletes_focused_watched_season(client, monkeypatch):
+    window = _listing_window(client, monkeypatch, SEASONS, parent_item_type="Series")
+    dialog = _FakeDeleteDialog(menu_choice=0)
+    monkeypatch.setattr(browse_mod.xbmcgui, "Dialog", dialog)
+    _run_threads_inline(monkeypatch)
+    deleted = []
+    monkeypatch.setattr(browse_mod.library, "delete_item", lambda c, item_id: deleted.append(item_id))
+
+    window._delete_menu()
+
+    assert dialog.menu_options == ["Delete 'Lost – Season 1'", "Delete watched seasons…"]
+    assert deleted == ["s1"]
+    assert dialog.notifications == ["Deleted 1 season"]
+    assert window.result == {"action": "reload"}
+
+
+def test_tv_wall_multi_delete_offers_only_fully_watched_shows(client, monkeypatch):
+    window = _listing_window(client, monkeypatch, SHOWS, collection_type="tvshows")
+    window.getControl(browse_mod.CTRL_GRID).selectItem(1)  # Dark: not fully watched
+    dialog = _FakeDeleteDialog(menu_choice=0, picked=[0])
+    monkeypatch.setattr(browse_mod.xbmcgui, "Dialog", dialog)
+    _run_threads_inline(monkeypatch)
+    deleted = []
+    monkeypatch.setattr(browse_mod.library, "delete_item", lambda c, item_id: deleted.append(item_id))
+
+    window._delete_menu()
+
+    assert dialog.menu_options == ["Delete watched shows…"]
+    assert dialog.multiselect_args == (["Lost"], [])
+    assert deleted == ["t1"]
+    assert dialog.notifications == ["Deleted 1 show"]
+
+
+def test_tv_wall_requests_can_delete_field(client, monkeypatch):
+    seen = {}
+
+    def fake(*a, **k):
+        seen.update(k)
+        yield SHOWS
+
+    monkeypatch.setattr(browse_mod.library, "get_cached_children", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.library, "cache_children", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", fake)
+    _make_window(client, collection_type="tvshows")._load()
+
+    assert "CanDelete" in seen["fields"]

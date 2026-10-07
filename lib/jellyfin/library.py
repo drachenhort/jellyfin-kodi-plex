@@ -150,23 +150,39 @@ def get_items_by_ids(client, item_ids, fields="ImageTags"):
 MEDIA_SUMMARY_CHUNK = 100
 
 
-def get_media_summary(client, item_ids):
-    """How many media files (MediaSources) the given items have and how many
-    bytes they add up to - for the "what will be deleted" confirmation.
-    Returns {"files": int, "bytes": int, "unknown_sizes": int}, where
-    unknown_sizes counts files the server reported no Size for (so "bytes"
-    is then a lower bound). Ids are looked up in chunks to keep the query
-    string a sane length for a long list."""
+# Item types whose own files are their episodes' files - a Series or Season
+# has no MediaSources itself, so the delete summary walks its episodes.
+FOLDER_DELETE_TYPES = {"Series", "Season"}
+
+
+def _add_media_sources(summary, item):
+    for source in item.get("MediaSources") or []:
+        summary["files"] += 1
+        if source.get("Size"):
+            summary["bytes"] += int(source["Size"])
+        else:
+            summary["unknown_sizes"] += 1
+
+
+def get_media_summary(client, items):
+    """How many media files (MediaSources) the given items cover and how
+    many bytes they add up to - for the "what will be deleted" confirmation.
+    `items` are item dicts (Id + Type). A Series/Season counts every episode
+    under it; anything else is looked up directly, in id chunks to keep the
+    query string a sane length for a long list. Returns {"files": int,
+    "bytes": int, "unknown_sizes": int}, where unknown_sizes counts files
+    the server reported no Size for (so "bytes" is then a lower bound)."""
     summary = {"files": 0, "bytes": 0, "unknown_sizes": 0}
-    for start in range(0, len(item_ids), MEDIA_SUMMARY_CHUNK):
-        chunk = item_ids[start:start + MEDIA_SUMMARY_CHUNK]
-        for item in get_items_by_ids(client, chunk, fields="MediaSources"):
-            for source in item.get("MediaSources") or []:
-                summary["files"] += 1
-                if source.get("Size"):
-                    summary["bytes"] += int(source["Size"])
-                else:
-                    summary["unknown_sizes"] += 1
+    direct_ids = [i["Id"] for i in items if i.get("Type") not in FOLDER_DELETE_TYPES]
+    for start in range(0, len(direct_ids), MEDIA_SUMMARY_CHUNK):
+        for item in get_items_by_ids(client, direct_ids[start:start + MEDIA_SUMMARY_CHUNK],
+                                     fields="MediaSources"):
+            _add_media_sources(summary, item)
+    for folder in (i for i in items if i.get("Type") in FOLDER_DELETE_TYPES):
+        for page in iter_items_paged(client, parent_id=folder["Id"], include_item_types="Episode",
+                                     recursive=True, fields="MediaSources", page_size=200):
+            for episode in page:
+                _add_media_sources(summary, episode)
     return summary
 
 
@@ -451,6 +467,37 @@ def get_watched_movies(client):
     ):
         movies.extend(m for m in page if m.get("CanDelete") and is_played(m))
     return movies
+
+
+WATCHED_TV_FIELDS = LISTING_ITEM_FIELDS + ",CanDelete,ChildCount"
+
+
+def _watched_of_type(client, item_type):
+    items = []
+    for page in iter_items_paged(
+        client, include_item_types=item_type, recursive=True, filters="IsPlayed",
+        fields=WATCHED_TV_FIELDS, page_size=200,
+    ):
+        items.extend(i for i in page if is_played(i))
+    return items
+
+
+def get_watched_tv(client):
+    """Fully watched TV the user may delete, for the Clean Up screen: every
+    fully watched Series, plus fully watched Seasons of shows that are *not*
+    fully watched yet (a finished show's seasons would only repeat what its
+    Series entry already covers). Ordered by show, each show's own entry
+    first, then its seasons by number."""
+    series = _watched_of_type(client, "Series")
+    finished_ids = {s["Id"] for s in series}
+    seasons = [s for s in _watched_of_type(client, "Season") if s.get("SeriesId") not in finished_ids]
+    items = [i for i in series + seasons if i.get("CanDelete")]
+
+    def order(item):
+        show = (item.get("SeriesName") if item.get("Type") == "Season" else item.get("Name")) or ""
+        return (show.lower(), item.get("Type") == "Season", item.get("IndexNumber") or 0)
+
+    return sorted(items, key=order)
 
 
 SEARCH_ITEM_TYPES = "Movie,Series,MusicArtist,MusicAlbum,Audio,Episode"

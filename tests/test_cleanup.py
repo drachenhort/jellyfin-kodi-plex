@@ -47,13 +47,27 @@ def _run_threads_inline(monkeypatch):
     monkeypatch.setattr(cleanup_mod.threading, "Thread", _InlineThread)
 
 
-def _window(client, monkeypatch, movies=None, saved_queue=None):
+TV = [
+    {"Id": "t1", "Name": "Lost", "Type": "Series", "ChildCount": 6, "UserData": {"Played": True}},
+    {"Id": "s1", "Name": "Season 1", "Type": "Season", "SeriesName": "Dark", "ChildCount": 10,
+     "UserData": {"Played": True}},
+]
+
+
+def _window(client, monkeypatch, movies=None, saved_queue=None, tv=None, tv_error=None):
     addon = xbmcaddon.Addon()
     key = delete_queue.queue_key(client.server_url, client.user_id)
     if saved_queue is not None:
         addon.setSetting(cleanup_mod.DELETE_QUEUE_SETTING, delete_queue.save("", key, saved_queue))
     monkeypatch.setattr(cleanup_mod, "ADDON", addon)
     monkeypatch.setattr(cleanup_mod.library, "get_watched_movies", lambda c: list(MOVIES if movies is None else movies))
+
+    def watched_tv(c):
+        if tv_error:
+            raise tv_error
+        return list(tv or [])
+
+    monkeypatch.setattr(cleanup_mod.library, "get_watched_tv", watched_tv)
     monkeypatch.setattr(cleanup_mod.images, "primary_image_url", lambda *a, **k: None)
     window = cleanup_mod.CleanupWindow(None, "/fake/addon/path", "Main", "1080i")
     window.setup(client=client)
@@ -96,7 +110,7 @@ def test_selecting_watched_movie_moves_it_to_queue_and_persists(client, monkeypa
     assert _ids(window, cleanup_mod.CTRL_WATCHED_LIST) == ["m1", "m3"]
     assert _ids(window, cleanup_mod.CTRL_QUEUE_LIST) == ["m2"]
     assert _saved(window) == ["m2"]
-    assert window.getControl(cleanup_mod.CTRL_DELETE_BUTTON).getLabel() == "Delete 1 Movie"
+    assert window.getControl(cleanup_mod.CTRL_DELETE_BUTTON).getLabel() == "Delete 1 movie"
     assert window.getControl(cleanup_mod.CTRL_QUEUE_HEADER).getLabel() == "To Be Deleted (1)"
 
 
@@ -143,7 +157,7 @@ def test_delete_cancelled_keeps_everything(client, monkeypatch):
     assert _saved(window) == ["m1"]
     # Clicks are re-enabled and the status line restored after cancelling.
     assert window.deleting is False
-    assert window.getControl(cleanup_mod.CTRL_STATUS).getLabel() == "Select a movie to move it between the two lists"
+    assert window.getControl(cleanup_mod.CTRL_STATUS).getLabel() == "Select an item to move it between the two lists"
 
 
 def test_delete_removes_all_queued_movies(client, monkeypatch):
@@ -191,6 +205,7 @@ def test_load_failure_shows_status(client, monkeypatch):
         raise RuntimeError("timeout")
 
     monkeypatch.setattr(cleanup_mod.library, "get_watched_movies", boom)
+    monkeypatch.setattr(cleanup_mod.library, "get_watched_tv", lambda c: [])
     window = cleanup_mod.CleanupWindow(None, "/fake/addon/path", "Main", "1080i")
     window.setup(client=client)
 
@@ -210,3 +225,60 @@ def _no_size_lookup(monkeypatch):
     every test here offline with a fixed summary."""
     monkeypatch.setattr(cleanup_mod.library, "get_media_summary",
                         lambda c, ids: {"files": len(ids), "bytes": 0, "unknown_sizes": 0})
+
+
+def test_meta_text_for_series_and_season():
+    assert cleanup_mod._meta_text(TV[0]) == "Show  •  6 seasons"
+    assert cleanup_mod._meta_text(TV[1]) == "Season  •  10 episodes"
+
+
+def test_mode_button_switches_left_list_to_tv(client, monkeypatch):
+    window = _window(client, monkeypatch, tv=TV)
+    assert window.getControl(cleanup_mod.CTRL_MODE_BUTTON).getLabel() == "Show TV Shows"
+
+    window.handle_click(cleanup_mod.CTRL_MODE_BUTTON)
+
+    assert _ids(window, cleanup_mod.CTRL_WATCHED_LIST) == ["t1", "s1"]
+    labels = [li.getLabel() for li in window.getControl(cleanup_mod.CTRL_WATCHED_LIST).items]
+    assert labels == ["Lost", "Dark – Season 1"]
+    assert window.getControl(cleanup_mod.CTRL_WATCHED_HEADER).getLabel() == "Watched TV Shows (2)"
+    assert window.getControl(cleanup_mod.CTRL_MODE_BUTTON).getLabel() == "Show Movies"
+
+
+def test_queue_is_shared_across_modes(client, monkeypatch):
+    window = _window(client, monkeypatch, tv=TV, saved_queue=["m1"])
+    window.handle_click(cleanup_mod.CTRL_MODE_BUTTON)
+
+    window.handle_click(cleanup_mod.CTRL_WATCHED_LIST)  # queue "Lost"
+
+    assert _ids(window, cleanup_mod.CTRL_QUEUE_LIST) == ["m1", "t1"]
+    assert window.getControl(cleanup_mod.CTRL_DELETE_BUTTON).getLabel() == "Delete 1 movie and 1 show"
+
+
+def test_delete_covers_movies_and_tv(client, monkeypatch):
+    window = _window(client, monkeypatch, tv=TV, saved_queue=["m1", "t1", "s1"])
+    dialog = _FakeDialog()
+    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", dialog)
+    _run_threads_inline(monkeypatch)
+    deleted = []
+    monkeypatch.setattr(cleanup_mod.library, "delete_item", lambda c, i: deleted.append(i))
+
+    window.handle_click(cleanup_mod.CTRL_DELETE_BUTTON)
+
+    assert "1 movie, 1 show and 1 season" in dialog.asked[0]
+    assert deleted == ["m1", "t1", "s1"]
+    assert dialog.notifications == ["Deleted 1 movie, 1 show and 1 season"]
+    assert _saved(window) == []
+
+
+def test_failed_tv_load_keeps_movies_and_preserves_queued_shows(client, monkeypatch):
+    window = _window(client, monkeypatch, saved_queue=["m1", "t1"], tv_error=RuntimeError("timeout"))
+
+    assert _ids(window, cleanup_mod.CTRL_QUEUE_LIST) == ["m1"]
+    assert "Couldn't load TV shows: timeout" in window.getControl(cleanup_mod.CTRL_STATUS).getLabel()
+    assert _saved(window) == ["m1", "t1"]
+
+    window.getControl(cleanup_mod.CTRL_QUEUE_LIST).selectItem(0)
+    window.handle_click(cleanup_mod.CTRL_QUEUE_LIST)  # un-queue m1
+
+    assert _saved(window) == ["t1"]

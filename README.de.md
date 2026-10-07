@@ -147,6 +147,12 @@ Sitzungen erhalten), und der Löschen-Button entfernt nach einer Bestätigung al
 Liste vom Server.
 Jede Löschbestätigung zeigt vorher an, wie viele Dateien und wie viel Speicherplatz gelöscht werden.
 
+Komplett gesehene Serien lassen sich genauso löschen: ganze Serien oder komplett gesehene Staffeln
+von Serien, die noch laufen. Der Button „Show TV Shows“ im Clean-Up-Bildschirm schaltet die linke
+Liste auf Serien um (die Zu-löschen-Liste ist gemeinsam, ein Löschen umfasst also Filme und Serien
+zusammen), und das Kontextmenü funktioniert in der Serien-Bibliothek sowie in der Staffelansicht
+einer Serie.
+
 Der Login-Bildschirm erkennt Jellyfin-Server im lokalen Netzwerk automatisch (`lib/jellyfin/discovery.py`)
 über das von Emby/MediaBrowser übernommene UDP-Broadcast-Protokoll — gefundene Server werden als Auswahlliste
 angeboten, die das Server-URL-Feld ausfüllt; die manuelle Eingabe bleibt weiterhin als Fallback verfügbar.
