@@ -28,6 +28,7 @@ import xbmcaddon
 import xbmcgui
 
 from lib.jellyfin import images, library
+from lib.windows.delete_confirm import confirm_delete
 from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item, progress_percent
 
 ADDON = xbmcaddon.Addon()
@@ -367,8 +368,13 @@ class BrowseWindow(ControlledWindow):
             chosen = [focused]
         else:
             chosen = self._pick_movies(movies, focused_id)
-        if chosen and self._confirm_delete(chosen):
-            threading.Thread(target=self._delete_movies, args=(chosen,), daemon=True).start()
+        if chosen:
+            # Off the GUI thread: the confirmation looks up file count/size.
+            threading.Thread(target=self._confirm_and_delete, args=(chosen,), daemon=True).start()
+
+    def _confirm_and_delete(self, movies):
+        if confirm_delete(self.client, movies) and not self.closed_event.is_set():
+            self._delete_movies(movies)
 
     @staticmethod
     def _pick_movies(movies, focused_id):
@@ -376,18 +382,6 @@ class BrowseWindow(ControlledWindow):
         preselect = [i for i, m in enumerate(movies) if m.get("Id") == focused_id]
         picked = xbmcgui.Dialog().multiselect("Delete watched movies", labels, preselect=preselect)
         return [movies[i] for i in picked or []]
-
-    @staticmethod
-    def _confirm_delete(movies):
-        if len(movies) == 1:
-            what = f"'{movies[0].get('Name', '')}'"
-        else:
-            what = f"{len(movies)} movies"
-        return xbmcgui.Dialog().yesno(
-            "Delete Movies",
-            f"Permanently delete {what} and their files from the server?[CR]This cannot be undone.",
-            nolabel="Cancel", yeslabel="Delete",
-        )
 
     def _delete_movies(self, movies):
         failed = []

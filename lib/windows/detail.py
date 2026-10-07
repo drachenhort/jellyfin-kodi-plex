@@ -18,6 +18,7 @@ import xbmcgui
 
 from lib.emoji import replace_shortcodes
 from lib.jellyfin import images, library
+from lib.windows.delete_confirm import confirm_delete
 from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item
 
 ADDON = xbmcaddon.Addon()
@@ -320,8 +321,10 @@ class DetailWindow(ControlledWindow):
             self._pick_audio()
         elif control_id == CTRL_SUBTITLE_BUTTON:
             self._pick_subtitle()
-        elif control_id == CTRL_DELETE_BUTTON:
-            self._confirm_delete()
+        elif control_id == CTRL_DELETE_BUTTON and _can_delete(self.item):
+            # Off the GUI thread: the confirmation first looks up the file
+            # count/size, and deleting a large file can take a moment too.
+            threading.Thread(target=self._confirm_and_delete, daemon=True).start()
 
     def _pick_audio(self):
         if not self.audio_streams:
@@ -393,20 +396,9 @@ class DetailWindow(ControlledWindow):
         self.getControl(CTRL_DELETE_BUTTON).setVisible(_can_delete(self.item))
         self.getControl(CTRL_META).setLabel(_meta_line(self.item))
 
-    def _confirm_delete(self):
-        if not _can_delete(self.item):
-            return
-        name = self.item.get("Name", "")
-        confirmed = xbmcgui.Dialog().yesno(
-            "Delete Movie",
-            f"Permanently delete '{name}' and its files from the server?[CR]This cannot be undone.",
-            nolabel="Cancel", yeslabel="Delete",
-        )
-        if not confirmed:
-            return
-        # Runs off the GUI thread like _toggle_watched - deleting a large
-        # file can take the server a moment.
-        threading.Thread(target=self._delete, daemon=True).start()
+    def _confirm_and_delete(self):
+        if confirm_delete(self.client, [self.item]) and not self.closed_event.is_set():
+            self._delete()
 
     def _delete(self):
         name = self.item.get("Name", "")

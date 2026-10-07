@@ -4,6 +4,7 @@ to-be-deleted list on the right, and deleting everything on that list.
 onInit() runs _load() on a background thread, so these tests call _load()
 directly; deletion threads are run inline via _run_threads_inline."""
 
+import pytest
 import xbmcaddon
 
 import lib.windows.cleanup as cleanup_mod
@@ -132,6 +133,7 @@ def test_delete_with_empty_queue_only_notifies(client, monkeypatch):
 def test_delete_cancelled_keeps_everything(client, monkeypatch):
     window = _window(client, monkeypatch, saved_queue=["m1"])
     monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", _FakeDialog(confirm=False))
+    _run_threads_inline(monkeypatch)
     deleted = []
     monkeypatch.setattr(cleanup_mod.library, "delete_item", lambda c, i: deleted.append(i))
 
@@ -139,6 +141,9 @@ def test_delete_cancelled_keeps_everything(client, monkeypatch):
 
     assert deleted == []
     assert _saved(window) == ["m1"]
+    # Clicks are re-enabled and the status line restored after cancelling.
+    assert window.deleting is False
+    assert window.getControl(cleanup_mod.CTRL_STATUS).getLabel() == "Select a movie to move it between the two lists"
 
 
 def test_delete_removes_all_queued_movies(client, monkeypatch):
@@ -197,3 +202,11 @@ def test_load_failure_shows_status(client, monkeypatch):
 def test_no_watched_movies_shows_status(client, monkeypatch):
     window = _window(client, monkeypatch, movies=[])
     assert window.getControl(cleanup_mod.CTRL_STATUS).getLabel() == "No watched movies you can delete"
+
+
+@pytest.fixture(autouse=True)
+def _no_size_lookup(monkeypatch):
+    """The delete confirmation looks up file sizes over the network - keep
+    every test here offline with a fixed summary."""
+    monkeypatch.setattr(cleanup_mod.library, "get_media_summary",
+                        lambda c, ids: {"files": len(ids), "bytes": 0, "unknown_sizes": 0})

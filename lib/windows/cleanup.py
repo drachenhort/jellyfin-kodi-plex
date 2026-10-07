@@ -21,6 +21,7 @@ import xbmcgui
 
 from lib import delete_queue
 from lib.jellyfin import images, library
+from lib.windows.delete_confirm import confirm_delete
 from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item
 
 ADDON = xbmcaddon.Addon()
@@ -166,15 +167,19 @@ class CleanupWindow(ControlledWindow):
         if not movies:
             xbmcgui.Dialog().notification("Jellyfin", "The to-be-deleted list is empty")
             return
-        what = f"'{movies[0].get('Name', '')}'" if len(movies) == 1 else f"{len(movies)} movies"
-        confirmed = xbmcgui.Dialog().yesno(
-            "Delete Movies",
-            f"Permanently delete {what} and their files from the server?[CR]This cannot be undone.",
-            nolabel="Cancel", yeslabel="Delete",
-        )
-        if confirmed:
-            self.deleting = True
-            threading.Thread(target=self._delete, args=(movies,), daemon=True).start()
+        # Blocks further clicks until the summary/confirmation is answered -
+        # the size lookup runs off the GUI thread and can take a moment.
+        self.deleting = True
+        self.getControl(CTRL_STATUS).setLabel(f"Calculating size of {len(movies)} movies…")
+        threading.Thread(target=self._confirm_and_delete, args=(movies,), daemon=True).start()
+
+    def _confirm_and_delete(self, movies: list) -> None:
+        if confirm_delete(self.client, movies) and not self.closed_event.is_set():
+            self._delete(movies)
+            return
+        self.deleting = False
+        if not self.closed_event.is_set():
+            self._update_headers()
 
     def _delete(self, movies: list) -> None:
         failed = []

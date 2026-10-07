@@ -9,6 +9,7 @@ deterministic, non-racy assertion instead of onInit().
 
 import re
 
+import pytest
 import xbmcaddon
 
 import lib.windows.browse as browse_mod
@@ -750,3 +751,11 @@ def test_context_menu_with_nothing_deletable_notifies(client, monkeypatch):
 
     assert dialog.menu_options is None
     assert dialog.notifications == ["No watched movies you can delete here"]
+
+
+@pytest.fixture(autouse=True)
+def _no_size_lookup(monkeypatch):
+    """The delete confirmation looks up file sizes over the network - keep
+    every test here offline with a fixed summary."""
+    monkeypatch.setattr(browse_mod.library, "get_media_summary",
+                        lambda c, ids: {"files": len(ids), "bytes": 0, "unknown_sizes": 0})

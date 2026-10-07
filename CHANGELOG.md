@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.84 - 2026-10-07
+- Every movie delete confirmation (Detail page, Movies wall context menu, Clean Up screen) now shows a summary of how many files and how much disk space will be deleted, looked up from the server before asking.
+
 ## 0.3.83 - 2026-10-07
 - New "Clean Up" button on Home: lists all watched movies you may delete, lets you move them onto a to-be-deleted list (remembered between sessions, per server), and deletes everything on that list from the server after confirmation.
 

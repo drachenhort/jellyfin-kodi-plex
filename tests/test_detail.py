@@ -636,13 +636,29 @@ def test_marking_unwatched_hides_delete_button(client, monkeypatch):
 def test_delete_cancelled_does_nothing(client, monkeypatch):
     window = _deletable_window(client, monkeypatch)
     monkeypatch.setattr(detail_mod.xbmcgui, "Dialog", _FakeYesNoDialog(False))
-    calls = []
-    monkeypatch.setattr(detail_mod.threading, "Thread", lambda **k: calls.append(k))
+    monkeypatch.setattr(detail_mod.library, "get_media_summary",
+                        lambda c, ids: {"files": 1, "bytes": 1, "unknown_sizes": 0})
+    deleted = []
+    monkeypatch.setattr(detail_mod.library, "delete_item", lambda c, item_id: deleted.append(item_id))
 
-    window.handle_click(detail_mod.CTRL_DELETE_BUTTON)
+    window._confirm_and_delete()
 
-    assert calls == []
+    assert deleted == []
     assert window.result is None
+
+
+def test_delete_confirmed_deletes(client, monkeypatch):
+    window = _deletable_window(client, monkeypatch)
+    monkeypatch.setattr(detail_mod.xbmcgui, "Dialog", _FakeYesNoDialog(True))
+    monkeypatch.setattr(detail_mod.library, "get_media_summary",
+                        lambda c, ids: {"files": 1, "bytes": 1, "unknown_sizes": 0})
+    deleted = []
+    monkeypatch.setattr(detail_mod.library, "delete_item", lambda c, item_id: deleted.append(item_id))
+
+    window._confirm_and_delete()
+
+    assert deleted == ["item-1"]
+    assert window.result == {"action": "deleted", "item_id": "item-1"}
 
 
 def test_delete_success_closes_with_deleted_result(client, monkeypatch):

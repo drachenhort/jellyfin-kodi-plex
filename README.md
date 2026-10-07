@@ -132,6 +132,7 @@ The **Clean Up** button on Home opens a two-column screen: every watched movie y
 the left, a "To Be Deleted" list on the right. Selecting a movie moves it between the two lists
 (the to-be-deleted list is remembered between sessions, per server), and the Delete button
 removes everything on that list from the server after a confirmation.
+Every delete confirmation first shows how many files and how much disk space will be deleted.
 
 The login screen autodetects Jellyfin servers on the LAN (`lib/jellyfin/discovery.py`) using the
 UDP broadcast protocol inherited from Emby/MediaBrowser — found servers are offered as a pick-list

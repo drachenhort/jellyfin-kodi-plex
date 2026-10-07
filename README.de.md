@@ -145,6 +145,7 @@ gesehenen Filme, die gelöscht werden dürfen, rechts eine „Zu löschen“-Lis
 Auswählen zwischen den beiden Listen verschoben (die Zu-löschen-Liste bleibt pro Server zwischen
 Sitzungen erhalten), und der Löschen-Button entfernt nach einer Bestätigung alle Filme dieser
 Liste vom Server.
+Jede Löschbestätigung zeigt vorher an, wie viele Dateien und wie viel Speicherplatz gelöscht werden.
 
 Der Login-Bildschirm erkennt Jellyfin-Server im lokalen Netzwerk automatisch (`lib/jellyfin/discovery.py`)
 über das von Emby/MediaBrowser übernommene UDP-Broadcast-Protokoll — gefundene Server werden als Auswahlliste

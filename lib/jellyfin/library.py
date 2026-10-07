@@ -147,6 +147,29 @@ def get_items_by_ids(client, item_ids, fields="ImageTags"):
     return result.get("Items", [])
 
 
+MEDIA_SUMMARY_CHUNK = 100
+
+
+def get_media_summary(client, item_ids):
+    """How many media files (MediaSources) the given items have and how many
+    bytes they add up to - for the "what will be deleted" confirmation.
+    Returns {"files": int, "bytes": int, "unknown_sizes": int}, where
+    unknown_sizes counts files the server reported no Size for (so "bytes"
+    is then a lower bound). Ids are looked up in chunks to keep the query
+    string a sane length for a long list."""
+    summary = {"files": 0, "bytes": 0, "unknown_sizes": 0}
+    for start in range(0, len(item_ids), MEDIA_SUMMARY_CHUNK):
+        chunk = item_ids[start:start + MEDIA_SUMMARY_CHUNK]
+        for item in get_items_by_ids(client, chunk, fields="MediaSources"):
+            for source in item.get("MediaSources") or []:
+                summary["files"] += 1
+                if source.get("Size"):
+                    summary["bytes"] += int(source["Size"])
+                else:
+                    summary["unknown_sizes"] += 1
+    return summary
+
+
 def get_latest(client, parent_id=None, limit=20):
     """GET /Users/{userId}/Items/Latest — Recently Added hub, per library."""
     params = {"Limit": limit, "Fields": LISTING_ITEM_FIELDS}
