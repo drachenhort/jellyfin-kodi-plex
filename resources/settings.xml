@@ -19,6 +19,14 @@
             <options>hidden</options>
           </constraints>
         </setting>
+        <setting id="delete_queue" type="string" label="30061" help="">
+          <level>2</level>
+          <default></default>
+          <control type="edit" format="string"/>
+          <constraints>
+            <options>hidden</options>
+          </constraints>
+        </setting>
         <setting id="device_id" type="string" label="30005" help="">
           <level>2</level>
           <default></default>

@@ -19,6 +19,7 @@ from lib import player, servers
 from lib.jellyfin import JellyfinClient, auth, library, system
 from lib.jellyfin import client as client_mod
 from lib.windows.browse import BrowseWindow
+from lib.windows.cleanup import CleanupWindow
 from lib.windows.detail import DetailWindow
 from lib.windows.home import HomeWindow
 from lib.windows.kodigui import (
@@ -412,6 +413,8 @@ def _home_loop(client):
                        item_overview=result.get("item_overview", ""))
         elif result["action"] == "search":
             _search_loop(client)
+        elif result["action"] == "cleanup":
+            CleanupWindow.open(ADDON_PATH, client=client)
         elif result["action"] == "servers":
             new_client = _manage_servers(client)
             if new_client is not None:

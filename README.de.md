@@ -140,6 +140,12 @@ ausgewählten Film zu löschen oder mehrere gesehene Filme auf einmal auszuwähl
 vorher nach einer Bestätigung und funktioniert nur, wenn der Jellyfin-Benutzer Inhalte löschen
 darf (eine Benutzereinstellung im Jellyfin-Dashboard).
 
+Der **Clean Up**-Button auf dem Startbildschirm öffnet eine zweispaltige Ansicht: links alle
+gesehenen Filme, die gelöscht werden dürfen, rechts eine „Zu löschen“-Liste. Ein Film wird durch
+Auswählen zwischen den beiden Listen verschoben (die Zu-löschen-Liste bleibt pro Server zwischen
+Sitzungen erhalten), und der Löschen-Button entfernt nach einer Bestätigung alle Filme dieser
+Liste vom Server.
+
 Der Login-Bildschirm erkennt Jellyfin-Server im lokalen Netzwerk automatisch (`lib/jellyfin/discovery.py`)
 über das von Emby/MediaBrowser übernommene UDP-Broadcast-Protokoll — gefundene Server werden als Auswahlliste
 angeboten, die das Server-URL-Feld ausfüllt; die manuelle Eingabe bleibt weiterhin als Fallback verfügbar.

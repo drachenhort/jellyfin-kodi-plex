@@ -855,3 +855,21 @@ def test_delete_item_raises_when_server_forbids_it(client, monkeypatch):
 
     with pytest.raises(client_mod.JellyfinApiError):
         library.delete_item(client, "m1")
+
+
+def test_get_watched_movies_filters_played_and_keeps_only_deletable(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"Items": [
+        {"Id": "m1", "CanDelete": True, "UserData": {"Played": True}},
+        {"Id": "m2", "CanDelete": False, "UserData": {"Played": True}},
+        {"Id": "m3", "CanDelete": True, "UserData": {"Played": False}},
+    ]})])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    movies = library.get_watched_movies(client)
+
+    assert [m["Id"] for m in movies] == ["m1"]
+    params = fake.calls[0]["params"]
+    assert params["Filters"] == "IsPlayed"
+    assert params["IncludeItemTypes"] == "Movie"
+    assert params["Recursive"] == "true"
+    assert "CanDelete" in params["Fields"]

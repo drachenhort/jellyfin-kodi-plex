@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.83 - 2026-10-07
+- New "Clean Up" button on Home: lists all watched movies you may delete, lets you move them onto a to-be-deleted list (remembered between sessions, per server), and deletes everything on that list from the server after confirmation.
+
 ## 0.3.82 - 2026-10-07
 - Movies can now be deleted from the server, only once watched: a Delete button (with confirmation) on a watched movie's detail page, and a context menu on the Movies library wall to delete the focused movie or pick several watched movies at once. Requires the Jellyfin user to have content deletion allowed.
 

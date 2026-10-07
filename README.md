@@ -128,6 +128,11 @@ or the context menu (`C` / long-press) on the Movies library wall to delete the 
 pick several watched movies at once. Both ask for confirmation first, and only work if the
 Jellyfin user is allowed to delete content (a per-user setting in the Jellyfin dashboard).
 
+The **Clean Up** button on Home opens a two-column screen: every watched movie you may delete on
+the left, a "To Be Deleted" list on the right. Selecting a movie moves it between the two lists
+(the to-be-deleted list is remembered between sessions, per server), and the Delete button
+removes everything on that list from the server after a confirmation.
+
 The login screen autodetects Jellyfin servers on the LAN (`lib/jellyfin/discovery.py`) using the
 UDP broadcast protocol inherited from Emby/MediaBrowser — found servers are offered as a pick-list
 that fills in the server URL field, with manual entry still available as a fallback.

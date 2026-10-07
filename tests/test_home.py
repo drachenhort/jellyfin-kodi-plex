@@ -977,3 +977,12 @@ def test_season_block_threshold_setting_invalid_falls_back_to_default(client, mo
         extra_settings={home_mod.SEASON_BLOCK_THRESHOLD_SETTING: ""},
     )
     assert window.season_block_threshold == library.SEASON_BLOCK_THRESHOLD
+
+
+def test_clean_up_button_closes_with_cleanup_action(client, monkeypatch):
+    window = _make_window(client, monkeypatch)
+
+    window.handle_click(home_mod.CTRL_CLEANUP)
+
+    assert window.result == {"action": "cleanup"}
+    assert window.closed

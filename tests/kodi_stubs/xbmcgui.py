@@ -110,6 +110,11 @@ class ControlStub:
     def getSelectedItem(self):
         return self.selected_item
 
+    def getSelectedPosition(self):
+        if self.selected_item is None:
+            return -1
+        return next((i for i, item in enumerate(self.items) if item is self.selected_item), -1)
+
     def selectItem(self, index):
         if 0 <= index < len(self.items):
             self.selected_item = self.items[index]

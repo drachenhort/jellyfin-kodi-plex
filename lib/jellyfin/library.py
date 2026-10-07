@@ -375,7 +375,7 @@ def clear_browse_cache():
 
 def iter_items_paged(client, parent_id=None, include_item_types=None, fields="",
                       sort_by="SortName", sort_order="Ascending", recursive=True,
-                      genre_id=None, page_size=50, timeout=(5, 300)):
+                      genre_id=None, page_size=50, timeout=(5, 300), filters=None):
     """GET /Users/{userId}/Items, paged via StartIndex/Limit — for walking a whole
     library too large to hold in memory at once (e.g. a ~100k-track Music library).
 
@@ -404,6 +404,8 @@ def iter_items_paged(client, parent_id=None, include_item_types=None, fields="",
             params["IncludeItemTypes"] = include_item_types
         if genre_id:
             params["GenreIds"] = genre_id
+        if filters:
+            params["Filters"] = filters
         response = client.get(f"/Users/{client.user_id}/Items", params=params, timeout=timeout)
         items = response.get("Items", [])
         if not items:
@@ -412,6 +414,20 @@ def iter_items_paged(client, parent_id=None, include_item_types=None, fields="",
         if len(items) < page_size:
             return
         start_index += page_size
+
+
+def get_watched_movies(client):
+    """Every watched movie across all libraries that this user may delete
+    (CanDelete) - the Clean Up screen's source list. Paged like any big
+    listing; CanDelete is filtered here rather than server-side, since the
+    Items API has no filter for it."""
+    movies = []
+    for page in iter_items_paged(
+        client, include_item_types="Movie", recursive=True, filters="IsPlayed",
+        fields=LISTING_ITEM_FIELDS + ",CanDelete", page_size=200,
+    ):
+        movies.extend(m for m in page if m.get("CanDelete") and is_played(m))
+    return movies
 
 
 SEARCH_ITEM_TYPES = "Movie,Series,MusicArtist,MusicAlbum,Audio,Episode"

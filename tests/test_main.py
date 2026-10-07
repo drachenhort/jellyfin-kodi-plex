@@ -27,6 +27,18 @@ def test_home_loop_returns_none_once_home_closes_with_no_result(monkeypatch):
     assert main_mod._home_loop(client=object()) is None
 
 
+def test_home_loop_opens_cleanup_then_returns_to_home(monkeypatch):
+    results = [{"action": "cleanup"}, None]
+    monkeypatch.setattr(main_mod.HomeWindow, "open", staticmethod(lambda *a, **k: results.pop(0)))
+    opened = []
+    monkeypatch.setattr(main_mod.CleanupWindow, "open",
+                        staticmethod(lambda addon_path, client=None: opened.append(client)))
+    client = object()
+
+    assert main_mod._home_loop(client=client) is None
+    assert opened == [client]
+
+
 def test_home_loop_bails_before_reopening_home_if_kodi_is_aborting(monkeypatch):
     monkeypatch.setattr(xbmc, "Monitor", _AbortMonitor)
 

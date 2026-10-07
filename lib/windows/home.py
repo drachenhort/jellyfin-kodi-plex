@@ -7,6 +7,7 @@ self.result on close is one of:
   {"action": "open", "item_id": ..., "item_type": ..., "item_name": ...}
   {"action": "search"}
   {"action": "servers"}
+  {"action": "cleanup"}
   None (user backed out — lib/main.py treats this as "quit the addon")
 
 The Playlists show/hide toggle next to Search doesn't close the window or
@@ -77,6 +78,7 @@ CTRL_SERVERS = 206
 CTRL_RECENTLY_ADDED_MUSIC = 207
 CTRL_PLAYLISTS_TOGGLE = 208
 CTRL_SETTINGS = 209
+CTRL_CLEANUP = 211
 CTRL_LOADING = 220
 
 HUB_CONTROLS = (
@@ -430,6 +432,9 @@ class HomeWindow(ControlledWindow):
             self._toggle_playlists_visibility()
         elif control_id == CTRL_SETTINGS:
             self._open_addon_settings()
+        elif control_id == CTRL_CLEANUP:
+            self.result = {"action": "cleanup"}
+            self.close()
 
     def _update_playlists_toggle_label(self):
         self.getControl(CTRL_PLAYLISTS_TOGGLE).setLabel("Show Playlists" if self.hide_playlists else "Hide Playlists")
