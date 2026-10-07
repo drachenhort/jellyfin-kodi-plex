@@ -801,21 +801,47 @@ def test_season_screen_context_menu_deletes_focused_watched_season(client, monke
     assert window.result == {"action": "reload"}
 
 
-def test_tv_wall_multi_delete_offers_only_fully_watched_shows(client, monkeypatch):
+def test_tv_wall_context_menu_picks_seasons_of_focused_show(client, monkeypatch):
     window = _listing_window(client, monkeypatch, SHOWS, collection_type="tvshows")
-    window.getControl(browse_mod.CTRL_GRID).selectItem(1)  # Dark: not fully watched
-    dialog = _FakeDeleteDialog(menu_choice=0, picked=[0])
+    window.getControl(browse_mod.CTRL_GRID).selectItem(1)  # Dark: show itself not fully watched
+    dialog = _FakeDeleteDialog(menu_choice=0, picked=[1])
     monkeypatch.setattr(browse_mod.xbmcgui, "Dialog", dialog)
     _run_threads_inline(monkeypatch)
+    seasons = [
+        {"Id": "d1", "Name": "Season 1", "Type": "Season", "SeriesName": "Dark", "ChildCount": 10},
+        {"Id": "d2", "Name": "Season 2", "Type": "Season", "SeriesName": "Dark"},
+    ]
+    asked = []
+    monkeypatch.setattr(browse_mod.library, "get_watched_seasons",
+                        lambda c, series_id: asked.append(series_id) or seasons)
     deleted = []
     monkeypatch.setattr(browse_mod.library, "delete_item", lambda c, item_id: deleted.append(item_id))
 
-    window._delete_menu()
+    window.handle_action(_ContextMenuAction())
 
-    assert dialog.menu_options == ["Delete watched shows…"]
-    assert dialog.multiselect_args == (["Lost"], [])
-    assert deleted == ["t1"]
-    assert dialog.notifications == ["Deleted 1 show"]
+    assert dialog.menu_options == ["Delete watched seasons of 'Dark'…"]
+    assert asked == ["t2"]
+    assert dialog.multiselect_args == (["Season 1  •  10 episodes", "Season 2"], None)
+    assert deleted == ["d2"]
+    assert dialog.notifications == ["Deleted 1 season"]
+
+
+def test_tv_wall_context_menu_with_no_watched_seasons_notifies(client, monkeypatch):
+    window = _listing_window(client, monkeypatch, SHOWS, collection_type="tvshows")
+    dialog = _FakeDeleteDialog(menu_choice=0)
+    monkeypatch.setattr(browse_mod.xbmcgui, "Dialog", dialog)
+    _run_threads_inline(monkeypatch)
+    monkeypatch.setattr(browse_mod.library, "get_watched_seasons", lambda c, series_id: [])
+
+    window.handle_action(_ContextMenuAction())
+
+    assert dialog.multiselect_args is None
+    assert dialog.notifications == ["No fully watched seasons of 'Lost' you can delete"]
+
+
+class _ContextMenuAction:
+    def getId(self):
+        return browse_mod.ACTION_CONTEXT_MENU
 
 
 def test_tv_wall_requests_can_delete_field(client, monkeypatch):

@@ -875,28 +875,23 @@ def test_get_watched_movies_filters_played_and_keeps_only_deletable(client, monk
     assert "CanDelete" in params["Fields"]
 
 
-def test_get_watched_tv_lists_finished_shows_and_seasons_of_unfinished_ones(client, monkeypatch):
-    fake = FakeRequests([
-        FakeResponse({"Items": [
-            {"Id": "t1", "Name": "Lost", "Type": "Series", "CanDelete": True, "UserData": {"Played": True}},
-            {"Id": "t2", "Name": "Alf", "Type": "Series", "CanDelete": False, "UserData": {"Played": True}},
-        ]}),
-        FakeResponse({"Items": [
-            {"Id": "s1", "Name": "Season 1", "Type": "Season", "SeriesId": "t1", "SeriesName": "Lost",
-             "IndexNumber": 1, "CanDelete": True, "UserData": {"Played": True}},
-            {"Id": "s2", "Name": "Season 2", "Type": "Season", "SeriesId": "t3", "SeriesName": "Dark",
-             "IndexNumber": 2, "CanDelete": True, "UserData": {"Played": True}},
-            {"Id": "s3", "Name": "Season 1", "Type": "Season", "SeriesId": "t3", "SeriesName": "Dark",
-             "IndexNumber": 1, "CanDelete": True, "UserData": {"Played": True}},
-        ]}),
-    ])
+def test_get_watched_seasons_keeps_deletable_ones_ordered_by_show_and_number(client, monkeypatch):
+    fake = FakeRequests([FakeResponse({"Items": [
+        {"Id": "s1", "Name": "Season 2", "SeriesName": "Lost", "IndexNumber": 2, "CanDelete": True,
+         "UserData": {"Played": True}},
+        {"Id": "s2", "Name": "Season 2", "SeriesName": "Dark", "IndexNumber": 2, "CanDelete": True,
+         "UserData": {"Played": True}},
+        {"Id": "s3", "Name": "Season 1", "SeriesName": "Dark", "IndexNumber": 1, "CanDelete": True,
+         "UserData": {"Played": True}},
+        {"Id": "s4", "Name": "Season 1", "SeriesName": "Alf", "IndexNumber": 1, "CanDelete": False,
+         "UserData": {"Played": True}},
+    ]})])
     monkeypatch.setattr(client_mod, "requests", fake)
 
-    items = library.get_watched_tv(client)
+    seasons = library.get_watched_seasons(client, "series-1")
 
-    # Lost's season is covered by Lost itself; Alf isn't deletable; Dark's
-    # seasons are sorted by number and ordered by show name.
-    assert [i["Id"] for i in items] == ["s3", "s2", "t1"]
-    assert fake.calls[0]["params"]["IncludeItemTypes"] == "Series"
-    assert fake.calls[1]["params"]["IncludeItemTypes"] == "Season"
-    assert fake.calls[0]["params"]["Filters"] == "IsPlayed"
+    assert [s["Id"] for s in seasons] == ["s3", "s2", "s1"]
+    params = fake.calls[0]["params"]
+    assert params["IncludeItemTypes"] == "Season"
+    assert params["Filters"] == "IsPlayed"
+    assert params["ParentId"] == "series-1"

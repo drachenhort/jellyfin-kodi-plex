@@ -48,9 +48,12 @@ def _run_threads_inline(monkeypatch):
 
 
 TV = [
-    {"Id": "t1", "Name": "Lost", "Type": "Series", "ChildCount": 6, "UserData": {"Played": True}},
-    {"Id": "s1", "Name": "Season 1", "Type": "Season", "SeriesName": "Dark", "ChildCount": 10,
-     "UserData": {"Played": True}},
+    {"Id": "s1", "Name": "Season 1", "Type": "Season", "SeriesId": "t1", "SeriesName": "Dark",
+     "ChildCount": 10, "UserData": {"Played": True}},
+    {"Id": "s2", "Name": "Season 2", "Type": "Season", "SeriesId": "t1", "SeriesName": "Dark",
+     "ChildCount": 8, "UserData": {"Played": True}},
+    {"Id": "s3", "Name": "Season 4", "Type": "Season", "SeriesId": "t2", "SeriesName": "Lost",
+     "SeriesPrimaryImageTag": "tag", "ChildCount": 1, "UserData": {"Played": True}},
 ]
 
 
@@ -67,7 +70,7 @@ def _window(client, monkeypatch, movies=None, saved_queue=None, tv=None, tv_erro
             raise tv_error
         return list(tv or [])
 
-    monkeypatch.setattr(cleanup_mod.library, "get_watched_tv", watched_tv)
+    monkeypatch.setattr(cleanup_mod.library, "get_watched_seasons", watched_tv)
     monkeypatch.setattr(cleanup_mod.images, "primary_image_url", lambda *a, **k: None)
     window = cleanup_mod.CleanupWindow(None, "/fake/addon/path", "Main", "1080i")
     window.setup(client=client)
@@ -157,7 +160,7 @@ def test_delete_cancelled_keeps_everything(client, monkeypatch):
     assert _saved(window) == ["m1"]
     # Clicks are re-enabled and the status line restored after cancelling.
     assert window.deleting is False
-    assert window.getControl(cleanup_mod.CTRL_STATUS).getLabel() == "Select an item to move it between the two lists"
+    assert window.getControl(cleanup_mod.CTRL_STATUS).getLabel() == "Select a movie to put it on the to-be-deleted list"
 
 
 def test_delete_removes_all_queued_movies(client, monkeypatch):
@@ -205,7 +208,7 @@ def test_load_failure_shows_status(client, monkeypatch):
         raise RuntimeError("timeout")
 
     monkeypatch.setattr(cleanup_mod.library, "get_watched_movies", boom)
-    monkeypatch.setattr(cleanup_mod.library, "get_watched_tv", lambda c: [])
+    monkeypatch.setattr(cleanup_mod.library, "get_watched_seasons", lambda c: [])
     window = cleanup_mod.CleanupWindow(None, "/fake/addon/path", "Main", "1080i")
     window.setup(client=client)
 
@@ -227,36 +230,95 @@ def _no_size_lookup(monkeypatch):
                         lambda c, ids: {"files": len(ids), "bytes": 0, "unknown_sizes": 0})
 
 
-def test_meta_text_for_series_and_season():
-    assert cleanup_mod._meta_text(TV[0]) == "Show  •  6 seasons"
-    assert cleanup_mod._meta_text(TV[1]) == "Season  •  10 episodes"
+class _FakeMultiselect(_FakeDialog):
+    def __init__(self, picked):
+        super().__init__()
+        self.picked = picked
+        self.multiselect_args = None
+
+    def multiselect(self, heading, options, **k):
+        self.multiselect_args = (heading, options)
+        return self.picked
 
 
-def test_mode_button_switches_left_list_to_tv(client, monkeypatch):
+def test_meta_text_for_season_and_show_entry():
+    assert cleanup_mod._meta_text(TV[0]) == "Season  •  10 episodes"
+    show = cleanup_mod._show_entries(TV)[0]
+    assert cleanup_mod._meta_text(show) == "Watched: Season 1, Season 2"
+
+
+def test_show_entries_group_seasons_by_show():
+    shows = cleanup_mod._show_entries(TV)
+    assert [(s["Id"], s["Name"], len(s["seasons"])) for s in shows] == [("t1", "Dark", 2), ("t2", "Lost", 1)]
+    assert shows[1]["ImageTags"] == {"Primary": "tag"}
+
+
+def test_mode_button_switches_left_list_to_shows(client, monkeypatch):
     window = _window(client, monkeypatch, tv=TV)
     assert window.getControl(cleanup_mod.CTRL_MODE_BUTTON).getLabel() == "Show TV Shows"
 
     window.handle_click(cleanup_mod.CTRL_MODE_BUTTON)
 
-    assert _ids(window, cleanup_mod.CTRL_WATCHED_LIST) == ["t1", "s1"]
+    assert _ids(window, cleanup_mod.CTRL_WATCHED_LIST) == ["t1", "t2"]
     labels = [li.getLabel() for li in window.getControl(cleanup_mod.CTRL_WATCHED_LIST).items]
-    assert labels == ["Lost", "Dark – Season 1"]
-    assert window.getControl(cleanup_mod.CTRL_WATCHED_HEADER).getLabel() == "Watched TV Shows (2)"
+    assert labels == ["Dark", "Lost"]
+    assert window.getControl(cleanup_mod.CTRL_WATCHED_HEADER).getLabel() == "TV Shows With Watched Seasons (2)"
     assert window.getControl(cleanup_mod.CTRL_MODE_BUTTON).getLabel() == "Show Movies"
 
 
-def test_queue_is_shared_across_modes(client, monkeypatch):
+def test_selecting_show_queues_only_picked_seasons(client, monkeypatch):
     window = _window(client, monkeypatch, tv=TV, saved_queue=["m1"])
     window.handle_click(cleanup_mod.CTRL_MODE_BUTTON)
+    dialog = _FakeMultiselect(picked=[1])
+    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", dialog)
 
-    window.handle_click(cleanup_mod.CTRL_WATCHED_LIST)  # queue "Lost"
+    window.handle_click(cleanup_mod.CTRL_WATCHED_LIST)  # Dark
 
-    assert _ids(window, cleanup_mod.CTRL_QUEUE_LIST) == ["m1", "t1"]
-    assert window.getControl(cleanup_mod.CTRL_DELETE_BUTTON).getLabel() == "Delete 1 movie and 1 show"
+    assert dialog.multiselect_args == (
+        "Delete watched seasons of 'Dark'", ["Season 1  •  10 episodes", "Season 2  •  8 episodes"]
+    )
+    assert _ids(window, cleanup_mod.CTRL_QUEUE_LIST) == ["m1", "s2"]
+    assert [li.getLabel() for li in window.getControl(cleanup_mod.CTRL_QUEUE_LIST).items] == [
+        "Alien", "Dark – Season 2"
+    ]
+    assert _saved(window) == ["m1", "s2"]
+    assert window.getControl(cleanup_mod.CTRL_DELETE_BUTTON).getLabel() == "Delete 1 movie and 1 season"
+    # Dark keeps its remaining watched season; Lost is untouched.
+    assert _ids(window, cleanup_mod.CTRL_WATCHED_LIST) == ["t1", "t2"]
 
 
-def test_delete_covers_movies_and_tv(client, monkeypatch):
-    window = _window(client, monkeypatch, tv=TV, saved_queue=["m1", "t1", "s1"])
+def test_show_drops_off_once_all_its_seasons_are_queued(client, monkeypatch):
+    window = _window(client, monkeypatch, tv=TV)
+    window.handle_click(cleanup_mod.CTRL_MODE_BUTTON)
+    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", _FakeMultiselect(picked=[0, 1]))
+
+    window.handle_click(cleanup_mod.CTRL_WATCHED_LIST)
+
+    assert _ids(window, cleanup_mod.CTRL_WATCHED_LIST) == ["t2"]
+
+
+def test_cancelled_season_picker_queues_nothing(client, monkeypatch):
+    window = _window(client, monkeypatch, tv=TV)
+    window.handle_click(cleanup_mod.CTRL_MODE_BUTTON)
+    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", _FakeMultiselect(picked=None))
+
+    window.handle_click(cleanup_mod.CTRL_WATCHED_LIST)
+
+    assert window.queued_ids == []
+
+
+def test_unqueuing_season_returns_it_to_its_show(client, monkeypatch):
+    window = _window(client, monkeypatch, tv=TV, saved_queue=["s3"])
+    window.handle_click(cleanup_mod.CTRL_MODE_BUTTON)
+    assert _ids(window, cleanup_mod.CTRL_WATCHED_LIST) == ["t1"]
+
+    window.handle_click(cleanup_mod.CTRL_QUEUE_LIST)
+
+    assert _ids(window, cleanup_mod.CTRL_WATCHED_LIST) == ["t1", "t2"]
+
+
+def test_delete_covers_movies_and_seasons(client, monkeypatch):
+    window = _window(client, monkeypatch, tv=TV, saved_queue=["m1", "s1", "s3"])
     dialog = _FakeDialog()
     monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", dialog)
     _run_threads_inline(monkeypatch)
@@ -265,20 +327,28 @@ def test_delete_covers_movies_and_tv(client, monkeypatch):
 
     window.handle_click(cleanup_mod.CTRL_DELETE_BUTTON)
 
-    assert "1 movie, 1 show and 1 season" in dialog.asked[0]
-    assert deleted == ["m1", "t1", "s1"]
-    assert dialog.notifications == ["Deleted 1 movie, 1 show and 1 season"]
+    assert "1 movie and 2 seasons" in dialog.asked[0]
+    assert deleted == ["m1", "s1", "s3"]
+    assert dialog.notifications == ["Deleted 1 movie and 2 seasons"]
     assert _saved(window) == []
 
 
-def test_failed_tv_load_keeps_movies_and_preserves_queued_shows(client, monkeypatch):
-    window = _window(client, monkeypatch, saved_queue=["m1", "t1"], tv_error=RuntimeError("timeout"))
+def test_failed_tv_load_keeps_movies_and_preserves_queued_seasons(client, monkeypatch):
+    window = _window(client, monkeypatch, saved_queue=["m1", "s1"], tv_error=RuntimeError("timeout"))
 
     assert _ids(window, cleanup_mod.CTRL_QUEUE_LIST) == ["m1"]
     assert "Couldn't load TV shows: timeout" in window.getControl(cleanup_mod.CTRL_STATUS).getLabel()
-    assert _saved(window) == ["m1", "t1"]
+    assert _saved(window) == ["m1", "s1"]
 
     window.getControl(cleanup_mod.CTRL_QUEUE_LIST).selectItem(0)
     window.handle_click(cleanup_mod.CTRL_QUEUE_LIST)  # un-queue m1
 
-    assert _saved(window) == ["t1"]
+    assert _saved(window) == ["s1"]
+
+
+@pytest.fixture(autouse=True)
+def _no_size_lookup(monkeypatch):
+    """The delete confirmation looks up file sizes over the network - keep
+    every test here offline with a fixed summary."""
+    monkeypatch.setattr(cleanup_mod.library, "get_media_summary",
+                        lambda c, ids: {"files": len(ids), "bytes": 0, "unknown_sizes": 0})

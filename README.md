@@ -134,10 +134,12 @@ the left, a "To Be Deleted" list on the right. Selecting a movie moves it betwee
 removes everything on that list from the server after a confirmation.
 Every delete confirmation first shows how many files and how much disk space will be deleted.
 
-Fully watched TV can be deleted the same way: whole shows, or fully watched seasons of shows you're
-still watching. The Clean Up screen's "Show TV Shows" button switches the left list to TV (the
-to-be-deleted list is shared, so one Delete covers movies and TV together), and the context menu
-works on a TV library's show wall and on a show's seasons screen.
+TV is deleted per season, never a whole show at once, and only fully watched seasons are offered.
+The Clean Up screen's "Show TV Shows" button switches the left list to the shows that have fully
+watched seasons; selecting a show lets you pick which of those seasons go on the to-be-deleted list
+(shared with movies, so one Delete covers both). The context menu on a TV library's show wall opens
+the same season picker for the focused show, and on a show's seasons screen it deletes seasons
+directly.
 
 The login screen autodetects Jellyfin servers on the LAN (`lib/jellyfin/discovery.py`) using the
 UDP broadcast protocol inherited from Emby/MediaBrowser — found servers are offered as a pick-list

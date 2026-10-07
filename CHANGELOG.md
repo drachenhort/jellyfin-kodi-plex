@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.86 - 2026-10-07
+- TV is now deleted per season instead of whole shows: Clean Up's TV list shows each show that has fully watched seasons, and selecting one lets you pick which of those seasons go on the to-be-deleted list. On the TV library wall, the context menu likewise opens a picker of the focused show's fully watched seasons.
+
 ## 0.3.85 - 2026-10-07
 - TV shows can now be deleted too, once fully watched: whole shows and fully watched seasons. The Clean Up screen has a Movies / TV Shows switch sharing one to-be-deleted list, and the context menu on a TV library (shows) and a show's seasons screen (seasons) offers single and multi-select delete. The confirmation summary counts every episode file and its size.
 

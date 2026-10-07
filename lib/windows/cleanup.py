@@ -1,11 +1,14 @@
 """Clean Up window: watched items the user may delete on the left, the
 "to be deleted" list on the right. The left list switches between Movies
-(every watched movie) and TV Shows (every fully watched show, plus fully
-watched seasons of shows still in progress - see library.get_watched_tv)
-via the mode button; the to-be-deleted list is shared by both, so one
-Delete covers everything queued. Selecting an item moves it between the
-two lists; Delete permanently deletes everything on the to-be-deleted list
-after a confirmation that shows the file count and size.
+(every watched movie) and TV Shows (every show that has at least one fully
+watched season - see library.get_watched_seasons) via the mode button; the
+to-be-deleted list is shared by both, so one Delete covers everything
+queued. Selecting a movie moves it between the two lists; selecting a show
+opens a picker of its fully watched seasons, and the picked seasons go on
+the list (TV is only ever deleted per season, never a whole show at once).
+Selecting a queued item takes it back off. Delete permanently deletes
+everything on the to-be-deleted list after a confirmation that shows the
+file count and size.
 
 The to-be-deleted list is persisted per server/user in the hidden
 "delete_queue" setting (see lib/delete_queue.py), so marking and deleting
@@ -24,7 +27,9 @@ import xbmcgui
 
 from lib import delete_queue
 from lib.jellyfin import images, library
-from lib.windows.delete_confirm import confirm_delete, describe_count, item_name, result_message
+from lib.windows.delete_confirm import (
+    confirm_delete, describe_count, item_name, result_message, season_choice_label,
+)
 from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item
 
 ADDON = xbmcaddon.Addon()
@@ -40,12 +45,14 @@ CTRL_MODE_BUTTON = 506
 
 MODE_MOVIES = "movies"
 MODE_TV = "tv"
-# mode -> (left list header, empty-list status, mode button label to switch *to* the other)
+# mode -> (left list header, hint, empty-list status, mode button label to switch *to* the other)
 MODE_TEXT = {
-    MODE_MOVIES: ("Watched Movies", "No watched movies you can delete", "Show TV Shows"),
-    MODE_TV: ("Watched TV Shows", "No fully watched shows or seasons you can delete", "Show Movies"),
+    MODE_MOVIES: ("Watched Movies", "Select a movie to put it on the to-be-deleted list",
+                  "No watched movies you can delete", "Show TV Shows"),
+    MODE_TV: ("TV Shows With Watched Seasons", "Select a show to pick which of its watched seasons to delete",
+              "No fully watched seasons you can delete", "Show Movies"),
 }
-LOADERS = {MODE_MOVIES: "get_watched_movies", MODE_TV: "get_watched_tv"}
+LOADERS = {MODE_MOVIES: "get_watched_movies", MODE_TV: "get_watched_seasons"}
 
 
 def _format_minutes(run_time_ticks: int) -> str:
@@ -55,23 +62,41 @@ def _format_minutes(run_time_ticks: int) -> str:
 
 
 def _meta_text(item: dict) -> str:
-    """"1979  •  1h 57min  •  watched 2026-05-01" for a movie, "Show  •
-    2008  •  5 seasons  •  ..." for a series, "Season  •  10 episodes  •
-    ..." for a season - whatever parts exist."""
-    item_type = item.get("Type")
-    parts = {"Series": ["Show"], "Season": ["Season"]}.get(item_type, [])
-    if item_type != "Season" and item.get("ProductionYear"):
+    """"1979  •  1h 57min  •  watched 2026-05-01" for a movie, "Season  •
+    10 episodes  •  ..." for a season, "Watched: Season 1, Season 2" for a
+    show entry (see _show_entries) - whatever parts exist."""
+    if item.get("Type") == "Series":
+        return "Watched: " + ", ".join(s.get("Name", "") for s in item.get("seasons", []))
+    is_season = item.get("Type") == "Season"
+    parts = ["Season"] if is_season else []
+    if not is_season and item.get("ProductionYear"):
         parts.append(str(item["ProductionYear"]))
-    if item_type == "Movie" and item.get("RunTimeTicks"):
+    if item.get("Type") == "Movie" and item.get("RunTimeTicks"):
         parts.append(_format_minutes(item["RunTimeTicks"]))
-    if item_type in ("Series", "Season") and item.get("ChildCount"):
-        noun = "season" if item_type == "Series" else "episode"
+    if is_season and item.get("ChildCount"):
         count = item["ChildCount"]
-        parts.append(f"{count} {noun}{'s' if count != 1 else ''}")
+        parts.append(f"{count} episode{'s' if count != 1 else ''}")
     last_played = (item.get("UserData") or {}).get("LastPlayedDate")
     if last_played:
         parts.append(f"watched {last_played[:10]}")
     return "  •  ".join(parts)
+
+
+def _show_entries(seasons: list) -> list:
+    """Group seasons (already ordered by show) into one left-list entry per
+    show: a Series-shaped dict carrying its seasons, with the show's poster
+    taken from the seasons' SeriesPrimaryImageTag."""
+    shows: dict = {}
+    for season in seasons:
+        series_id = season.get("SeriesId") or season["Id"]
+        if series_id not in shows:
+            tag = season.get("SeriesPrimaryImageTag")
+            shows[series_id] = {
+                "Id": series_id, "Type": "Series", "Name": season.get("SeriesName", ""),
+                "ImageTags": {"Primary": tag} if tag else {}, "seasons": [],
+            }
+        shows[series_id]["seasons"].append(season)
+    return list(shows.values())
 
 
 class CleanupWindow(ControlledWindow):
@@ -132,6 +157,10 @@ class CleanupWindow(ControlledWindow):
         by_id = {i["Id"]: i for i in self._all()}
         return [by_id[i] for i in self.queued_ids if i in by_id]
 
+    def _left_items(self) -> list:
+        unqueued = self._unqueued()
+        return _show_entries(unqueued) if self.mode == MODE_TV else unqueued
+
     def _list_item(self, item: dict) -> xbmcgui.ListItem:
         li = list_item(item, images.primary_image_url(self.client, item))
         li.setLabel(item_name(item))
@@ -146,14 +175,14 @@ class CleanupWindow(ControlledWindow):
             control.selectItem(min(max(keep_position, 0), len(items) - 1))
 
     def _refresh_lists(self, watched_pos: int = 0, queue_pos: int = 0) -> None:
-        self._fill(CTRL_WATCHED_LIST, self._unqueued(), watched_pos)
+        self._fill(CTRL_WATCHED_LIST, self._left_items(), watched_pos)
         self._fill(CTRL_QUEUE_LIST, self._queued(), queue_pos)
         self._update_headers()
 
     def _update_headers(self) -> None:
-        header, empty_status, mode_label = MODE_TEXT[self.mode]
+        header, hint, empty_status, mode_label = MODE_TEXT[self.mode]
         queued = self._queued()
-        self.getControl(CTRL_WATCHED_HEADER).setLabel(f"{header} ({len(self._unqueued())})")
+        self.getControl(CTRL_WATCHED_HEADER).setLabel(f"{header} ({len(self._left_items())})")
         self.getControl(CTRL_QUEUE_HEADER).setLabel(f"To Be Deleted ({len(queued)})")
         self.getControl(CTRL_MODE_BUTTON).setLabel(mode_label)
         self.getControl(CTRL_DELETE_BUTTON).setLabel(
@@ -161,13 +190,15 @@ class CleanupWindow(ControlledWindow):
         )
         if not self.loaded:
             return
-        status = "Select an item to move it between the two lists" if self.items[self.mode] else empty_status
+        status = hint if self.items[self.mode] else empty_status
         self.getControl(CTRL_STATUS).setLabel("  •  ".join(self.load_errors + [status]))
 
     def handle_click(self, control_id: int) -> None:
         if self.deleting:
             return
-        if control_id == CTRL_WATCHED_LIST:
+        if control_id == CTRL_WATCHED_LIST and self.mode == MODE_TV:
+            self._pick_seasons()
+        elif control_id == CTRL_WATCHED_LIST:
             self._move(CTRL_WATCHED_LIST, add=True)
         elif control_id == CTRL_QUEUE_LIST:
             self._move(CTRL_QUEUE_LIST, add=False)
@@ -178,8 +209,29 @@ class CleanupWindow(ControlledWindow):
 
     def _toggle_mode(self) -> None:
         self.mode = MODE_TV if self.mode == MODE_MOVIES else MODE_MOVIES
-        self._fill(CTRL_WATCHED_LIST, self._unqueued(), 0)
+        self._fill(CTRL_WATCHED_LIST, self._left_items(), 0)
         self._update_headers()
+
+    def _pick_seasons(self) -> None:
+        control = self.getControl(CTRL_WATCHED_LIST)
+        selected = control.getSelectedItem()
+        if not selected:
+            return
+        position = control.getSelectedPosition()
+        show = next((s for s in self._left_items() if s["Id"] == selected.getProperty("jellyfin_id")), None)
+        if show is None:
+            return
+        seasons = show["seasons"]
+        picked = xbmcgui.Dialog().multiselect(
+            f"Delete watched seasons of '{show['Name']}'", [season_choice_label(s) for s in seasons]
+        )
+        if not picked:
+            return
+        self.queued_ids.extend(seasons[n]["Id"] for n in picked if seasons[n]["Id"] not in self.queued_ids)
+        self._save_queue()
+        self._refresh_lists(watched_pos=position, queue_pos=len(self.queued_ids) - 1)
+        if not self._unqueued():
+            self.setFocusId(CTRL_QUEUE_LIST)
 
     def _move(self, control_id: int, add: bool) -> None:
         control = self.getControl(control_id)

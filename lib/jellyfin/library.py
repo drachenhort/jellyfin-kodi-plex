@@ -469,35 +469,21 @@ def get_watched_movies(client):
     return movies
 
 
-WATCHED_TV_FIELDS = LISTING_ITEM_FIELDS + ",CanDelete,ChildCount"
+WATCHED_SEASON_FIELDS = LISTING_ITEM_FIELDS + ",CanDelete,ChildCount"
 
 
-def _watched_of_type(client, item_type):
-    items = []
+def get_watched_seasons(client, series_id=None):
+    """Fully watched seasons the user may delete - across every show, or
+    just `series_id`'s. Deletion is offered per season rather than per show,
+    so a show's seasons can be picked individually. Ordered by show name,
+    then season number."""
+    seasons = []
     for page in iter_items_paged(
-        client, include_item_types=item_type, recursive=True, filters="IsPlayed",
-        fields=WATCHED_TV_FIELDS, page_size=200,
+        client, parent_id=series_id, include_item_types="Season", recursive=True,
+        filters="IsPlayed", fields=WATCHED_SEASON_FIELDS, page_size=200,
     ):
-        items.extend(i for i in page if is_played(i))
-    return items
-
-
-def get_watched_tv(client):
-    """Fully watched TV the user may delete, for the Clean Up screen: every
-    fully watched Series, plus fully watched Seasons of shows that are *not*
-    fully watched yet (a finished show's seasons would only repeat what its
-    Series entry already covers). Ordered by show, each show's own entry
-    first, then its seasons by number."""
-    series = _watched_of_type(client, "Series")
-    finished_ids = {s["Id"] for s in series}
-    seasons = [s for s in _watched_of_type(client, "Season") if s.get("SeriesId") not in finished_ids]
-    items = [i for i in series + seasons if i.get("CanDelete")]
-
-    def order(item):
-        show = (item.get("SeriesName") if item.get("Type") == "Season" else item.get("Name")) or ""
-        return (show.lower(), item.get("Type") == "Season", item.get("IndexNumber") or 0)
-
-    return sorted(items, key=order)
+        seasons.extend(s for s in page if s.get("CanDelete") and is_played(s))
+    return sorted(seasons, key=lambda s: ((s.get("SeriesName") or "").lower(), s.get("IndexNumber") or 0))
 
 
 SEARCH_ITEM_TYPES = "Movie,Series,MusicArtist,MusicAlbum,Audio,Episode"

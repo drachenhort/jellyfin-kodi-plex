@@ -28,6 +28,15 @@ def item_name(item: dict) -> str:
     return name
 
 
+def season_choice_label(season: dict) -> str:
+    """"Season 2  •  10 episodes" - a row in a show's season picker."""
+    label = replace_shortcodes(season.get("Name", ""))
+    count = season.get("ChildCount")
+    if count:
+        label += f"  •  {count} episode{'s' if count != 1 else ''}"
+    return label
+
+
 def describe_count(items: list) -> str:
     """"3 movies", "1 show and 2 seasons", "2 movies, 1 show and 1 season"."""
     parts = []

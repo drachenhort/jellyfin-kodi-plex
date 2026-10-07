@@ -28,7 +28,7 @@ import xbmcaddon
 import xbmcgui
 
 from lib.jellyfin import images, library
-from lib.windows.delete_confirm import confirm_delete, item_name, result_message
+from lib.windows.delete_confirm import confirm_delete, item_name, result_message, season_choice_label
 from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item, progress_percent
 
 ADDON = xbmcaddon.Addon()
@@ -61,15 +61,16 @@ GENRE_BAR_COLLECTION_TYPES = {"movies"}
 
 # The context menu (ACTION_CONTEXT_MENU - "C" on a keyboard, long-press on
 # most remotes) offers deleting watched items on three listings: a Movies
-# library (movies, filtered by genre or not), a TV library (whole shows) and
-# a series' seasons screen (seasons). Watched-only is a deliberate guard
-# against deleting something nobody has seen yet - for a show or season
-# that means every episode in it is watched; CanDelete reflects the user's
+# library (movies, filtered by genre or not), a TV library (pick which of
+# the focused show's seasons to delete - whole shows are never deleted as
+# one) and a series' seasons screen (seasons). Watched-only is a deliberate
+# guard against deleting something nobody has seen yet - for a season that
+# means every episode in it is watched; CanDelete reflects the user's
 # Jellyfin content-deletion policy.
 ACTION_CONTEXT_MENU = 117
 DELETE_TYPE_BY_COLLECTION = {"movies": "Movie", "tvshows": "Series"}
 DELETE_TYPE_BY_PARENT = {"Series": "Season"}
-DELETE_MENU_NOUNS = {"Movie": "movies", "Series": "shows", "Season": "seasons"}
+DELETE_MENU_NOUNS = {"Movie": "movies", "Season": "seasons"}
 DELETE_ITEM_FIELDS = library.LISTING_ITEM_FIELDS + ",CanDelete"
 
 
@@ -355,8 +356,41 @@ class BrowseWindow(ControlledWindow):
             self._open_genre()
 
     def handle_action(self, action):
-        if action.getId() == ACTION_CONTEXT_MENU and self.allow_delete and self.loading_done.is_set():
+        if action.getId() != ACTION_CONTEXT_MENU or not self.allow_delete or not self.loading_done.is_set():
+            return
+        if self.delete_type == "Series":
+            self._show_seasons_menu()
+        else:
             self._delete_menu()
+
+    def _show_seasons_menu(self):
+        """TV library wall: pick which fully watched seasons of the focused
+        show to delete."""
+        selected = self.getControl(CTRL_GRID).getSelectedItem()
+        if not selected:
+            return
+        show_id, show_name = selected.getProperty("jellyfin_id"), selected.getLabel()
+        if xbmcgui.Dialog().contextmenu([f"Delete watched seasons of '{show_name}'…"]) != 0:
+            return
+        # Off the GUI thread: listing the seasons and the size summary are
+        # both network calls.
+        threading.Thread(target=self._pick_show_seasons, args=(show_id, show_name), daemon=True).start()
+
+    def _pick_show_seasons(self, show_id, show_name):
+        try:
+            seasons = library.get_watched_seasons(self.client, show_id)
+        except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
+            xbmcgui.Dialog().notification("Jellyfin", f"Couldn't load seasons of '{show_name}': {exc}")
+            return
+        if not seasons:
+            xbmcgui.Dialog().notification("Jellyfin", f"No fully watched seasons of '{show_name}' you can delete")
+            return
+        picked = xbmcgui.Dialog().multiselect(
+            f"Delete watched seasons of '{show_name}'", [season_choice_label(s) for s in seasons]
+        )
+        chosen = [seasons[n] for n in picked or []]
+        if chosen:
+            self._confirm_and_delete(chosen)
 
     def _deletable_items(self):
         return [
