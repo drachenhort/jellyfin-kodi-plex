@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 import lib.jellyfin.client as client_mod
 from lib.jellyfin import auth, images, library, playback
 from tests.fakes import FakeRequests, FakeResponse
@@ -832,3 +834,24 @@ def test_report_playback_progress_posts_expected_body(client, monkeypatch):
         "PositionTicks": 12345,
         "IsPaused": True,
     }
+
+
+def test_delete_item_sends_delete_and_clears_browse_cache(client, monkeypatch):
+    library.cache_children(client, "lib-1", "SortName", "Ascending", [{"Id": "m1"}])
+    fake = FakeRequests([FakeResponse(None, status_code=204)])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    library.delete_item(client, "m1")
+
+    call = fake.calls[0]
+    assert call["method"] == "DELETE"
+    assert call["url"].endswith("/Items/m1")
+    assert library.get_cached_children(client, "lib-1", "SortName", "Ascending") is None
+
+
+def test_delete_item_raises_when_server_forbids_it(client, monkeypatch):
+    fake = FakeRequests([FakeResponse(None, status_code=403, text="Forbidden")])
+    monkeypatch.setattr(client_mod, "requests", fake)
+
+    with pytest.raises(client_mod.JellyfinApiError):
+        library.delete_item(client, "m1")

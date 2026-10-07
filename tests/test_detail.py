@@ -570,3 +570,105 @@ def test_clicking_similar_item_works_even_before_main_item_is_loaded(client, mon
 
     assert window.result["item_id"] == "s1"
     assert window.closed
+
+
+# -- delete -------------------------------------------------------------------
+# Delete is offered only for an already-watched Movie the server marks
+# CanDelete. handle_click() spawns _delete() on a background thread, so the
+# tests below call _delete() directly.
+
+class _FakeYesNoDialog:
+    def __init__(self, answer):
+        self.answer = answer
+        self.notifications = []
+
+    def __call__(self):
+        return self
+
+    def yesno(self, *a, **k):
+        return self.answer
+
+    def notification(self, heading, message, *a, **k):
+        self.notifications.append(message)
+
+
+def _deletable_window(client, monkeypatch, played=True, can_delete=True, item_type="Movie"):
+    monkeypatch.setattr(detail_mod.library, "get_item", lambda c, item_id, fields=None: {
+        "Id": "item-1", "Name": "Alien", "Type": item_type, "CanDelete": can_delete,
+        "UserData": {"Played": played},
+    })
+    monkeypatch.setattr(detail_mod.images, "primary_image_url", lambda *a, **k: None)
+    monkeypatch.setattr(detail_mod.images, "backdrop_image_url", lambda *a, **k: None)
+    window = _make_window(client)
+    window._load()
+    return window
+
+
+def test_delete_button_shown_for_watched_deletable_movie(client, monkeypatch):
+    window = _deletable_window(client, monkeypatch)
+    assert window.getControl(detail_mod.CTRL_DELETE_BUTTON).visible is True
+
+
+def test_delete_button_hidden_for_unwatched_movie(client, monkeypatch):
+    window = _deletable_window(client, monkeypatch, played=False)
+    assert window.getControl(detail_mod.CTRL_DELETE_BUTTON).visible is False
+
+
+def test_delete_button_hidden_without_delete_permission(client, monkeypatch):
+    window = _deletable_window(client, monkeypatch, can_delete=False)
+    assert window.getControl(detail_mod.CTRL_DELETE_BUTTON).visible is False
+
+
+def test_delete_button_hidden_for_non_movie(client, monkeypatch):
+    window = _deletable_window(client, monkeypatch, item_type="Episode")
+    assert window.getControl(detail_mod.CTRL_DELETE_BUTTON).visible is False
+
+
+def test_marking_unwatched_hides_delete_button(client, monkeypatch):
+    window = _deletable_window(client, monkeypatch)
+    monkeypatch.setattr(detail_mod.library, "mark_unplayed", lambda c, item_id: None)
+
+    window._toggle_watched()
+
+    assert window.getControl(detail_mod.CTRL_DELETE_BUTTON).visible is False
+
+
+def test_delete_cancelled_does_nothing(client, monkeypatch):
+    window = _deletable_window(client, monkeypatch)
+    monkeypatch.setattr(detail_mod.xbmcgui, "Dialog", _FakeYesNoDialog(False))
+    calls = []
+    monkeypatch.setattr(detail_mod.threading, "Thread", lambda **k: calls.append(k))
+
+    window.handle_click(detail_mod.CTRL_DELETE_BUTTON)
+
+    assert calls == []
+    assert window.result is None
+
+
+def test_delete_success_closes_with_deleted_result(client, monkeypatch):
+    window = _deletable_window(client, monkeypatch)
+    monkeypatch.setattr(detail_mod.xbmcgui, "Dialog", _FakeYesNoDialog(True))
+    calls = []
+    monkeypatch.setattr(detail_mod.library, "delete_item", lambda c, item_id: calls.append(item_id))
+
+    window._delete()
+
+    assert calls == ["item-1"]
+    assert window.result == {"action": "deleted", "item_id": "item-1"}
+
+
+def test_delete_failure_keeps_window_open(client, monkeypatch):
+    window = _deletable_window(client, monkeypatch)
+    dialog = _FakeYesNoDialog(True)
+    monkeypatch.setattr(detail_mod.xbmcgui, "Dialog", dialog)
+
+    def raise_error(c, item_id):
+        raise RuntimeError("forbidden")
+
+    monkeypatch.setattr(detail_mod.library, "delete_item", raise_error)
+
+    window._delete()
+
+    assert window.result is None
+    assert not window.closed_event.is_set()
+    assert "forbidden" in dialog.notifications[0]

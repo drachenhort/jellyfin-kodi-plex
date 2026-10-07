@@ -5,7 +5,8 @@ This" row of similar items.
 self.result on close: {"action": "play", "item_id": ..., "resume_ticks": N,
 "audio_stream_index": N or None, "subtitle_stream_index": N or None},
 {"action": "open", "item_id": ..., "item_type": ..., "item_name": ...} (a
-similar item was clicked), or None (back).
+similar item was clicked), {"action": "deleted", "item_id": ...} (the movie was
+deleted from the server), or None (back).
 """
 
 import threading
@@ -35,6 +36,12 @@ CTRL_SIMILAR = 408
 CTRL_AUDIO_BUTTON = 409
 CTRL_SUBTITLE_BUTTON = 410
 CTRL_PLAY_FROM_START_BUTTON = 411
+CTRL_DELETE_BUTTON = 412
+
+# Only movies offer Delete for now - deleting an Episode/Season/Series or a
+# music item from here has much broader fallout (whole folders on disk) and
+# isn't something this screen asks for yet.
+DELETABLE_TYPES = {"Movie"}
 
 RESUME_THRESHOLD_TICKS = 10 * 10_000_000  # ignore resume points under 10s
 
@@ -97,6 +104,18 @@ def _stream_label(stream):
     return ", ".join(parts) or f"Track {stream.get('Index', '?')}"
 
 
+def _can_delete(item):
+    """Whether to offer Delete: an already-watched movie the server says
+    this user may delete (CanDelete, requested via DEFAULT_ITEM_FIELDS -
+    false unless the user's Jellyfin policy enables content deletion).
+    Requiring watched guards against deleting something nobody's seen yet."""
+    return (
+        item.get("Type") in DELETABLE_TYPES
+        and bool(item.get("CanDelete"))
+        and library.is_played(item)
+    )
+
+
 class DetailWindow(ControlledWindow):
     xmlFile = "script-jellyfin-detail.xml"
 
@@ -129,6 +148,7 @@ class DetailWindow(ControlledWindow):
         # itself runs on a background thread (_load()) so it can't block
         # the GUI thread.
         self.getControl(CTRL_TITLE).setLabel("Loading…")
+        self.getControl(CTRL_DELETE_BUTTON).setVisible(False)
         threading.Thread(target=self._load, daemon=True).start()
         # Runs on its own thread, independent of _load() above - similar
         # items are a nice-to-have, secondary to the item's own metadata/
@@ -181,6 +201,7 @@ class DetailWindow(ControlledWindow):
         self.getControl(CTRL_PLAY_FROM_START_BUTTON).setVisible(is_resumable)
 
         self._set_watched_button_label()
+        self.getControl(CTRL_DELETE_BUTTON).setVisible(_can_delete(self.item))
         self._load_streams()
 
     def _set_watched_button_label(self):
@@ -299,6 +320,8 @@ class DetailWindow(ControlledWindow):
             self._pick_audio()
         elif control_id == CTRL_SUBTITLE_BUTTON:
             self._pick_subtitle()
+        elif control_id == CTRL_DELETE_BUTTON:
+            self._confirm_delete()
 
     def _pick_audio(self):
         if not self.audio_streams:
@@ -367,4 +390,36 @@ class DetailWindow(ControlledWindow):
         self.item["UserData"] = self.item.get("UserData") or {}
         self.item["UserData"]["Played"] = not played
         self._set_watched_button_label()
+        self.getControl(CTRL_DELETE_BUTTON).setVisible(_can_delete(self.item))
         self.getControl(CTRL_META).setLabel(_meta_line(self.item))
+
+    def _confirm_delete(self):
+        if not _can_delete(self.item):
+            return
+        name = self.item.get("Name", "")
+        confirmed = xbmcgui.Dialog().yesno(
+            "Delete Movie",
+            f"Permanently delete '{name}' and its files from the server?[CR]This cannot be undone.",
+            nolabel="Cancel", yeslabel="Delete",
+        )
+        if not confirmed:
+            return
+        # Runs off the GUI thread like _toggle_watched - deleting a large
+        # file can take the server a moment.
+        threading.Thread(target=self._delete, daemon=True).start()
+
+    def _delete(self):
+        name = self.item.get("Name", "")
+        try:
+            library.delete_item(self.client, self.item_id)
+        except Exception as exc:  # noqa: BLE001 - a server/network failure shouldn't crash the addon
+            xbmc.log(f"{LOG_PREFIX} Detail: deleting {self.item_id!r} failed: {exc}", xbmc.LOGWARNING)
+            if not self.closed_event.is_set():
+                xbmcgui.Dialog().notification("Jellyfin", f"Couldn't delete '{name}': {exc}")
+            return
+        xbmc.log(f"{LOG_PREFIX} Detail: deleted {self.item_id!r}", xbmc.LOGINFO)
+        xbmcgui.Dialog().notification("Jellyfin", f"Deleted '{name}'")
+        if self.closed_event.is_set():
+            return
+        self.result = {"action": "deleted", "item_id": self.item_id}
+        self.close()

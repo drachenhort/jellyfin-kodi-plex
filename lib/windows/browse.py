@@ -15,7 +15,8 @@ outright. See lib/jellyfin/library.py's iter_items_paged docstring.
 
 self.result on close: {"action": "open", "item_id": ..., "item_type": ...,
 "item_name": ...} or {"action": "play_queue", "item_ids": [...], "item_type":
-"Audio"} (Play All/Shuffle, album view only) or None (back).
+"Audio"} (Play All/Shuffle, album view only), {"action": "reload"} (movies were
+deleted via the context menu - reopen to refresh) or None (back).
 """
 
 import random
@@ -57,6 +58,15 @@ CTRL_GENRE_BAR = 306
 # further from a single-genre listing.
 GENRE_BAR_COLLECTION_TYPES = {"movies"}
 
+# The context menu (ACTION_CONTEXT_MENU - "C" on a keyboard, long-press on
+# most remotes) offers deleting watched movies, only on a Movies library's
+# own listing (filtered by genre or not). Watched-only is a deliberate guard
+# against deleting something nobody has seen yet; CanDelete reflects the
+# user's Jellyfin content-deletion policy.
+ACTION_CONTEXT_MENU = 117
+DELETE_COLLECTION_TYPES = {"movies"}
+DELETE_ITEM_FIELDS = library.LISTING_ITEM_FIELDS + ",CanDelete"
+
 # Parent types whose own Overview is worth showing persistently at the
 # bottom while the user is still picking a child - a Series' seasons rarely
 # have their own Overview in Jellyfin, so the per-focused-item plot pane
@@ -96,6 +106,7 @@ class BrowseWindow(ControlledWindow):
             parent_item_type is None and not genre_id
             and collection_type in GENRE_BAR_COLLECTION_TYPES
         )
+        self.allow_delete = parent_item_type is None and collection_type in DELETE_COLLECTION_TYPES
         self.items = []
         self._track_id_cache = []
         self.sort_by, self.sort_order = SORT_OPTIONS.get(
@@ -227,7 +238,7 @@ class BrowseWindow(ControlledWindow):
         try:
             for page in library.iter_items_paged(
                 self.client, parent_id=self.parent_id, recursive=False,
-                fields=library.LISTING_ITEM_FIELDS,
+                fields=DELETE_ITEM_FIELDS if self.allow_delete else library.LISTING_ITEM_FIELDS,
                 sort_by=self.sort_by, sort_order=self.sort_order,
                 genre_id=self.genre_id,
             ):
@@ -329,6 +340,71 @@ class BrowseWindow(ControlledWindow):
             self._play_queue(shuffle=True)
         elif control_id == CTRL_GENRE_BAR:
             self._open_genre()
+
+    def handle_action(self, action):
+        if action.getId() == ACTION_CONTEXT_MENU and self.allow_delete and self.loading_done.is_set():
+            self._delete_menu()
+
+    def _deletable_movies(self):
+        return [
+            item for item in self.items
+            if item.get("Type") == "Movie" and item.get("CanDelete") and library.is_played(item)
+        ]
+
+    def _delete_menu(self):
+        movies = self._deletable_movies()
+        if not movies:
+            xbmcgui.Dialog().notification("Jellyfin", "No watched movies you can delete here")
+            return
+        selected = self.getControl(CTRL_GRID).getSelectedItem()
+        focused_id = selected.getProperty("jellyfin_id") if selected else None
+        focused = next((m for m in movies if m.get("Id") == focused_id), None)
+        options = ([f"Delete '{focused.get('Name', '')}'"] if focused else []) + ["Delete watched movies…"]
+        choice = xbmcgui.Dialog().contextmenu(options)
+        if choice == -1:
+            return
+        if focused and choice == 0:
+            chosen = [focused]
+        else:
+            chosen = self._pick_movies(movies, focused_id)
+        if chosen and self._confirm_delete(chosen):
+            threading.Thread(target=self._delete_movies, args=(chosen,), daemon=True).start()
+
+    @staticmethod
+    def _pick_movies(movies, focused_id):
+        labels = [m.get("Name", "") for m in movies]
+        preselect = [i for i, m in enumerate(movies) if m.get("Id") == focused_id]
+        picked = xbmcgui.Dialog().multiselect("Delete watched movies", labels, preselect=preselect)
+        return [movies[i] for i in picked or []]
+
+    @staticmethod
+    def _confirm_delete(movies):
+        if len(movies) == 1:
+            what = f"'{movies[0].get('Name', '')}'"
+        else:
+            what = f"{len(movies)} movies"
+        return xbmcgui.Dialog().yesno(
+            "Delete Movies",
+            f"Permanently delete {what} and their files from the server?[CR]This cannot be undone.",
+            nolabel="Cancel", yeslabel="Delete",
+        )
+
+    def _delete_movies(self, movies):
+        failed = []
+        for movie in movies:
+            try:
+                library.delete_item(self.client, movie["Id"])
+            except Exception as exc:  # noqa: BLE001 - keep going, report failures at the end
+                xbmc.log(f"{LOG_PREFIX} Browse: deleting {movie['Id']!r} failed: {exc}", xbmc.LOGWARNING)
+                failed.append(movie.get("Name", ""))
+        deleted = len(movies) - len(failed)
+        message = f"Deleted {deleted} movie{'s' if deleted != 1 else ''}"
+        if failed:
+            message += f", {len(failed)} failed: {', '.join(failed)}"
+        xbmcgui.Dialog().notification("Jellyfin", message)
+        if deleted and not self.closed_event.is_set():
+            self.result = {"action": "reload"}
+            self.close()
 
     def _open_genre(self):
         selected = self.getControl(CTRL_GENRE_BAR).getSelectedItem()

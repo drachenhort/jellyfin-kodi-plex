@@ -134,6 +134,12 @@ Der Browse-Bildschirm zeigt außerdem eine Kurzbeschreibung des jeweils fokussie
 Episoden mit einem Häkchen-Badge sowie teilweise gesehene Serien mit einem Badge für die Anzahl
 ungesehener Episoden.
 
+Gesehene Filme lassen sich vom Server löschen: über einen Löschen-Button auf der Detailseite eines
+gesehenen Films oder über das Kontextmenü (`C` / langes Drücken) in der Film-Bibliothek, um den
+ausgewählten Film zu löschen oder mehrere gesehene Filme auf einmal auszuwählen. Beides fragt
+vorher nach einer Bestätigung und funktioniert nur, wenn der Jellyfin-Benutzer Inhalte löschen
+darf (eine Benutzereinstellung im Jellyfin-Dashboard).
+
 Der Login-Bildschirm erkennt Jellyfin-Server im lokalen Netzwerk automatisch (`lib/jellyfin/discovery.py`)
 über das von Emby/MediaBrowser übernommene UDP-Broadcast-Protokoll — gefundene Server werden als Auswahlliste
 angeboten, die das Server-URL-Feld ausfüllt; die manuelle Eingabe bleibt weiterhin als Fallback verfügbar.

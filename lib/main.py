@@ -308,6 +308,8 @@ def _detail_loop(client, item_id):
             if status == "ended" and result.get("item_type") == "Episode":
                 _offer_next_episode(client, played_item_id)
             # Loop back to the detail page (e.g. to show updated resume state).
+        elif result["action"] == "deleted":
+            return
         elif result["action"] == "open":
             # A "More Like This" item was clicked - opens on top, and
             # backing out of it re-shows this same detail page (the

@@ -67,7 +67,23 @@
       <texturefocus>button-focus.png</texturefocus>
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onright>411</onright>
-      <onleft>406</onleft>
+      <onleft>412</onleft>
+      <ondown>408</ondown>
+    </control>
+    <!-- Delete (412) sits under the poster, apart from the playback row so
+         it's hard to hit by accident. Deliberately no <visible> tag either:
+         DetailWindow sets it from Python (watched movies the user may delete
+         only) - see the comment above 409/410. -->
+    <control type="button" id="412">
+      <posx>80</posx>
+      <posy>660</posy>
+      <width>300</width>
+      <height>60</height>
+      <font>font16</font>
+      <label>Delete</label>
+      <texturefocus colordiffuse="FFC0392B">white.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <onright>406</onright>
       <ondown>408</ondown>
     </control>
     <!-- Deliberately no <visible> tag on 411: its visibility is controlled

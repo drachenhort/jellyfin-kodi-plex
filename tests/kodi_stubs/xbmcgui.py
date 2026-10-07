@@ -203,3 +203,9 @@ class Dialog:
 
     def select(self, heading, options, **kwargs):
         return -1
+
+    def multiselect(self, heading, options, preselect=None, **kwargs):
+        return None
+
+    def contextmenu(self, options):
+        return -1

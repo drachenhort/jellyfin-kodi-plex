@@ -578,3 +578,175 @@ def test_load_passes_genre_id_to_iter_items_paged(client, monkeypatch):
     window._load()
 
     assert calls[0]["genre_id"] == "g-1"
+
+
+# -- context-menu delete (Movies library only, watched + CanDelete only) ------
+
+MOVIES = [
+    {"Id": "m1", "Name": "Alien", "Type": "Movie", "CanDelete": True, "UserData": {"Played": True}},
+    {"Id": "m2", "Name": "Aliens", "Type": "Movie", "CanDelete": True, "UserData": {"Played": False}},
+    {"Id": "m3", "Name": "Brazil", "Type": "Movie", "CanDelete": False, "UserData": {"Played": True}},
+    {"Id": "m4", "Name": "Cube", "Type": "Movie", "CanDelete": True, "UserData": {"Played": True}},
+]
+
+
+class _FakeDeleteDialog:
+    def __init__(self, menu_choice=-1, picked=None, confirm=True):
+        self.menu_choice = menu_choice
+        self.picked = picked
+        self.confirm = confirm
+        self.menu_options = None
+        self.multiselect_args = None
+        self.notifications = []
+
+    def __call__(self):
+        return self
+
+    def contextmenu(self, options):
+        self.menu_options = options
+        return self.menu_choice
+
+    def multiselect(self, heading, options, preselect=None, **k):
+        self.multiselect_args = (options, preselect)
+        return self.picked
+
+    def yesno(self, *a, **k):
+        return self.confirm
+
+    def notification(self, heading, message, *a, **k):
+        self.notifications.append(message)
+
+
+def _movies_window(client, monkeypatch, focused_index=0):
+    monkeypatch.setattr(browse_mod.library, "get_cached_children", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.library, "cache_children", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", _paged(MOVIES))
+    window = _make_window(client, collection_type="movies")
+    window._load()
+    window.getControl(browse_mod.CTRL_GRID).selectItem(focused_index)
+    return window
+
+
+def _run_threads_inline(monkeypatch):
+    class _InlineThread:
+        def __init__(self, target, args=(), daemon=None):
+            self.target, self.args = target, args
+
+        def start(self):
+            self.target(*self.args)
+
+    monkeypatch.setattr(browse_mod.threading, "Thread", _InlineThread)
+
+
+def test_movies_listing_requests_can_delete_field(client, monkeypatch):
+    seen = {}
+
+    def fake(*a, **k):
+        seen.update(k)
+        yield MOVIES
+
+    monkeypatch.setattr(browse_mod.library, "get_cached_children", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.library, "cache_children", lambda *a, **k: None)
+    monkeypatch.setattr(browse_mod.library, "iter_items_paged", fake)
+    window = _make_window(client, collection_type="movies")
+    window._load()
+
+    assert "CanDelete" in seen["fields"]
+
+
+def test_deletable_movies_requires_watched_and_can_delete(client, monkeypatch):
+    window = _movies_window(client, monkeypatch)
+    assert [m["Id"] for m in window._deletable_movies()] == ["m1", "m4"]
+
+
+def test_delete_not_allowed_outside_movies_library(client):
+    window = _make_window(client, collection_type="tvshows")
+    assert window.allow_delete is False
+    window = _make_window(client, parent_item_type="Season", collection_type="movies")
+    assert window.allow_delete is False
+
+
+def test_context_menu_deletes_focused_movie(client, monkeypatch):
+    window = _movies_window(client, monkeypatch, focused_index=0)
+    dialog = _FakeDeleteDialog(menu_choice=0)
+    monkeypatch.setattr(browse_mod.xbmcgui, "Dialog", dialog)
+    _run_threads_inline(monkeypatch)
+    deleted = []
+    monkeypatch.setattr(browse_mod.library, "delete_item", lambda c, item_id: deleted.append(item_id))
+
+    window._delete_menu()
+
+    assert dialog.menu_options[0] == "Delete 'Alien'"
+    assert deleted == ["m1"]
+    assert window.result == {"action": "reload"}
+
+
+def test_context_menu_omits_single_delete_for_unwatched_focus(client, monkeypatch):
+    window = _movies_window(client, monkeypatch, focused_index=1)  # Aliens: unwatched
+    dialog = _FakeDeleteDialog(menu_choice=-1)
+    monkeypatch.setattr(browse_mod.xbmcgui, "Dialog", dialog)
+
+    window._delete_menu()
+
+    assert dialog.menu_options == ["Delete watched movies…"]
+
+
+def test_multi_delete_deletes_picked_movies(client, monkeypatch):
+    window = _movies_window(client, monkeypatch, focused_index=3)
+    dialog = _FakeDeleteDialog(menu_choice=1, picked=[0, 1])
+    monkeypatch.setattr(browse_mod.xbmcgui, "Dialog", dialog)
+    _run_threads_inline(monkeypatch)
+    deleted = []
+    monkeypatch.setattr(browse_mod.library, "delete_item", lambda c, item_id: deleted.append(item_id))
+
+    window._delete_menu()
+
+    assert dialog.multiselect_args == (["Alien", "Cube"], [1])
+    assert deleted == ["m1", "m4"]
+    assert dialog.notifications == ["Deleted 2 movies"]
+
+
+def test_multi_delete_cancelled_at_confirmation(client, monkeypatch):
+    window = _movies_window(client, monkeypatch)
+    dialog = _FakeDeleteDialog(menu_choice=1, picked=[0], confirm=False)
+    monkeypatch.setattr(browse_mod.xbmcgui, "Dialog", dialog)
+    deleted = []
+    monkeypatch.setattr(browse_mod.library, "delete_item", lambda c, item_id: deleted.append(item_id))
+
+    window._delete_menu()
+
+    assert deleted == []
+    assert window.result is None
+
+
+def test_multi_delete_reports_failures_and_continues(client, monkeypatch):
+    window = _movies_window(client, monkeypatch)
+    dialog = _FakeDeleteDialog(menu_choice=1, picked=[0, 1])
+    monkeypatch.setattr(browse_mod.xbmcgui, "Dialog", dialog)
+    _run_threads_inline(monkeypatch)
+    deleted = []
+
+    def fake_delete(c, item_id):
+        if item_id == "m1":
+            raise RuntimeError("forbidden")
+        deleted.append(item_id)
+
+    monkeypatch.setattr(browse_mod.library, "delete_item", fake_delete)
+
+    window._delete_menu()
+
+    assert deleted == ["m4"]
+    assert dialog.notifications == ["Deleted 1 movie, 1 failed: Alien"]
+    assert window.result == {"action": "reload"}
+
+
+def test_context_menu_with_nothing_deletable_notifies(client, monkeypatch):
+    window = _movies_window(client, monkeypatch)
+    window.items = [MOVIES[1]]
+    dialog = _FakeDeleteDialog()
+    monkeypatch.setattr(browse_mod.xbmcgui, "Dialog", dialog)
+
+    window._delete_menu()
+
+    assert dialog.menu_options is None
+    assert dialog.notifications == ["No watched movies you can delete here"]

@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.82 - 2026-10-07
+- Movies can now be deleted from the server, only once watched: a Delete button (with confirmation) on a watched movie's detail page, and a context menu on the Movies library wall to delete the focused movie or pick several watched movies at once. Requires the Jellyfin user to have content deletion allowed.
+
 ## 0.3.81 - 2026-09-19
 - Titles and overviews now show `:shortcode:` text (e.g. `:smile:`) as the actual emoji.
 

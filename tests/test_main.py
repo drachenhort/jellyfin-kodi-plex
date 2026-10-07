@@ -60,6 +60,21 @@ def test_detail_loop_opens_a_similar_item_then_returns_to_the_original(monkeypat
     assert calls == ["item-1", "item-2", "item-1"]
 
 
+def test_detail_loop_returns_after_item_is_deleted(monkeypatch):
+    calls = []
+
+    def fake_open(addon_path, client=None, item_id=None):
+        calls.append(item_id)
+        return {"action": "deleted", "item_id": item_id}
+
+    monkeypatch.setattr(main_mod.DetailWindow, "open", staticmethod(fake_open))
+
+    main_mod._detail_loop(client=object(), item_id="item-1")
+
+    # A deleted item's page must not be reopened.
+    assert calls == ["item-1"]
+
+
 def test_run_takes_over_when_previous_instance_stops_promptly(monkeypatch):
     """A second launch asks the first to stop (STOP_REQUESTED_PROPERTY, set to
     the first instance's own INSTANCE_TOKEN_PROPERTY value) - once the "first

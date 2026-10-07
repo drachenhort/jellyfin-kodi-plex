@@ -123,6 +123,11 @@ The browse screen also shows a synopsis pane for whichever item currently has fo
 browsing a series' seasons), and marks already-watched movies/episodes with a checkmark badge and
 partially-watched shows with an unwatched-episode-count badge.
 
+Watched movies can be deleted from the server: a Delete button on a watched movie's detail page,
+or the context menu (`C` / long-press) on the Movies library wall to delete the focused movie or
+pick several watched movies at once. Both ask for confirmation first, and only work if the
+Jellyfin user is allowed to delete content (a per-user setting in the Jellyfin dashboard).
+
 The login screen autodetects Jellyfin servers on the LAN (`lib/jellyfin/discovery.py`) using the
 UDP broadcast protocol inherited from Emby/MediaBrowser — found servers are offered as a pick-list
 that fills in the server URL field, with manual entry still available as a fallback.

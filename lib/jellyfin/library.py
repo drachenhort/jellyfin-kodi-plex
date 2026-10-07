@@ -14,7 +14,7 @@ LISTING_ITEM_FIELDS = "Overview,Genres,RunTimeTicks,ProductionYear,CommunityRati
 # callers (lib/player.py, just for the ListItem title) doesn't use it, but
 # there's only the one caller that matters cost-wise and it's a single-item
 # fetch, not a listing, so the extra payload is negligible.
-DEFAULT_ITEM_FIELDS = LISTING_ITEM_FIELDS + ",People,MediaSources"
+DEFAULT_ITEM_FIELDS = LISTING_ITEM_FIELDS + ",People,MediaSources,CanDelete"
 
 
 # Home re-fetches views on every visit (plain Back navigation, every
@@ -323,6 +323,18 @@ def mark_played(client, item_id):
 def mark_unplayed(client, item_id):
     """DELETE /Users/{userId}/PlayedItems/{itemId} — mark an item unwatched."""
     result = client.delete(f"/Users/{client.user_id}/PlayedItems/{item_id}")
+    clear_browse_cache()
+    return result
+
+
+def delete_item(client, item_id):
+    """DELETE /Items/{itemId} — permanently delete an item (and its media
+    files on disk) from the server. Jellyfin only allows this for a user
+    whose policy has content deletion enabled; anyone else gets a 401/403
+    JellyfinApiError, which callers surface rather than pre-checking.
+    Clears the browse cache so the deleted item drops out of every cached
+    listing."""
+    result = client.delete(f"/Items/{item_id}")
     clear_browse_cache()
     return result
 
