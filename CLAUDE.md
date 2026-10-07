@@ -72,15 +72,34 @@ directory into `~/.kodi/addons/script.jellyfin.plex/` and launch it from the Pro
 
 ## Release workflow
 
-After implementing a change: run `pytest` and confirm it passes, commit, push, bump the version in
-`addon.xml`, and add a matching entry to `CHANGELOG.md` (newest version at the top, one line per
-change — see existing entries for the format). Verify each git step (status,
-push result) rather than assuming success. Don't consider a feature done until it's been verified
-against a real Jellyfin server and/or real Kodi install (see Verification below) — passing tests
-alone only proves the pure-Python layer, not the actual UI behavior in Kodi. Pushing a version bump to `master` also triggers `.github/workflows/build-repo.yml`, which
-regenerates `docs/` (the Kodi repository served via GitHub Pages) — no extra manual step needed,
-but check the Actions tab if a released version doesn't show up as a Kodi update within a few
-minutes.
+After implementing a change: run `pytest` and confirm it passes, bump the version in `addon.xml`,
+add a matching entry to `CHANGELOG.md` (newest version at the top, one line per change — see
+existing entries for the format), commit, and push. Verify each git step (status, push result)
+rather than assuming success. Don't consider a feature done until it's been verified against a
+real Jellyfin server and/or real Kodi install (see Verification below) — passing tests alone only
+proves the pure-Python layer, not the actual UI behavior in Kodi.
+
+**What a push to `master` triggers (automatic):**
+
+- `.github/workflows/tests.yml` runs the test suite.
+- `.github/workflows/notify_repo.yml` sends a `repository_dispatch` (`addon-updated`) to the
+  separate **`drachenhort/drachenhort-repo`** repository. That repo's "Build Kodi repo" workflow
+  pulls this addon in, builds `script.jellyfin.plex-<version>.zip`, regenerates `addons.xml`,
+  and GitHub Pages serves the result at `https://drachenhort.github.io/drachenhort-repo/`. That is
+  the Kodi repository users auto-update from. Nothing in this repo builds the Kodi repository, and
+  there is no `docs/` folder here any more.
+
+To confirm a release went out: `gh run list --limit 4` (Tests + Notify succeeded), `gh run list -R
+drachenhort/drachenhort-repo --limit 4` (Build Kodi repo + pages deploy succeeded), then check that
+`https://drachenhort.github.io/drachenhort-repo/addons.xml` lists the new `script.jellyfin.plex`
+version.
+
+**GitHub Releases are manual.** Nothing creates them automatically. For each released version,
+create one with `gh release create v<version>`. Point `--target` at the commit that bumped
+`addon.xml` to that version. Attach the zip downloaded from
+`https://drachenhort.github.io/drachenhort-repo/script.jellyfin.plex/script.jellyfin.plex-<version>.zip`.
+Use that version's `CHANGELOG.md` entry as the notes. Mark only the newest release as Latest. Check
+`gh release list` against `addon.xml` for gaps and backfill any missing versions the same way.
 
 ## Verification
 
