@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.91 - 2026-10-29
+- No functional change; release to confirm Kodi auto-updates from the drachenhort repository.
+
 ## 0.3.90 - 2026-10-29
 - The "Select Movies…" page now shows each movie's genres under its year and runtime, with slightly larger posters.
 
