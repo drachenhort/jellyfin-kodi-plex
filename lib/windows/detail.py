@@ -6,7 +6,8 @@ self.result on close: {"action": "play", "item_id": ..., "resume_ticks": N,
 "audio_stream_index": N or None, "subtitle_stream_index": N or None},
 {"action": "open", "item_id": ..., "item_type": ..., "item_name": ...} (a
 similar item was clicked), {"action": "deleted", "item_id": ...} (the movie was
-deleted from the server), or None (back).
+deleted from the server), {"action": "home"} (the Home button - jump straight
+back to the Home screen), or None (back).
 """
 
 import threading
@@ -38,6 +39,7 @@ CTRL_AUDIO_BUTTON = 409
 CTRL_SUBTITLE_BUTTON = 410
 CTRL_PLAY_FROM_START_BUTTON = 411
 CTRL_DELETE_BUTTON = 412
+CTRL_HOME_BUTTON = 413
 
 # Only movies offer Delete for now - deleting an Episode/Season/Series or a
 # music item from here has much broader fallout (whole folders on disk) and
@@ -304,6 +306,10 @@ class DetailWindow(ControlledWindow):
         # a separate thread (see _load_similar) and could finish first.
         if control_id == CTRL_SIMILAR:
             self._open_similar()
+            return
+        if control_id == CTRL_HOME_BUTTON:
+            self.result = {"action": "home"}
+            self.close()
             return
         if self.item is None:
             return

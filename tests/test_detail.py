@@ -120,6 +120,16 @@ def test_clicking_play_before_item_is_loaded_is_a_no_op(client):
     assert not window.closed
 
 
+def test_clicking_home_closes_with_home_action_even_before_item_is_loaded(client):
+    window = _make_window(client)
+    assert window.item is None
+
+    window.handle_click(detail_mod.CTRL_HOME_BUTTON)
+
+    assert window.result == {"action": "home"}
+    assert window.closed
+
+
 def test_clicking_play_after_item_set_but_before_streams_loaded_is_a_no_op(client, monkeypatch):
     monkeypatch.setattr(detail_mod.library, "get_item", lambda c, item_id, fields=None: {
         "Id": "item-1", "Name": "Alien", "Type": "Movie", "UserData": {},

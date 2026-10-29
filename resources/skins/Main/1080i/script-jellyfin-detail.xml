@@ -57,6 +57,20 @@
       <label></label>
     </control>
 
+    <!-- Home (413): top-left above the poster, jumps straight back to the
+         Home screen from however deep the detail page was opened. -->
+    <control type="button" id="413">
+      <posx>80</posx>
+      <posy>40</posy>
+      <width>200</width>
+      <height>60</height>
+      <font>font16</font>
+      <label>Home</label>
+      <texturefocus>button-focus.png</texturefocus>
+      <texturenofocus>button-nofocus.png</texturenofocus>
+      <ondown>406</ondown>
+    </control>
+
     <control type="button" id="406">
       <posx>420</posx>
       <posy>660</posy>
@@ -68,6 +82,7 @@
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onright>411</onright>
       <onleft>412</onleft>
+      <onup>413</onup>
       <ondown>408</ondown>
     </control>
     <!-- Delete (412) sits under the poster, apart from the playback row so
@@ -84,6 +99,7 @@
       <texturefocus colordiffuse="FFC0392B">white.png</texturefocus>
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onright>406</onright>
+      <onup>413</onup>
       <ondown>408</ondown>
     </control>
     <!-- Deliberately no <visible> tag on 411: its visibility is controlled
@@ -101,6 +117,7 @@
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onright>407</onright>
       <onleft>406</onleft>
+      <onup>413</onup>
       <ondown>408</ondown>
     </control>
     <control type="button" id="407">
@@ -114,6 +131,7 @@
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onright>409</onright>
       <onleft>406</onleft>
+      <onup>413</onup>
       <ondown>408</ondown>
     </control>
     <!-- Deliberately no <visible> tag on 409/410: their visibility is
@@ -134,6 +152,7 @@
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onright>410</onright>
       <onleft>407</onleft>
+      <onup>413</onup>
       <ondown>408</ondown>
     </control>
     <control type="button" id="410">
@@ -147,6 +166,7 @@
       <texturenofocus>button-nofocus.png</texturenofocus>
       <onright>410</onright>
       <onleft>409</onleft>
+      <onup>413</onup>
       <ondown>408</ondown>
     </control>
 

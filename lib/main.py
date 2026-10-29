@@ -288,11 +288,28 @@ def _offer_next_episode(client, item_id):
         _offer_next_episode(client, played_item_id)
 
 
+class _GoHome(Exception):
+    """Raised by a screen nested anywhere under Home (e.g. the detail page's
+    Home button) to unwind every loop in between straight back to Home -
+    see _until_home."""
+
+
+def _until_home(fn, *args, **kwargs):
+    """Runs one of Home's nested screen loops, treating _GoHome as that loop
+    simply having finished, so the Home loop reopens Home next."""
+    try:
+        fn(*args, **kwargs)
+    except _GoHome:
+        pass
+
+
 def _detail_loop(client, item_id):
     while True:
         result = DetailWindow.open(ADDON_PATH, client=client, item_id=item_id)
         if not result:
             return
+        if result["action"] == "home":
+            raise _GoHome()
         if result["action"] == "play":
             try:
                 status, played_item_id = player.play_item(
@@ -404,15 +421,15 @@ def _home_loop(client):
         if result["action"] == "browse":
             select_control_id = result["control_id"]
             select_item_id = result["item_id"]
-            _browse_loop(client, result["library_id"], result["library_name"],
-                         collection_type=result.get("collection_type"))
+            _until_home(_browse_loop, client, result["library_id"], result["library_name"],
+                        collection_type=result.get("collection_type"))
         elif result["action"] == "open":
             select_control_id = result["control_id"]
             select_item_id = result["item_id"]
-            _open_item(client, result["item_id"], result["item_type"], result["item_name"],
-                       item_overview=result.get("item_overview", ""))
+            _until_home(_open_item, client, result["item_id"], result["item_type"],
+                        result["item_name"], item_overview=result.get("item_overview", ""))
         elif result["action"] == "search":
-            _search_loop(client)
+            _until_home(_search_loop, client)
         elif result["action"] == "cleanup":
             CleanupWindow.open(ADDON_PATH, client=client)
         elif result["action"] == "servers":

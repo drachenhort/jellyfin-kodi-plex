@@ -87,6 +87,39 @@ def test_detail_loop_returns_after_item_is_deleted(monkeypatch):
     assert calls == ["item-1"]
 
 
+def test_home_from_a_nested_detail_page_unwinds_straight_back_to_home(monkeypatch):
+    home_results = [
+        {"action": "browse", "control_id": 1, "item_id": "lib-1",
+         "library_id": "lib-1", "library_name": "Movies"},
+        None,
+    ]
+    monkeypatch.setattr(main_mod.HomeWindow, "open",
+                        staticmethod(lambda *a, **k: home_results.pop(0)))
+    browse_calls = []
+
+    def fake_browse_open(*a, **k):
+        browse_calls.append(k.get("parent_id"))
+        return {"action": "open", "item_id": "m1", "item_type": "Movie", "item_name": "M"}
+
+    monkeypatch.setattr(main_mod.BrowseWindow, "open", staticmethod(fake_browse_open))
+    detail_calls = []
+
+    def fake_detail_open(addon_path, client=None, item_id=None):
+        detail_calls.append(item_id)
+        if item_id == "m1":
+            return {"action": "open", "item_id": "m2", "item_type": "Movie", "item_name": "M2"}
+        return {"action": "home"}
+
+    monkeypatch.setattr(main_mod.DetailWindow, "open", staticmethod(fake_detail_open))
+
+    assert main_mod._home_loop(client=object()) is None
+    # Home skips every screen in between: neither the first detail page nor
+    # the library wall is shown again, and Home itself reopens.
+    assert detail_calls == ["m1", "m2"]
+    assert len(browse_calls) == 1
+    assert home_results == []
+
+
 def test_run_takes_over_when_previous_instance_stops_promptly(monkeypatch):
     """A second launch asks the first to stop (STOP_REQUESTED_PROPERTY, set to
     the first instance's own INSTANCE_TOKEN_PROPERTY value) - once the "first

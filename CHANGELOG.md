@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.87 - 2026-10-29
+- The detail page now has a Home button (top left, press Up from the button row) that jumps straight back to the Home screen, however deep you browsed to get there.
+
 ## 0.3.86 - 2026-10-07
 - TV is now deleted per season instead of whole shows: Clean Up's TV list shows each show that has fully watched seasons, and selecting one lets you pick which of those seasons go on the to-be-deleted list. On the TV library wall, the context menu likewise opens a picker of the focused show's fully watched seasons.
 
