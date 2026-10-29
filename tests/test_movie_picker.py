@@ -4,7 +4,8 @@ picker - ticking/unticking rows, All Watched, Clear, Done and Cancel."""
 import lib.windows.movie_picker as picker_mod
 
 MOVIES = [
-    {"Id": "m1", "Name": "Alien", "Type": "Movie", "UserData": {"Played": True}},
+    {"Id": "m1", "Name": "Alien", "Type": "Movie", "Genres": ["Horror", "Science Fiction"],
+     "UserData": {"Played": True}},
     {"Id": "m2", "Name": "Brazil", "Type": "Movie", "UserData": {"Played": True}},
     {"Id": "u1", "Name": "Dune", "Type": "Movie", "UserData": {"Played": False}},
 ]
@@ -80,3 +81,15 @@ def test_cancel_returns_none(client, monkeypatch):
 
     assert window.result is None
     assert window.closed
+
+
+def test_genre_text_joins_genres_and_handles_missing():
+    assert picker_mod.genre_text(MOVIES[0]) == "Horror, Science Fiction"
+    assert picker_mod.genre_text({"Genres": None}) == ""
+    assert picker_mod.genre_text({}) == ""
+
+
+def test_rows_carry_genres(client, monkeypatch):
+    window = _window(client, monkeypatch)
+
+    assert [li.getProperty("genres") for li in window.list_items] == ["Horror, Science Fiction", "", ""]

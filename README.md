@@ -133,7 +133,7 @@ the left, a "To Be Deleted" list on the right. Selecting a movie moves it betwee
 (the to-be-deleted list is remembered between sessions, per server), and the Delete button
 removes everything on that list from the server after a confirmation.
 Its "Select Movies…" button opens a full page listing every movie you may delete — watched ones
-first, then unwatched ones (marked in orange) — with a check mark on each one already queued.
+first, then unwatched ones (marked in orange) — with its genres and a check mark on each one already queued.
 Selecting a movie ticks or unticks it, "All Watched" ticks every watched movie, "Clear" unticks
 everything, and "Done" makes the ticked movies the queued ones, so you can mark many movies at once;
 it's also the only way to put an unwatched movie on the list. A confirmation

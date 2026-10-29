@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.90 - 2026-10-29
+- The "Select Movies…" page now shows each movie's genres under its year and runtime, with slightly larger posters.
+
 ## 0.3.89 - 2026-10-29
 - Clean Up's "Select Movies…" now opens a full page instead of a pop-up list: a two-column grid of posters with check marks, unwatched movies in orange, plus "All Watched", "Clear", "Cancel" and "Done" buttons.
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Movie picker page (lib/windows/movie_picker.py), opened from Clean Up's
      "Select Movies…": every deletable movie in a two-column grid (600) with
-     a check mark per row, and All Watched / Clear / Cancel / Done below. -->
+     a check mark and the genres per row, and All Watched / Clear / Cancel / Done below. -->
 <window>
   <defaultcontrol always="true">600</defaultcontrol>
   <controls>
@@ -39,17 +39,17 @@
       <onright>600</onright>
       <onup>600</onup>
       <ondown>602</ondown>
-      <itemlayout width="880" height="104">
+      <itemlayout width="880" height="124">
         <control type="image">
           <posx>12</posx>
-          <posy>27</posy>
+          <posy>37</posy>
           <width>42</width>
           <height>42</height>
           <texture>button-nofocus.png</texture>
         </control>
         <control type="image">
           <posx>12</posx>
-          <posy>27</posy>
+          <posy>37</posy>
           <width>42</width>
           <height>42</height>
           <texture>watched-badge.png</texture>
@@ -58,23 +58,23 @@
         <control type="image">
           <posx>68</posx>
           <posy>5</posy>
-          <width>58</width>
-          <height>86</height>
+          <width>72</width>
+          <height>106</height>
           <aspectratio>scale</aspectratio>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
         <control type="label">
-          <posx>142</posx>
-          <posy>10</posy>
-          <width>700</width>
+          <posx>156</posx>
+          <posy>8</posy>
+          <width>690</width>
           <height>40</height>
           <font>font13</font>
           <label>$INFO[ListItem.Label]</label>
         </control>
         <control type="label">
-          <posx>142</posx>
-          <posy>50</posy>
-          <width>700</width>
+          <posx>156</posx>
+          <posy>46</posy>
+          <width>690</width>
           <height>34</height>
           <font>font12</font>
           <textcolor>FFAAAAAA</textcolor>
@@ -82,33 +82,42 @@
           <visible>String.IsEmpty(ListItem.Property(unwatched))</visible>
         </control>
         <control type="label">
-          <posx>142</posx>
-          <posy>50</posy>
-          <width>700</width>
+          <posx>156</posx>
+          <posy>46</posy>
+          <width>690</width>
           <height>34</height>
           <font>font12</font>
           <textcolor>FFFFA500</textcolor>
           <label>$INFO[ListItem.Property(meta)]</label>
           <visible>!String.IsEmpty(ListItem.Property(unwatched))</visible>
         </control>
+        <control type="label">
+          <posx>156</posx>
+          <posy>80</posy>
+          <width>690</width>
+          <height>32</height>
+          <font>font12</font>
+          <textcolor>FF52B6C9</textcolor>
+          <label>$INFO[ListItem.Property(genres)]</label>
+        </control>
       </itemlayout>
-      <focusedlayout width="880" height="104">
+      <focusedlayout width="880" height="124">
         <control type="image">
           <width>870</width>
-          <height>96</height>
+          <height>116</height>
           <texture>button-focus.png</texture>
           <visible>Control.HasFocus(600)</visible>
         </control>
         <control type="image">
           <posx>12</posx>
-          <posy>27</posy>
+          <posy>37</posy>
           <width>42</width>
           <height>42</height>
           <texture>button-nofocus.png</texture>
         </control>
         <control type="image">
           <posx>12</posx>
-          <posy>27</posy>
+          <posy>37</posy>
           <width>42</width>
           <height>42</height>
           <texture>watched-badge.png</texture>
@@ -117,23 +126,23 @@
         <control type="image">
           <posx>68</posx>
           <posy>5</posy>
-          <width>58</width>
-          <height>86</height>
+          <width>72</width>
+          <height>106</height>
           <aspectratio>scale</aspectratio>
           <texture>$INFO[ListItem.Art(thumb)]</texture>
         </control>
         <control type="label">
-          <posx>142</posx>
-          <posy>10</posy>
-          <width>700</width>
+          <posx>156</posx>
+          <posy>8</posy>
+          <width>690</width>
           <height>40</height>
           <font>font13</font>
           <label>$INFO[ListItem.Label]</label>
         </control>
         <control type="label">
-          <posx>142</posx>
-          <posy>50</posy>
-          <width>700</width>
+          <posx>156</posx>
+          <posy>46</posy>
+          <width>690</width>
           <height>34</height>
           <font>font12</font>
           <textcolor>FFAAAAAA</textcolor>
@@ -141,14 +150,23 @@
           <visible>String.IsEmpty(ListItem.Property(unwatched))</visible>
         </control>
         <control type="label">
-          <posx>142</posx>
-          <posy>50</posy>
-          <width>700</width>
+          <posx>156</posx>
+          <posy>46</posy>
+          <width>690</width>
           <height>34</height>
           <font>font12</font>
           <textcolor>FFFFA500</textcolor>
           <label>$INFO[ListItem.Property(meta)]</label>
           <visible>!String.IsEmpty(ListItem.Property(unwatched))</visible>
+        </control>
+        <control type="label">
+          <posx>156</posx>
+          <posy>80</posy>
+          <width>690</width>
+          <height>32</height>
+          <font>font12</font>
+          <textcolor>FF52B6C9</textcolor>
+          <label>$INFO[ListItem.Property(genres)]</label>
         </control>
       </focusedlayout>
     </control>

@@ -1,8 +1,8 @@
 """Movie picker page, opened from the Clean Up screen's "Select Movies…"
 button: every deletable movie (watched first, then unwatched ones, marked as
-such) in a two-column grid with a check mark per row. Selecting a row ticks
-or unticks it; "All Watched" ticks every watched movie, "Clear" unticks
-everything.
+such) in a two-column grid with a check mark and the movie's genres per
+row. Selecting a row ticks or unticks it; "All Watched" ticks every watched
+movie, "Clear" unticks everything.
 
 self.result on close: the list of ticked movie ids, in the order the movies
 were given ("Done"), or None ("Cancel" / Back - no change).
@@ -22,6 +22,11 @@ CTRL_ALL_WATCHED_BUTTON = 604
 CTRL_CLEAR_BUTTON = 605
 
 HINT = "Select a movie to tick or untick it"
+
+
+def genre_text(movie: dict) -> str:
+    """"Action, Sci-Fi, Thriller" - empty when the server has no genres."""
+    return ", ".join(g for g in movie.get("Genres") or [] if g)
 
 
 class MoviePickerWindow(ControlledWindow):
@@ -46,6 +51,7 @@ class MoviePickerWindow(ControlledWindow):
         li = list_item(movie, images.primary_image_url(self.client, movie))
         li.setLabel(item_name(movie))
         li.setProperty("meta", meta_text(movie))
+        li.setProperty("genres", genre_text(movie))
         li.setProperty("unwatched", "" if library.is_played(movie) else "true")
         li.setProperty("checked", "true" if movie["Id"] in self.selected else "")
         return li
