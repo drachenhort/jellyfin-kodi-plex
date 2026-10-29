@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.89 - 2026-10-29
+- Clean Up's "Select Movies…" now opens a full page instead of a pop-up list: a two-column grid of posters with check marks, unwatched movies in orange, plus "All Watched", "Clear", "Cancel" and "Done" buttons.
+
 ## 0.3.88 - 2026-10-29
 - Clean Up has a new "Select Movies…" button: a checkbox list of every movie you may delete (watched first, then unwatched, marked as such) to queue or unqueue many movies at once. Delete confirmations that include unwatched movies say how many.
 

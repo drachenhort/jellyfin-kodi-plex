@@ -2,7 +2,7 @@
 button, the Movies/TV wall and season-list context menus, the Clean Up
 screen): looks up how many files and bytes the deletion covers and shows
 that summary in the confirmation dialog. Also the shared naming helpers
-(item_name, describe_count) so every screen words items the same way.
+(item_name, describe_count, meta_text) so every screen words items the same way.
 
 confirm_delete() does a network lookup, so call it off the GUI thread."""
 
@@ -35,6 +35,35 @@ def season_choice_label(season: dict) -> str:
     if count:
         label += f"  •  {count} episode{'s' if count != 1 else ''}"
     return label
+
+
+def format_minutes(run_time_ticks: int) -> str:
+    total_minutes = int(run_time_ticks / 10_000_000 / 60)
+    hours, minutes = divmod(total_minutes, 60)
+    return f"{hours}h {minutes}min" if hours else f"{minutes}min"
+
+
+def meta_text(item: dict) -> str:
+    """"1979  •  1h 57min  •  watched 2026-05-01" for a movie, "Season  •
+    10 episodes  •  ..." for a season, "Watched: Season 1, Season 2" for a
+    show entry (see _show_entries) - whatever parts exist."""
+    if item.get("Type") == "Series":
+        return "Watched: " + ", ".join(s.get("Name", "") for s in item.get("seasons", []))
+    is_season = item.get("Type") == "Season"
+    parts = ["Season"] if is_season else []
+    if not is_season and item.get("ProductionYear"):
+        parts.append(str(item["ProductionYear"]))
+    if item.get("Type") == "Movie" and item.get("RunTimeTicks"):
+        parts.append(format_minutes(item["RunTimeTicks"]))
+    if item.get("Type") == "Movie" and not library.is_played(item):
+        parts.append("unwatched")
+    if is_season and item.get("ChildCount"):
+        count = item["ChildCount"]
+        parts.append(f"{count} episode{'s' if count != 1 else ''}")
+    last_played = (item.get("UserData") or {}).get("LastPlayedDate")
+    if last_played:
+        parts.append(f"watched {last_played[:10]}")
+    return "  •  ".join(parts)
 
 
 def describe_count(items: list) -> str:

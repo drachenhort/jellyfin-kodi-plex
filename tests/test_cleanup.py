@@ -243,8 +243,8 @@ class _FakeMultiselect(_FakeDialog):
         self.picked = picked
         self.multiselect_args = None
 
-    def multiselect(self, heading, options, preselect=None, **k):
-        self.multiselect_args = (heading, options) if preselect is None else (heading, options, preselect)
+    def multiselect(self, heading, options, **k):
+        self.multiselect_args = (heading, options)
         return self.picked
 
 
@@ -373,22 +373,30 @@ def test_meta_text_marks_unwatched_movie():
     assert cleanup_mod._meta_text(UNWATCHED[0]) == "2007  •  unwatched"
 
 
-def test_movie_picker_lists_watched_then_unwatched_and_preselects_queued(client, monkeypatch):
+def _fake_picker(monkeypatch, picked):
+    calls = []
+
+    def fake_open(addon_path, client=None, movies=None, selected_ids=None):
+        calls.append(([m["Id"] for m in movies], set(selected_ids)))
+        return picked
+
+    monkeypatch.setattr(cleanup_mod.MoviePickerWindow, "open", staticmethod(fake_open))
+    return calls
+
+
+def test_movie_picker_gets_watched_then_unwatched_and_queued_ids(client, monkeypatch):
     window = _window(client, monkeypatch, unwatched=UNWATCHED, saved_queue=["m2", "u2"])
-    dialog = _FakeMultiselect(None)
-    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", dialog)
+    calls = _fake_picker(monkeypatch, None)
 
     window.handle_click(cleanup_mod.CTRL_SELECT_BUTTON)
 
-    heading, options, preselect = dialog.multiselect_args
-    assert options == ["Alien (1979)", "Brazil", "Cube", "Dune  •  unwatched", "Zodiac (2007)  •  unwatched"]
-    assert preselect == [1, 3]
+    assert calls == [(["m1", "m2", "m3", "u2", "u1"], {"m2", "u2"})]
 
 
-def test_movie_picker_ok_sets_queue_to_ticked_movies_keeping_seasons(client, monkeypatch):
+def test_movie_picker_done_sets_queue_to_ticked_movies_keeping_seasons(client, monkeypatch):
     window = _window(client, monkeypatch, unwatched=UNWATCHED, tv=TV, saved_queue=["m2", "s1"])
     # Alien, Zodiac ticked; Brazil unticked.
-    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", _FakeMultiselect([0, 4]))
+    _fake_picker(monkeypatch, ["m1", "u1"])
 
     window.handle_click(cleanup_mod.CTRL_SELECT_BUTTON)
 
@@ -400,7 +408,7 @@ def test_movie_picker_ok_sets_queue_to_ticked_movies_keeping_seasons(client, mon
 
 def test_movie_picker_cancel_changes_nothing(client, monkeypatch):
     window = _window(client, monkeypatch, unwatched=UNWATCHED, saved_queue=["m2"])
-    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", _FakeMultiselect(None))
+    _fake_picker(monkeypatch, None)
 
     window.handle_click(cleanup_mod.CTRL_SELECT_BUTTON)
 

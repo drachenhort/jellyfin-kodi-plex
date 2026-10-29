@@ -7,7 +7,7 @@ queued. Selecting a movie moves it between the two lists; selecting a show
 opens a picker of its fully watched seasons, and the picked seasons go on
 the list (TV is only ever deleted per season, never a whole show at once).
 Selecting a queued item takes it back off. In Movies mode, "Select
-Movies…" opens a checkbox list of every deletable movie - watched first,
+Movies…" opens a full-page picker (lib/windows/movie_picker.py) of every deletable movie - watched first,
 then unwatched ones (marked as such) - with the queued ones pre-ticked, so
 many movies can be queued or unqueued in one go; it's the only way to queue
 an unwatched movie. Delete permanently deletes
@@ -32,11 +32,13 @@ import xbmcgui
 from lib import delete_queue
 from lib.jellyfin import images, library
 from lib.windows.delete_confirm import (
-    confirm_delete, describe_count, item_name, result_message, season_choice_label,
+    confirm_delete, describe_count, item_name, meta_text as _meta_text, result_message, season_choice_label,
 )
 from lib.windows.kodigui import LOG_PREFIX, ControlledWindow, list_item
+from lib.windows.movie_picker import MoviePickerWindow
 
 ADDON = xbmcaddon.Addon()
+ADDON_PATH = ADDON.getAddonInfo("path")
 DELETE_QUEUE_SETTING = "delete_queue"
 
 CTRL_WATCHED_LIST = 500
@@ -58,43 +60,6 @@ MODE_TEXT = {
               "No fully watched seasons you can delete", "Show Movies"),
 }
 LOADERS = {MODE_MOVIES: "get_deletable_movies", MODE_TV: "get_watched_seasons"}
-
-
-def _format_minutes(run_time_ticks: int) -> str:
-    total_minutes = int(run_time_ticks / 10_000_000 / 60)
-    hours, minutes = divmod(total_minutes, 60)
-    return f"{hours}h {minutes}min" if hours else f"{minutes}min"
-
-
-def _meta_text(item: dict) -> str:
-    """"1979  •  1h 57min  •  watched 2026-05-01" for a movie, "Season  •
-    10 episodes  •  ..." for a season, "Watched: Season 1, Season 2" for a
-    show entry (see _show_entries) - whatever parts exist."""
-    if item.get("Type") == "Series":
-        return "Watched: " + ", ".join(s.get("Name", "") for s in item.get("seasons", []))
-    is_season = item.get("Type") == "Season"
-    parts = ["Season"] if is_season else []
-    if not is_season and item.get("ProductionYear"):
-        parts.append(str(item["ProductionYear"]))
-    if item.get("Type") == "Movie" and item.get("RunTimeTicks"):
-        parts.append(_format_minutes(item["RunTimeTicks"]))
-    if item.get("Type") == "Movie" and not library.is_played(item):
-        parts.append("unwatched")
-    if is_season and item.get("ChildCount"):
-        count = item["ChildCount"]
-        parts.append(f"{count} episode{'s' if count != 1 else ''}")
-    last_played = (item.get("UserData") or {}).get("LastPlayedDate")
-    if last_played:
-        parts.append(f"watched {last_played[:10]}")
-    return "  •  ".join(parts)
-
-
-def _movie_choice_label(movie: dict) -> str:
-    """"Alien (1979)", "Dune  •  unwatched" - a row in the movie picker."""
-    label = item_name(movie)
-    if movie.get("ProductionYear"):
-        label += f" ({movie['ProductionYear']})"
-    return label if library.is_played(movie) else label + "  •  unwatched"
 
 
 def _by_name(items: list) -> list:
@@ -265,21 +230,20 @@ class CleanupWindow(ControlledWindow):
             self.setFocusId(CTRL_QUEUE_LIST)
 
     def _pick_movies(self) -> None:
-        """Checkbox list of every deletable movie, queued ones pre-ticked;
-        OK makes the ticked movies exactly the queued movies (seasons on the
-        list stay as they are)."""
+        """The movie picker page over every deletable movie, queued ones
+        pre-ticked; Done makes the ticked movies exactly the queued movies
+        (seasons on the list stay as they are)."""
         movies = _by_name(self.items[MODE_MOVIES]) + _by_name(self.unwatched_movies)
         if not movies:
             xbmcgui.Dialog().notification("Jellyfin", "No movies you can delete")
             return
         queued = set(self.queued_ids)
-        picked = xbmcgui.Dialog().multiselect(
-            "Select movies to delete", [_movie_choice_label(m) for m in movies],
-            preselect=[n for n, m in enumerate(movies) if m["Id"] in queued],
+        picked = MoviePickerWindow.open(
+            ADDON_PATH, client=self.client, movies=movies, selected_ids=queued,
         )
         if picked is None:
             return
-        picked_ids = {movies[n]["Id"] for n in picked}
+        picked_ids = set(picked)
         movie_ids = {m["Id"] for m in movies}
         self.queued_ids = [i for i in self.queued_ids if i not in movie_ids or i in picked_ids]
         self.queued_ids.extend(m["Id"] for m in movies if m["Id"] in picked_ids and m["Id"] not in queued)
