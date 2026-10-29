@@ -6,7 +6,11 @@ to-be-deleted list is shared by both, so one Delete covers everything
 queued. Selecting a movie moves it between the two lists; selecting a show
 opens a picker of its fully watched seasons, and the picked seasons go on
 the list (TV is only ever deleted per season, never a whole show at once).
-Selecting a queued item takes it back off. Delete permanently deletes
+Selecting a queued item takes it back off. In Movies mode, "Select
+Movies…" opens a checkbox list of every deletable movie - watched first,
+then unwatched ones (marked as such) - with the queued ones pre-ticked, so
+many movies can be queued or unqueued in one go; it's the only way to queue
+an unwatched movie. Delete permanently deletes
 everything on the to-be-deleted list after a confirmation that shows the
 file count and size.
 
@@ -42,6 +46,7 @@ CTRL_WATCHED_HEADER = 503
 CTRL_QUEUE_HEADER = 504
 CTRL_STATUS = 505
 CTRL_MODE_BUTTON = 506
+CTRL_SELECT_BUTTON = 507
 
 MODE_MOVIES = "movies"
 MODE_TV = "tv"
@@ -52,7 +57,7 @@ MODE_TEXT = {
     MODE_TV: ("TV Shows With Watched Seasons", "Select a show to pick which of its watched seasons to delete",
               "No fully watched seasons you can delete", "Show Movies"),
 }
-LOADERS = {MODE_MOVIES: "get_watched_movies", MODE_TV: "get_watched_seasons"}
+LOADERS = {MODE_MOVIES: "get_deletable_movies", MODE_TV: "get_watched_seasons"}
 
 
 def _format_minutes(run_time_ticks: int) -> str:
@@ -73,6 +78,8 @@ def _meta_text(item: dict) -> str:
         parts.append(str(item["ProductionYear"]))
     if item.get("Type") == "Movie" and item.get("RunTimeTicks"):
         parts.append(_format_minutes(item["RunTimeTicks"]))
+    if item.get("Type") == "Movie" and not library.is_played(item):
+        parts.append("unwatched")
     if is_season and item.get("ChildCount"):
         count = item["ChildCount"]
         parts.append(f"{count} episode{'s' if count != 1 else ''}")
@@ -80,6 +87,18 @@ def _meta_text(item: dict) -> str:
     if last_played:
         parts.append(f"watched {last_played[:10]}")
     return "  •  ".join(parts)
+
+
+def _movie_choice_label(movie: dict) -> str:
+    """"Alien (1979)", "Dune  •  unwatched" - a row in the movie picker."""
+    label = item_name(movie)
+    if movie.get("ProductionYear"):
+        label += f" ({movie['ProductionYear']})"
+    return label if library.is_played(movie) else label + "  •  unwatched"
+
+
+def _by_name(items: list) -> list:
+    return sorted(items, key=lambda i: (i.get("SortName") or i.get("Name") or "").lower())
 
 
 def _show_entries(seasons: list) -> list:
@@ -107,6 +126,9 @@ class CleanupWindow(ControlledWindow):
         self.client = client
         self.mode = MODE_MOVIES
         self.items: dict = {MODE_MOVIES: [], MODE_TV: []}
+        # Deletable movies not yet watched: never in the left list, only
+        # offered by the movie picker (see _pick_movies).
+        self.unwatched_movies: list = []
         self.queued_ids: list = []
         self.load_errors: list = []
         # Saved ids that couldn't be matched because a listing failed to
@@ -127,7 +149,7 @@ class CleanupWindow(ControlledWindow):
     def _load(self) -> None:
         for mode, loader in LOADERS.items():
             try:
-                self.items[mode] = getattr(library, loader)(self.client)
+                self._store(mode, getattr(library, loader)(self.client))
             except Exception as exc:  # noqa: BLE001 - one failed listing shouldn't hide the other
                 xbmc.log(f"{LOG_PREFIX} Cleanup: fetching watched {mode} failed: {exc}", xbmc.LOGWARNING)
                 self.load_errors.append(f"Couldn't load {'TV shows' if mode == MODE_TV else 'movies'}: {exc}")
@@ -146,8 +168,14 @@ class CleanupWindow(ControlledWindow):
         self._refresh_lists()
         self.setFocusId(CTRL_WATCHED_LIST if self._unqueued() else CTRL_QUEUE_LIST)
 
+    def _store(self, mode: str, items: list) -> None:
+        if mode == MODE_MOVIES:
+            self.unwatched_movies = [i for i in items if not library.is_played(i)]
+            items = [i for i in items if library.is_played(i)]
+        self.items[mode] = items
+
     def _all(self) -> list:
-        return self.items[MODE_MOVIES] + self.items[MODE_TV]
+        return self.items[MODE_MOVIES] + self.items[MODE_TV] + self.unwatched_movies
 
     def _unqueued(self) -> list:
         queued = set(self.queued_ids)
@@ -185,6 +213,7 @@ class CleanupWindow(ControlledWindow):
         self.getControl(CTRL_WATCHED_HEADER).setLabel(f"{header} ({len(self._left_items())})")
         self.getControl(CTRL_QUEUE_HEADER).setLabel(f"To Be Deleted ({len(queued)})")
         self.getControl(CTRL_MODE_BUTTON).setLabel(mode_label)
+        self.getControl(CTRL_SELECT_BUTTON).setVisible(self.mode == MODE_MOVIES)
         self.getControl(CTRL_DELETE_BUTTON).setLabel(
             f"Delete {describe_count(queued)}" if queued else "Nothing to delete"
         )
@@ -206,6 +235,8 @@ class CleanupWindow(ControlledWindow):
             self._confirm_delete()
         elif control_id == CTRL_MODE_BUTTON:
             self._toggle_mode()
+        elif control_id == CTRL_SELECT_BUTTON and self.mode == MODE_MOVIES and self.loaded:
+            self._pick_movies()
 
     def _toggle_mode(self) -> None:
         self.mode = MODE_TV if self.mode == MODE_MOVIES else MODE_MOVIES
@@ -232,6 +263,29 @@ class CleanupWindow(ControlledWindow):
         self._refresh_lists(watched_pos=position, queue_pos=len(self.queued_ids) - 1)
         if not self._unqueued():
             self.setFocusId(CTRL_QUEUE_LIST)
+
+    def _pick_movies(self) -> None:
+        """Checkbox list of every deletable movie, queued ones pre-ticked;
+        OK makes the ticked movies exactly the queued movies (seasons on the
+        list stay as they are)."""
+        movies = _by_name(self.items[MODE_MOVIES]) + _by_name(self.unwatched_movies)
+        if not movies:
+            xbmcgui.Dialog().notification("Jellyfin", "No movies you can delete")
+            return
+        queued = set(self.queued_ids)
+        picked = xbmcgui.Dialog().multiselect(
+            "Select movies to delete", [_movie_choice_label(m) for m in movies],
+            preselect=[n for n, m in enumerate(movies) if m["Id"] in queued],
+        )
+        if picked is None:
+            return
+        picked_ids = {movies[n]["Id"] for n in picked}
+        movie_ids = {m["Id"] for m in movies}
+        self.queued_ids = [i for i in self.queued_ids if i not in movie_ids or i in picked_ids]
+        self.queued_ids.extend(m["Id"] for m in movies if m["Id"] in picked_ids and m["Id"] not in queued)
+        self._save_queue()
+        self._refresh_lists(queue_pos=len(self.queued_ids) - 1)
+        self.setFocusId(CTRL_QUEUE_LIST if self.queued_ids else CTRL_SELECT_BUTTON)
 
     def _move(self, control_id: int, add: bool) -> None:
         control = self.getControl(control_id)
@@ -292,6 +346,7 @@ class CleanupWindow(ControlledWindow):
                 continue
             for mode in self.items:
                 self.items[mode] = [i for i in self.items[mode] if i["Id"] != item["Id"]]
+            self.unwatched_movies = [i for i in self.unwatched_movies if i["Id"] != item["Id"]]
             self.queued_ids = [i for i in self.queued_ids if i != item["Id"]]
         self._save_queue()
         self.deleting = False

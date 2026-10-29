@@ -75,11 +75,21 @@ def _size_line(summary) -> str:
     return line + f"{size} total."
 
 
+def _unwatched_line(items: list) -> str:
+    """"Includes 2 unwatched movies.[CR]" - Clean Up's movie picker can
+    queue unwatched movies, so the confirmation calls them out."""
+    count = sum(1 for i in items if i.get("Type") == "Movie" and not library.is_played(i))
+    if not count:
+        return ""
+    return f"Includes {count} unwatched movie{'s' if count != 1 else ''}.[CR]"
+
+
 def build_message(items: list, summary) -> str:
     what = f"'{item_name(items[0])}'" if len(items) == 1 else describe_count(items)
     return (
         f"Permanently delete {what} from the server?[CR]"
         f"{_size_line(summary)}[CR]"
+        f"{_unwatched_line(items)}"
         "This cannot be undone."
     )
 

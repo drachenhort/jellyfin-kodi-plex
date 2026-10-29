@@ -15,7 +15,8 @@ def test_format_bytes():
 
 
 def test_message_for_several_movies_shows_files_and_size():
-    movies = [{"Name": "A", "Type": "Movie"}, {"Name": "B", "Type": "Movie"}]
+    played = {"Played": True}
+    movies = [{"Name": "A", "Type": "Movie", "UserData": played}, {"Name": "B", "Type": "Movie", "UserData": played}]
     summary = {"files": 3, "bytes": 6 * 1024 ** 3, "unknown_sizes": 0}
     assert confirm_mod.build_message(movies, summary) == (
         "Permanently delete 2 movies from the server?[CR]"
@@ -32,6 +33,17 @@ def test_message_for_single_movie_names_it():
 def test_message_marks_size_as_lower_bound_when_some_unknown():
     summary = {"files": 2, "bytes": 1024 ** 3, "unknown_sizes": 1}
     assert "2 files, at least 1.0 GB (size unknown for 1)." in confirm_mod.build_message([{}, {}], summary)
+
+
+def test_message_warns_about_unwatched_movies():
+    items = [{"Type": "Movie", "UserData": {"Played": True}}, {"Type": "Movie", "UserData": {"Played": False}},
+             {"Type": "Movie"}, {"Type": "Season", "UserData": {"Played": False}}]
+    assert "Includes 2 unwatched movies." in confirm_mod.build_message(items, None)
+
+
+def test_message_has_no_unwatched_warning_for_watched_movies():
+    items = [{"Type": "Movie", "UserData": {"Played": True}}]
+    assert "unwatched" not in confirm_mod.build_message(items, None)
 
 
 def test_message_when_lookup_failed():

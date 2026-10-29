@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.88 - 2026-10-29
+- Clean Up has a new "Select Movies…" button: a checkbox list of every movie you may delete (watched first, then unwatched, marked as such) to queue or unqueue many movies at once. Delete confirmations that include unwatched movies say how many.
+
 ## 0.3.87 - 2026-10-29
 - The detail page now has a Home button (top left, press Up from the button row) that jumps straight back to the Home screen, however deep you browsed to get there.
 

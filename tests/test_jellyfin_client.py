@@ -857,7 +857,7 @@ def test_delete_item_raises_when_server_forbids_it(client, monkeypatch):
         library.delete_item(client, "m1")
 
 
-def test_get_watched_movies_filters_played_and_keeps_only_deletable(client, monkeypatch):
+def test_get_deletable_movies_keeps_watched_and_unwatched_but_only_deletable(client, monkeypatch):
     fake = FakeRequests([FakeResponse({"Items": [
         {"Id": "m1", "CanDelete": True, "UserData": {"Played": True}},
         {"Id": "m2", "CanDelete": False, "UserData": {"Played": True}},
@@ -865,11 +865,11 @@ def test_get_watched_movies_filters_played_and_keeps_only_deletable(client, monk
     ]})])
     monkeypatch.setattr(client_mod, "requests", fake)
 
-    movies = library.get_watched_movies(client)
+    movies = library.get_deletable_movies(client)
 
-    assert [m["Id"] for m in movies] == ["m1"]
+    assert [m["Id"] for m in movies] == ["m1", "m3"]
     params = fake.calls[0]["params"]
-    assert params["Filters"] == "IsPlayed"
+    assert "Filters" not in params
     assert params["IncludeItemTypes"] == "Movie"
     assert params["Recursive"] == "true"
     assert "CanDelete" in params["Fields"]

@@ -455,17 +455,18 @@ def iter_items_paged(client, parent_id=None, include_item_types=None, fields="",
         start_index += page_size
 
 
-def get_watched_movies(client):
-    """Every watched movie across all libraries that this user may delete
-    (CanDelete) - the Clean Up screen's source list. Paged like any big
-    listing; CanDelete is filtered here rather than server-side, since the
-    Items API has no filter for it."""
+def get_deletable_movies(client):
+    """Every movie across all libraries that this user may delete
+    (CanDelete), watched or not - the Clean Up screen's source list (it
+    splits off the watched ones itself). Paged like any big listing;
+    CanDelete is filtered here rather than server-side, since the Items API
+    has no filter for it."""
     movies = []
     for page in iter_items_paged(
-        client, include_item_types="Movie", recursive=True, filters="IsPlayed",
+        client, include_item_types="Movie", recursive=True,
         fields=LISTING_ITEM_FIELDS + ",CanDelete", page_size=200,
     ):
-        movies.extend(m for m in page if m.get("CanDelete") and is_played(m))
+        movies.extend(m for m in page if m.get("CanDelete"))
     return movies
 
 

@@ -57,13 +57,20 @@ TV = [
 ]
 
 
-def _window(client, monkeypatch, movies=None, saved_queue=None, tv=None, tv_error=None):
+UNWATCHED = [
+    {"Id": "u1", "Name": "Zodiac", "Type": "Movie", "ProductionYear": 2007, "UserData": {"Played": False}},
+    {"Id": "u2", "Name": "Dune", "Type": "Movie", "UserData": {"Played": False}},
+]
+
+
+def _window(client, monkeypatch, movies=None, saved_queue=None, tv=None, tv_error=None, unwatched=None):
     addon = xbmcaddon.Addon()
     key = delete_queue.queue_key(client.server_url, client.user_id)
     if saved_queue is not None:
         addon.setSetting(cleanup_mod.DELETE_QUEUE_SETTING, delete_queue.save("", key, saved_queue))
     monkeypatch.setattr(cleanup_mod, "ADDON", addon)
-    monkeypatch.setattr(cleanup_mod.library, "get_watched_movies", lambda c: list(MOVIES if movies is None else movies))
+    all_movies = list(MOVIES if movies is None else movies) + list(unwatched or [])
+    monkeypatch.setattr(cleanup_mod.library, "get_deletable_movies", lambda c: list(all_movies))
 
     def watched_tv(c):
         if tv_error:
@@ -207,7 +214,7 @@ def test_load_failure_shows_status(client, monkeypatch):
     def boom(c):
         raise RuntimeError("timeout")
 
-    monkeypatch.setattr(cleanup_mod.library, "get_watched_movies", boom)
+    monkeypatch.setattr(cleanup_mod.library, "get_deletable_movies", boom)
     monkeypatch.setattr(cleanup_mod.library, "get_watched_seasons", lambda c: [])
     window = cleanup_mod.CleanupWindow(None, "/fake/addon/path", "Main", "1080i")
     window.setup(client=client)
@@ -236,8 +243,8 @@ class _FakeMultiselect(_FakeDialog):
         self.picked = picked
         self.multiselect_args = None
 
-    def multiselect(self, heading, options, **k):
-        self.multiselect_args = (heading, options)
+    def multiselect(self, heading, options, preselect=None, **k):
+        self.multiselect_args = (heading, options) if preselect is None else (heading, options, preselect)
         return self.picked
 
 
@@ -352,3 +359,78 @@ def _no_size_lookup(monkeypatch):
     every test here offline with a fixed summary."""
     monkeypatch.setattr(cleanup_mod.library, "get_media_summary",
                         lambda c, ids: {"files": len(ids), "bytes": 0, "unknown_sizes": 0})
+
+
+# -- "Select Movies…": checkbox picker over every deletable movie ----------
+
+def test_left_list_still_shows_only_watched_movies(client, monkeypatch):
+    window = _window(client, monkeypatch, unwatched=UNWATCHED)
+
+    assert _ids(window, cleanup_mod.CTRL_WATCHED_LIST) == ["m1", "m2", "m3"]
+
+
+def test_meta_text_marks_unwatched_movie():
+    assert cleanup_mod._meta_text(UNWATCHED[0]) == "2007  •  unwatched"
+
+
+def test_movie_picker_lists_watched_then_unwatched_and_preselects_queued(client, monkeypatch):
+    window = _window(client, monkeypatch, unwatched=UNWATCHED, saved_queue=["m2", "u2"])
+    dialog = _FakeMultiselect(None)
+    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", dialog)
+
+    window.handle_click(cleanup_mod.CTRL_SELECT_BUTTON)
+
+    heading, options, preselect = dialog.multiselect_args
+    assert options == ["Alien (1979)", "Brazil", "Cube", "Dune  •  unwatched", "Zodiac (2007)  •  unwatched"]
+    assert preselect == [1, 3]
+
+
+def test_movie_picker_ok_sets_queue_to_ticked_movies_keeping_seasons(client, monkeypatch):
+    window = _window(client, monkeypatch, unwatched=UNWATCHED, tv=TV, saved_queue=["m2", "s1"])
+    # Alien, Zodiac ticked; Brazil unticked.
+    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", _FakeMultiselect([0, 4]))
+
+    window.handle_click(cleanup_mod.CTRL_SELECT_BUTTON)
+
+    assert window.queued_ids == ["s1", "m1", "u1"]
+    assert _saved(window) == ["s1", "m1", "u1"]
+    assert _ids(window, cleanup_mod.CTRL_QUEUE_LIST) == ["s1", "m1", "u1"]
+    assert _ids(window, cleanup_mod.CTRL_WATCHED_LIST) == ["m2", "m3"]
+
+
+def test_movie_picker_cancel_changes_nothing(client, monkeypatch):
+    window = _window(client, monkeypatch, unwatched=UNWATCHED, saved_queue=["m2"])
+    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", _FakeMultiselect(None))
+
+    window.handle_click(cleanup_mod.CTRL_SELECT_BUTTON)
+
+    assert window.queued_ids == ["m2"]
+
+
+def test_queued_unwatched_movie_survives_reload(client, monkeypatch):
+    window = _window(client, monkeypatch, unwatched=UNWATCHED, saved_queue=["u1"])
+
+    assert _ids(window, cleanup_mod.CTRL_QUEUE_LIST) == ["u1"]
+    assert _saved(window) == ["u1"]
+
+
+def test_deleting_unwatched_movie_removes_it_everywhere(client, monkeypatch):
+    _run_threads_inline(monkeypatch)
+    window = _window(client, monkeypatch, unwatched=UNWATCHED, saved_queue=["u1"])
+    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", _FakeDialog(confirm=True))
+    monkeypatch.setattr(cleanup_mod.library, "delete_item", lambda c, item_id: None)
+
+    window.handle_click(cleanup_mod.CTRL_DELETE_BUTTON)
+
+    assert window.queued_ids == []
+    assert "u1" not in [m["Id"] for m in window.unwatched_movies]
+
+
+def test_select_button_only_shown_in_movies_mode(client, monkeypatch):
+    window = _window(client, monkeypatch)
+    button = window.getControl(cleanup_mod.CTRL_SELECT_BUTTON)
+    assert button.visible
+
+    window.handle_click(cleanup_mod.CTRL_MODE_BUTTON)
+
+    assert not button.visible
