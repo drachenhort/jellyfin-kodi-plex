@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## 0.3.92 - 2026-10-29
+- Clean Up: the buttons can be reached again when both lists are empty (e.g. after deleting every watched movie); before, nothing on the screen had focus.
+
 ## 0.3.91 - 2026-10-29
 - No functional change; release to confirm Kodi auto-updates from the drachenhort repository.
 

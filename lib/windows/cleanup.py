@@ -131,7 +131,7 @@ class CleanupWindow(ControlledWindow):
         elif self.queued_ids != saved:
             self._save_queue()
         self._refresh_lists()
-        self.setFocusId(CTRL_WATCHED_LIST if self._unqueued() else CTRL_QUEUE_LIST)
+        self._focus_list(CTRL_WATCHED_LIST)
 
     def _store(self, mode: str, items: list) -> None:
         if mode == MODE_MOVIES:
@@ -187,6 +187,18 @@ class CleanupWindow(ControlledWindow):
         status = hint if self.items[self.mode] else empty_status
         self.getControl(CTRL_STATUS).setLabel("  •  ".join(self.load_errors + [status]))
 
+    def _focus_list(self, preferred: int) -> None:
+        """Focus `preferred` list, else the other list, else a button.
+        Kodi can't focus an empty list - asking it to leaves nothing
+        focused at all, so no key press can reach the buttons either."""
+        other = CTRL_QUEUE_LIST if preferred == CTRL_WATCHED_LIST else CTRL_WATCHED_LIST
+        filled = {CTRL_WATCHED_LIST: bool(self._left_items()), CTRL_QUEUE_LIST: bool(self._queued())}
+        for control_id in (preferred, other):
+            if filled[control_id]:
+                self.setFocusId(control_id)
+                return
+        self.setFocusId(CTRL_SELECT_BUTTON if self.mode == MODE_MOVIES else CTRL_MODE_BUTTON)
+
     def handle_click(self, control_id: int) -> None:
         if self.deleting:
             return
@@ -227,7 +239,7 @@ class CleanupWindow(ControlledWindow):
         self._save_queue()
         self._refresh_lists(watched_pos=position, queue_pos=len(self.queued_ids) - 1)
         if not self._unqueued():
-            self.setFocusId(CTRL_QUEUE_LIST)
+            self._focus_list(CTRL_QUEUE_LIST)
 
     def _pick_movies(self) -> None:
         """The movie picker page over every deletable movie, queued ones
@@ -270,7 +282,7 @@ class CleanupWindow(ControlledWindow):
         # Moving the last item out of a list leaves it empty, and Kodi can't
         # keep focus on an empty list - hop to the other one instead.
         if (add and not self._unqueued()) or (not add and not self.queued_ids):
-            self.setFocusId(CTRL_QUEUE_LIST if add else CTRL_WATCHED_LIST)
+            self._focus_list(CTRL_QUEUE_LIST if add else CTRL_WATCHED_LIST)
 
     def _save_queue(self) -> None:
         raw = ADDON.getSetting(DELETE_QUEUE_SETTING)
@@ -317,4 +329,4 @@ class CleanupWindow(ControlledWindow):
         xbmcgui.Dialog().notification("Jellyfin", result_message([i for i in items if i not in failed], failed))
         if not self.closed_event.is_set():
             self._refresh_lists()
-            self.setFocusId(CTRL_QUEUE_LIST if self.queued_ids else CTRL_WATCHED_LIST)
+            self._focus_list(CTRL_QUEUE_LIST)

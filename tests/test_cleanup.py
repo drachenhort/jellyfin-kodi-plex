@@ -442,3 +442,31 @@ def test_select_button_only_shown_in_movies_mode(client, monkeypatch):
     window.handle_click(cleanup_mod.CTRL_MODE_BUTTON)
 
     assert not button.visible
+
+
+def test_both_lists_empty_focuses_select_button(client, monkeypatch):
+    # Kodi can't focus an empty list - focusing one leaves nothing focused
+    # and the buttons unreachable (seen live once every movie was deleted).
+    window = _window(client, monkeypatch, movies=[], tv=TV)
+    assert window.getFocusId() == cleanup_mod.CTRL_SELECT_BUTTON
+
+
+def test_both_lists_empty_in_tv_mode_focuses_mode_button(client, monkeypatch):
+    window = _window(client, monkeypatch, tv=[])
+    window.handle_click(cleanup_mod.CTRL_MODE_BUTTON)
+    window.setFocusId(cleanup_mod.CTRL_WATCHED_LIST)
+
+    window._focus_list(cleanup_mod.CTRL_WATCHED_LIST)
+
+    assert window.getFocusId() == cleanup_mod.CTRL_MODE_BUTTON
+
+
+def test_deleting_everything_focuses_a_button(client, monkeypatch):
+    _run_threads_inline(monkeypatch)
+    window = _window(client, monkeypatch, movies=[MOVIES[0]], saved_queue=["m1"])
+    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", _FakeDialog(confirm=True))
+    monkeypatch.setattr(cleanup_mod.library, "delete_item", lambda c, item_id: None)
+
+    window.handle_click(cleanup_mod.CTRL_DELETE_BUTTON)
+
+    assert window.getFocusId() == cleanup_mod.CTRL_SELECT_BUTTON

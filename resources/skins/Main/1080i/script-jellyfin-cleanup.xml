@@ -3,7 +3,10 @@
      (500), the to-be-deleted list on the right (501), and the Delete button
      (502) under it. Selecting a row moves it to the other list. -->
 <window>
-  <defaultcontrol always="true">500</defaultcontrol>
+  <!-- The mode button, not a list: the lists are empty while loading,
+       and Kodi can't focus an empty list (nothing would be focused).
+       CleanupWindow._focus_list moves focus to a list once it's filled. -->
+  <defaultcontrol always="true">506</defaultcontrol>
   <controls>
     <control type="image">
       <posx>0</posx>
