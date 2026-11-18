@@ -72,12 +72,25 @@ class ControlStub:
         self.items = []
         self.selected_item = None
         self.visible = True
+        self.nav = {}
 
     def setLabel(self, label):
         self._label = label
 
     def getLabel(self):
         return self._label
+
+    def controlUp(self, control):
+        self.nav["up"] = control
+
+    def controlDown(self, control):
+        self.nav["down"] = control
+
+    def controlLeft(self, control):
+        self.nav["left"] = control
+
+    def controlRight(self, control):
+        self.nav["right"] = control
 
     def setText(self, text):
         self._text = text

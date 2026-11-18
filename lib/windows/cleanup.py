@@ -191,6 +191,7 @@ class CleanupWindow(ControlledWindow):
         self.getControl(CTRL_SELECT_BUTTON).setVisible(self.mode == MODE_MOVIES)
         self.getControl(CTRL_QUEUE_ALL_BUTTON).setVisible(self.mode == MODE_MOVIES)
         self.getControl(CTRL_TIP).setLabel(MODE_TIPS[self.mode])
+        self._update_navigation(bool(self._left_items()), bool(queued))
         self.getControl(CTRL_DELETE_BUTTON).setLabel(
             f"Delete {describe_count(queued)}" if queued else "Nothing to delete"
         )
@@ -198,6 +199,22 @@ class CleanupWindow(ControlledWindow):
             return
         status = hint if self.items[self.mode] else empty_status
         self.getControl(CTRL_STATUS).setLabel("  •  ".join(self.load_errors + [status]))
+
+    def _update_navigation(self, has_left: bool, has_queue: bool) -> None:
+        """Point remote navigation at controls that can take focus. Kodi
+        can't focus an empty list, so the skin's static targets (top
+        buttons -> left list) dead-end once every movie is queued - the
+        Delete button became unreachable. Re-aim at the first non-empty
+        list, falling back to Delete."""
+        get = self.getControl
+        below_top = CTRL_WATCHED_LIST if has_left else CTRL_QUEUE_LIST if has_queue else CTRL_DELETE_BUTTON
+        for button in (CTRL_QUEUE_ALL_BUTTON, CTRL_SELECT_BUTTON, CTRL_MODE_BUTTON):
+            get(button).controlDown(get(below_top))
+        top = CTRL_SELECT_BUTTON if self.mode == MODE_MOVIES else CTRL_MODE_BUTTON
+        get(CTRL_WATCHED_LIST).controlRight(get(CTRL_QUEUE_LIST if has_queue else CTRL_DELETE_BUTTON))
+        get(CTRL_QUEUE_LIST).controlUp(get(top))
+        get(CTRL_DELETE_BUTTON).controlUp(get(CTRL_QUEUE_LIST if has_queue else top))
+        get(CTRL_DELETE_BUTTON).controlLeft(get(CTRL_WATCHED_LIST if has_left else top))
 
     def _focus_list(self, preferred: int) -> None:
         """Focus `preferred` list, else the other list, else a button.

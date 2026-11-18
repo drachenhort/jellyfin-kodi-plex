@@ -529,3 +529,43 @@ def test_queue_all_button_and_tip_follow_mode(client, monkeypatch):
 
     assert not button.visible
     assert tip.getLabel() == cleanup_mod.MODE_TIPS[cleanup_mod.MODE_TV]
+
+
+def _down_target(window, button):
+    return window.getControl(button).nav["down"]
+
+
+def test_all_movies_queued_down_from_top_buttons_reaches_queue(client, monkeypatch):
+    # Seen live: after queueing every watched movie the left list is empty,
+    # Kodi can't focus it, and the top row's Down led nowhere - Delete
+    # was unreachable.
+    window = _window(client, monkeypatch, saved_queue=["m1", "m2", "m3"])
+
+    for button in (cleanup_mod.CTRL_QUEUE_ALL_BUTTON, cleanup_mod.CTRL_SELECT_BUTTON, cleanup_mod.CTRL_MODE_BUTTON):
+        assert _down_target(window, button) is window.getControl(cleanup_mod.CTRL_QUEUE_LIST)
+    delete = window.getControl(cleanup_mod.CTRL_DELETE_BUTTON)
+    assert delete.nav["up"] is window.getControl(cleanup_mod.CTRL_QUEUE_LIST)
+    assert delete.nav["left"] is window.getControl(cleanup_mod.CTRL_SELECT_BUTTON)
+
+
+def test_watched_movies_left_down_goes_to_left_list(client, monkeypatch):
+    window = _window(client, monkeypatch, saved_queue=["m1"])
+
+    assert _down_target(window, cleanup_mod.CTRL_SELECT_BUTTON) is window.getControl(cleanup_mod.CTRL_WATCHED_LIST)
+    assert window.getControl(cleanup_mod.CTRL_WATCHED_LIST).nav["right"] is window.getControl(cleanup_mod.CTRL_QUEUE_LIST)
+
+
+def test_both_lists_empty_down_goes_to_delete_button(client, monkeypatch):
+    window = _window(client, monkeypatch, movies=[])
+
+    assert _down_target(window, cleanup_mod.CTRL_MODE_BUTTON) is window.getControl(cleanup_mod.CTRL_DELETE_BUTTON)
+
+
+def test_navigation_follows_queue_all_watched(client, monkeypatch):
+    window = _window(client, monkeypatch)
+    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", _FakeDialog())
+    assert _down_target(window, cleanup_mod.CTRL_SELECT_BUTTON) is window.getControl(cleanup_mod.CTRL_WATCHED_LIST)
+
+    window.handle_click(cleanup_mod.CTRL_QUEUE_ALL_BUTTON)
+
+    assert _down_target(window, cleanup_mod.CTRL_SELECT_BUTTON) is window.getControl(cleanup_mod.CTRL_QUEUE_LIST)

@@ -2,6 +2,12 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## [0.3.96] - 2026-11-18
+- Clean Up: once every watched movie is on the to-be-deleted list, pressing Down from the top buttons now reaches that list and the Delete button. Before, Down led to the empty left list, which Kodi can't focus, so the remote was stuck in the top row.
+
+## [0.3.95] - 2026-11-18
+- "Select Movies…": leaving the page with the Back button now keeps the movies you ticked (same as "Done") instead of throwing them away. Only the "Cancel" button discards changes.
+
 ## [0.3.94] - 2026-11-18
 - Clean Up: "Queue All Watched" now says "No watched movies" when there are none, instead of the misleading "All watched movies are already on the list"; its notifications are also shorter so Kodi no longer cuts them off.
 
