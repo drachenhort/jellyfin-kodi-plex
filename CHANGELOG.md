@@ -2,6 +2,9 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## [0.3.94] - 2026-11-18
+- Clean Up: "Queue All Watched" now says "No watched movies" when there are none, instead of the misleading "All watched movies are already on the list"; its notifications are also shorter so Kodi no longer cuts them off.
+
 ## [0.3.93] - 2026-11-18
 - Clean Up has a new "Queue All Watched" button (Movies view) that puts every watched movie on the to-be-deleted list in one press, with no need to open "Select Movies…".
 - On the "Select Movies…" page, pressing Up from the top row of posters now jumps to the button row ("All Watched", "Clear", "Cancel", "Done"). Before, the buttons could only be reached by scrolling down past the last movie.

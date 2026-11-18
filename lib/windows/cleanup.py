@@ -282,12 +282,13 @@ class CleanupWindow(ControlledWindow):
         Only queues - Delete still asks for confirmation."""
         new_ids = [m["Id"] for m in self.items[MODE_MOVIES] if m["Id"] not in self.queued_ids]
         if not new_ids:
-            xbmcgui.Dialog().notification("Jellyfin", "All watched movies are already on the list")
+            message = "Already all queued" if self.items[MODE_MOVIES] else "No watched movies"
+            xbmcgui.Dialog().notification("Jellyfin", message)
             return
         self.queued_ids.extend(new_ids)
         self._save_queue()
         self._refresh_lists(queue_pos=len(self.queued_ids) - 1)
-        xbmcgui.Dialog().notification("Jellyfin", f"Queued {len(new_ids)} watched movie(s) for deletion")
+        xbmcgui.Dialog().notification("Jellyfin", f"Queued {len(new_ids)} watched movie(s)")
         self._focus_list(CTRL_QUEUE_LIST)
 
     def _move(self, control_id: int, add: bool) -> None:

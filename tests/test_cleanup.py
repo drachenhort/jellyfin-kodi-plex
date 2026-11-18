@@ -484,7 +484,7 @@ def test_queue_all_watched_queues_every_watched_movie(client, monkeypatch):
     assert _saved(window) == ["s1", "m2", "m1", "m3"]
     assert _ids(window, cleanup_mod.CTRL_WATCHED_LIST) == []
     assert window.getFocusId() == cleanup_mod.CTRL_QUEUE_LIST
-    assert dialog.notifications == ["Queued 2 watched movie(s) for deletion"]
+    assert dialog.notifications == ["Queued 2 watched movie(s)"]
 
 
 def test_queue_all_watched_when_all_queued_only_notifies(client, monkeypatch):
@@ -495,7 +495,18 @@ def test_queue_all_watched_when_all_queued_only_notifies(client, monkeypatch):
     window.handle_click(cleanup_mod.CTRL_QUEUE_ALL_BUTTON)
 
     assert window.queued_ids == ["m1", "m2", "m3"]
-    assert dialog.notifications == ["All watched movies are already on the list"]
+    assert dialog.notifications == ["Already all queued"]
+
+
+def test_queue_all_watched_without_watched_movies_says_so(client, monkeypatch):
+    window = _window(client, monkeypatch, movies=[], unwatched=UNWATCHED)
+    dialog = _FakeDialog()
+    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", dialog)
+
+    window.handle_click(cleanup_mod.CTRL_QUEUE_ALL_BUTTON)
+
+    assert window.queued_ids == []
+    assert dialog.notifications == ["No watched movies"]
 
 
 def test_queue_all_watched_ignored_in_tv_mode(client, monkeypatch):
