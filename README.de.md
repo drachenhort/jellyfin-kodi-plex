@@ -149,7 +149,10 @@ Der Button „Select Movies…“ öffnet eine eigene Seite mit allen Filmen, di
 zuerst die gesehenen, dann die ungesehenen (orange markiert) –, mit ihren Genres, auf der die
 bereits vorgemerkten einen Haken tragen. Auswählen setzt oder entfernt den Haken, „All Watched“ hakt alle gesehenen Filme
 an, „Clear“ entfernt alle Haken, und „Done“ übernimmt die angehakten Filme als Zu-löschen-Liste; so
-lassen sich viele Filme auf einmal vormerken. Nur auf diesem Weg kommt auch ein
+lassen sich viele Filme auf einmal vormerken (Nach-oben in der obersten Poster-Reihe springt zu diesen Buttons).
+Am schnellsten mit der Fernbedienung geht es über den Button „Queue All Watched“ neben „Select Movies…“:
+er setzt alle gesehenen Filme mit einem Druck auf die Zu-löschen-Liste. Ein Hinweis unter der linken
+Liste erinnert daran. Nur auf diesem Weg kommt auch ein
 ungesehener Film auf die Liste. Enthält eine Löschbestätigung ungesehene Filme, nennt sie deren Anzahl.
 Jede Löschbestätigung zeigt vorher an, wie viele Dateien und wie viel Speicherplatz gelöscht werden.
 

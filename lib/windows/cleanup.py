@@ -10,7 +10,9 @@ Selecting a queued item takes it back off. In Movies mode, "Select
 Movies…" opens a full-page picker (lib/windows/movie_picker.py) of every deletable movie - watched first,
 then unwatched ones (marked as such) - with the queued ones pre-ticked, so
 many movies can be queued or unqueued in one go; it's the only way to queue
-an unwatched movie. Delete permanently deletes
+an unwatched movie. "Queue All Watched" (Movies mode) puts every watched
+movie on the list in one press - the remote-friendly shortcut. A tip line
+at the bottom left explains the per-mode shortcuts. Delete permanently deletes
 everything on the to-be-deleted list after a confirmation that shows the
 file count and size.
 
@@ -49,6 +51,8 @@ CTRL_QUEUE_HEADER = 504
 CTRL_STATUS = 505
 CTRL_MODE_BUTTON = 506
 CTRL_SELECT_BUTTON = 507
+CTRL_QUEUE_ALL_BUTTON = 508
+CTRL_TIP = 509
 
 MODE_MOVIES = "movies"
 MODE_TV = "tv"
@@ -58,6 +62,12 @@ MODE_TEXT = {
                   "No watched movies you can delete", "Show TV Shows"),
     MODE_TV: ("TV Shows With Watched Seasons", "Select a show to pick which of its watched seasons to delete",
               "No fully watched seasons you can delete", "Show Movies"),
+}
+# mode -> remote how-to shown in the tip line under the left list
+MODE_TIPS = {
+    MODE_MOVIES: ("Tip: \"Queue All Watched\" (top) puts every watched movie on the list in one press. "
+                  "Or open \"Select Movies…\", press Up for \"All Watched\", then \"Done\"."),
+    MODE_TV: "Tip: select a show, tick its watched seasons, then OK. Delete removes everything on the right.",
 }
 LOADERS = {MODE_MOVIES: "get_deletable_movies", MODE_TV: "get_watched_seasons"}
 
@@ -179,6 +189,8 @@ class CleanupWindow(ControlledWindow):
         self.getControl(CTRL_QUEUE_HEADER).setLabel(f"To Be Deleted ({len(queued)})")
         self.getControl(CTRL_MODE_BUTTON).setLabel(mode_label)
         self.getControl(CTRL_SELECT_BUTTON).setVisible(self.mode == MODE_MOVIES)
+        self.getControl(CTRL_QUEUE_ALL_BUTTON).setVisible(self.mode == MODE_MOVIES)
+        self.getControl(CTRL_TIP).setLabel(MODE_TIPS[self.mode])
         self.getControl(CTRL_DELETE_BUTTON).setLabel(
             f"Delete {describe_count(queued)}" if queued else "Nothing to delete"
         )
@@ -214,6 +226,8 @@ class CleanupWindow(ControlledWindow):
             self._toggle_mode()
         elif control_id == CTRL_SELECT_BUTTON and self.mode == MODE_MOVIES and self.loaded:
             self._pick_movies()
+        elif control_id == CTRL_QUEUE_ALL_BUTTON and self.mode == MODE_MOVIES and self.loaded:
+            self._queue_all_watched()
 
     def _toggle_mode(self) -> None:
         self.mode = MODE_TV if self.mode == MODE_MOVIES else MODE_MOVIES
@@ -262,6 +276,19 @@ class CleanupWindow(ControlledWindow):
         self._save_queue()
         self._refresh_lists(queue_pos=len(self.queued_ids) - 1)
         self.setFocusId(CTRL_QUEUE_LIST if self.queued_ids else CTRL_SELECT_BUTTON)
+
+    def _queue_all_watched(self) -> None:
+        """Put every watched movie not yet queued on the to-be-deleted list.
+        Only queues - Delete still asks for confirmation."""
+        new_ids = [m["Id"] for m in self.items[MODE_MOVIES] if m["Id"] not in self.queued_ids]
+        if not new_ids:
+            xbmcgui.Dialog().notification("Jellyfin", "All watched movies are already on the list")
+            return
+        self.queued_ids.extend(new_ids)
+        self._save_queue()
+        self._refresh_lists(queue_pos=len(self.queued_ids) - 1)
+        xbmcgui.Dialog().notification("Jellyfin", f"Queued {len(new_ids)} watched movie(s) for deletion")
+        self._focus_list(CTRL_QUEUE_LIST)
 
     def _move(self, control_id: int, add: bool) -> None:
         control = self.getControl(control_id)

@@ -37,7 +37,9 @@
       <orientation>vertical</orientation>
       <onleft>600</onleft>
       <onright>600</onright>
-      <onup>600</onup>
+      <!-- Up from the top row jumps to the button row, so "All Watched"
+           and "Done" are reachable without scrolling the whole grid. -->
+      <onup>604</onup>
       <ondown>602</ondown>
       <itemlayout width="880" height="124">
         <control type="image">

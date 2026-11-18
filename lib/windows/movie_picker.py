@@ -21,7 +21,7 @@ CTRL_CANCEL_BUTTON = 603
 CTRL_ALL_WATCHED_BUTTON = 604
 CTRL_CLEAR_BUTTON = 605
 
-HINT = "Select a movie to tick or untick it"
+HINT = "Select a movie to tick or untick it  •  Up from the top row: All Watched / Done"
 
 
 def genre_text(movie: dict) -> str:

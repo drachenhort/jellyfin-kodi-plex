@@ -2,6 +2,11 @@
 
 All notable changes to this addon, one entry per released version (newest first).
 
+## [0.3.93] - 2026-11-18
+- Clean Up has a new "Queue All Watched" button (Movies view) that puts every watched movie on the to-be-deleted list in one press, with no need to open "Select Movies…".
+- On the "Select Movies…" page, pressing Up from the top row of posters now jumps to the button row ("All Watched", "Clear", "Cancel", "Done"). Before, the buttons could only be reached by scrolling down past the last movie.
+- Clean Up shows a short tip under the left list explaining how to queue everything with the remote.
+
 ## [0.3.92] - 2026-10-29
 - Clean Up: the buttons can be reached again when both lists are empty (e.g. after deleting every watched movie); before, nothing on the screen had focus.
 

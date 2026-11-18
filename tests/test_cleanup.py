@@ -470,3 +470,51 @@ def test_deleting_everything_focuses_a_button(client, monkeypatch):
     window.handle_click(cleanup_mod.CTRL_DELETE_BUTTON)
 
     assert window.getFocusId() == cleanup_mod.CTRL_SELECT_BUTTON
+
+
+def test_queue_all_watched_queues_every_watched_movie(client, monkeypatch):
+    window = _window(client, monkeypatch, unwatched=UNWATCHED, tv=TV, saved_queue=["s1", "m2"])
+    dialog = _FakeDialog()
+    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", dialog)
+
+    window.handle_click(cleanup_mod.CTRL_QUEUE_ALL_BUTTON)
+
+    # Unwatched movies and unqueued seasons stay off the list.
+    assert window.queued_ids == ["s1", "m2", "m1", "m3"]
+    assert _saved(window) == ["s1", "m2", "m1", "m3"]
+    assert _ids(window, cleanup_mod.CTRL_WATCHED_LIST) == []
+    assert window.getFocusId() == cleanup_mod.CTRL_QUEUE_LIST
+    assert dialog.notifications == ["Queued 2 watched movie(s) for deletion"]
+
+
+def test_queue_all_watched_when_all_queued_only_notifies(client, monkeypatch):
+    window = _window(client, monkeypatch, saved_queue=["m1", "m2", "m3"])
+    dialog = _FakeDialog()
+    monkeypatch.setattr(cleanup_mod.xbmcgui, "Dialog", dialog)
+
+    window.handle_click(cleanup_mod.CTRL_QUEUE_ALL_BUTTON)
+
+    assert window.queued_ids == ["m1", "m2", "m3"]
+    assert dialog.notifications == ["All watched movies are already on the list"]
+
+
+def test_queue_all_watched_ignored_in_tv_mode(client, monkeypatch):
+    window = _window(client, monkeypatch, tv=TV)
+    window.handle_click(cleanup_mod.CTRL_MODE_BUTTON)
+
+    window.handle_click(cleanup_mod.CTRL_QUEUE_ALL_BUTTON)
+
+    assert window.queued_ids == []
+
+
+def test_queue_all_button_and_tip_follow_mode(client, monkeypatch):
+    window = _window(client, monkeypatch)
+    button = window.getControl(cleanup_mod.CTRL_QUEUE_ALL_BUTTON)
+    tip = window.getControl(cleanup_mod.CTRL_TIP)
+    assert button.visible
+    assert tip.getLabel() == cleanup_mod.MODE_TIPS[cleanup_mod.MODE_MOVIES]
+
+    window.handle_click(cleanup_mod.CTRL_MODE_BUTTON)
+
+    assert not button.visible
+    assert tip.getLabel() == cleanup_mod.MODE_TIPS[cleanup_mod.MODE_TV]
