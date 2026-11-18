@@ -5,14 +5,15 @@ row. Selecting a row ticks or unticks it; "All Watched" ticks every watched
 movie, "Clear" unticks everything.
 
 self.result on close: the list of ticked movie ids, in the order the movies
-were given ("Done"), or None ("Cancel" / Back - no change).
+were given ("Done" or Back - Back keeps the ticks, since with a remote it's
+the natural way out), or None ("Cancel" - no change).
 """
 
 import xbmcgui
 
 from lib.jellyfin import images, library
 from lib.windows.delete_confirm import item_name, meta_text
-from lib.windows.kodigui import ControlledWindow, list_item
+from lib.windows.kodigui import BACK_ACTIONS, ControlledWindow, list_item
 
 CTRL_MOVIE_LIST = 600
 CTRL_STATUS = 601
@@ -21,7 +22,7 @@ CTRL_CANCEL_BUTTON = 603
 CTRL_ALL_WATCHED_BUTTON = 604
 CTRL_CLEAR_BUTTON = 605
 
-HINT = "Select a movie to tick or untick it  •  Up from the top row: All Watched / Done"
+HINT = "Select a movie to tick or untick it  •  Back keeps your ticks  •  Up from the top row: All Watched / Done"
 
 
 def genre_text(movie: dict) -> str:
@@ -60,8 +61,7 @@ class MoviePickerWindow(ControlledWindow):
         if control_id == CTRL_MOVIE_LIST:
             self._toggle_selected()
         elif control_id == CTRL_DONE_BUTTON:
-            self.result = [m["Id"] for m in self.movies if m["Id"] in self.selected]
-            self.close()
+            self._close_keeping_ticks()
         elif control_id == CTRL_CANCEL_BUTTON:
             self.result = None
             self.close()
@@ -71,6 +71,18 @@ class MoviePickerWindow(ControlledWindow):
         elif control_id == CTRL_CLEAR_BUTTON:
             self.selected.clear()
             self._refresh_checks()
+
+    def onAction(self, action) -> None:
+        # Back acts like Done, not Cancel: ticking movies and then backing
+        # out with the remote must not silently throw the ticks away.
+        if action.getId() in BACK_ACTIONS:
+            self._close_keeping_ticks()
+            return
+        super().onAction(action)
+
+    def _close_keeping_ticks(self) -> None:
+        self.result = [m["Id"] for m in self.movies if m["Id"] in self.selected]
+        self.close()
 
     def _toggle_selected(self) -> None:
         position = self.getControl(CTRL_MOVIE_LIST).getSelectedPosition()

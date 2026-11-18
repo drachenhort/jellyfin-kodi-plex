@@ -83,6 +83,33 @@ def test_cancel_returns_none(client, monkeypatch):
     assert window.closed
 
 
+class _FakeAction:
+    def __init__(self, action_id):
+        self.action_id = action_id
+
+    def getId(self):
+        return self.action_id
+
+
+def test_back_keeps_ticks_like_done(client, monkeypatch):
+    window = _window(client, monkeypatch, selected_ids={"u1"})
+    _click_row(window, 0)
+
+    window.onAction(_FakeAction(92))  # ACTION_NAV_BACK
+
+    assert window.result == ["m1", "u1"]
+    assert window.closed
+
+
+def test_previous_menu_also_keeps_ticks(client, monkeypatch):
+    window = _window(client, monkeypatch)
+    _click_row(window, 1)
+
+    window.onAction(_FakeAction(10))  # ACTION_PREVIOUS_MENU
+
+    assert window.result == ["m2"]
+
+
 def test_genre_text_joins_genres_and_handles_missing():
     assert picker_mod.genre_text(MOVIES[0]) == "Horror, Science Fiction"
     assert picker_mod.genre_text({"Genres": None}) == ""

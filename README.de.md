@@ -148,7 +148,7 @@ Liste vom Server.
 Der Button „Select Movies…“ öffnet eine eigene Seite mit allen Filmen, die gelöscht werden dürfen –
 zuerst die gesehenen, dann die ungesehenen (orange markiert) –, mit ihren Genres, auf der die
 bereits vorgemerkten einen Haken tragen. Auswählen setzt oder entfernt den Haken, „All Watched“ hakt alle gesehenen Filme
-an, „Clear“ entfernt alle Haken, und „Done“ übernimmt die angehakten Filme als Zu-löschen-Liste; so
+an, „Clear“ entfernt alle Haken, und „Done“ (oder die Zurück-Taste) übernimmt die angehakten Filme als Zu-löschen-Liste („Cancel“ verwirft die Änderungen); so
 lassen sich viele Filme auf einmal vormerken (Nach-oben in der obersten Poster-Reihe springt zu diesen Buttons).
 Am schnellsten mit der Fernbedienung geht es über den Button „Queue All Watched“ neben „Select Movies…“:
 er setzt alle gesehenen Filme mit einem Druck auf die Zu-löschen-Liste. Ein Hinweis unter der linken
